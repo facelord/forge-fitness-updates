@@ -1,7 +1,7 @@
 {
-  "versionCode": 10021,
-  "versionName": "14.6.21",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.6.21/FORGE-Fitness-14.6.21.apk",
-  "sha256": "cd33008f9e14a102941812071369c3a32b02062cc1af1a747d6ac57db2b2bff5",
+  "versionCode": 10022,
+  "versionName": "14.6.22",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.6.22/FORGE-Fitness-14.6.22.apk",
+  "sha256": "6f428b0a97810d63d62acb0ef26fa04e4ef3b14ce682a308777f871a017c3148",
   "notes": "Neue FORGE-Testversion mit Verbesserungen und Fehlerbehebungen."
 }
