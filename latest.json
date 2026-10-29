@@ -1,7 +1,7 @@
 {
-  "versionCode": 10088,
-  "versionName": "14.10.88",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.10.88/FORGE-Fitness-14.10.88.apk",
-  "sha256": "2cd46aae7d5446e80a7187de41812558739f0ec3e7507673056746a794296098",
-  "notes": "FORGE 14.10 Bildrunde 1: fotorealistische Start-/Endpositionen und Muskelansicht für Arnold Press, Bird Dog, Hip Thrust und Pallof Press. Weitere Bewegungen folgen in Einzelbildrunden; vorhandene Bilder bleiben erhalten."
+  "versionCode": 10091,
+  "versionName": "14.10.91",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.10.91/FORGE-Fitness-14.10.91.apk",
+  "sha256": "948f12639c36bb1d34bce9ebf68b6c1dc04d7944d02c7af2b219c51715ad3eec",
+  "notes": "FORGE 14.10 Bildrunde 2: realistische Studiofotos mit Start-/Endposition und anatomischer Muskelansicht für Einarmiges Kurzhantelrudern, Brustgestütztes Rudern, Gerade-Arme-Pulldown, Hammer Curls und Überkopf-Trizepsstrecken. Bestehende Bilder bleiben erhalten."
 }
