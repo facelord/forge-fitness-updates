@@ -1,7 +1,7 @@
 {
-  "versionCode": 10096,
-  "versionName": "14.11.96",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.11.96/FORGE-Fitness-14.11.96.apk",
-  "sha256": "8d09f4c77aac6adb81eabdbcf46a2fc3c3ae77b1ba65050f6594d0e0a8a86ddd",
-  "notes": "FORGE 14.11 Bildrunde 3: realistische Start-/Endpositionen plus Muskelgrafik für Brustpresse, Butterfly, Kabel-Flys, Beinstrecker, Abduktoren, Adduktoren, einbeiniges RDL und Back Extensions. Bildstandard dokumentiert; bestehende Bilder bleiben erhalten."
+  "versionCode": 10101,
+  "versionName": "14.12.101",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.12.101/FORGE-Fitness-14.12.101.apk",
+  "sha256": "5c7262babce4a8f9c746bd60ef7e383311e26872ebc202bd0d2f44fa85d14415",
+  "notes": "FORGE 14.12: freigegebene Schulter-Außenrotation mit rechter Hand nach außen (aus Betrachtersicht links), festem Ellenbogen und durchgehendem Kabelverlauf. Zwei Positionsbilder plus Muskelansicht. Alle anderen Übungen unverändert."
 }
