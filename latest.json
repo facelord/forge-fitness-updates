@@ -1,7 +1,7 @@
 {
-  "versionCode": 10075,
-  "versionName": "14.9.75",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.9.75/FORGE-Fitness-14.9.75.apk",
-  "sha256": "4cff2a08c28757516d98988e2e68c1b5c9ab9558323532e7445bd2fe0b2eaacd",
-  "notes": "FORGE 14.9: Automatische und individuelle Planung in einer Kachel, vereinfachte Trainingsansicht, reduzierte Doppelungen, einheitliche Oberflaeche und Wischgesten."
+  "versionCode": 10079,
+  "versionName": "14.9.79",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.9.79/FORGE-Fitness-14.9.79.apk",
+  "sha256": "5ee70ba94351ba2c238c85c88bee2989499dc5772b856f9fb2ffaa1092bbe409",
+  "notes": "FORGE: Trainingsplan-Gestaltung einklappbar, Übungskatalog zeigt die verfügbaren Bilder und Tipps direkt; archivierte Pläne können nach Sicherheitsabfrage einzeln gelöscht werden."
 }
