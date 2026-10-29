@@ -1,7 +1,7 @@
 {
-  "versionCode": 10054,
-  "versionName": "14.6.54",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.6.54/FORGE-Fitness-14.6.54.apk",
-  "sha256": "cd19130a1ac1f9b6ba8eb0c19b98e446f367a83715f3cdb6a23051cc329f6e84",
-  "notes": "Neue FORGE-Testversion mit Verbesserungen und Fehlerbehebungen."
+  "versionCode": 10059,
+  "versionName": "14.7.59",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.7.59/FORGE-Fitness-14.7.59.apk",
+  "sha256": "db4a52059914258a99d15b211de08777a635cf041406db1fc50ad20a9b355ad6",
+  "notes": "Nährwerte übersichtlicher: Zucker, Salz, Ballaststoffe, gesättigte und ungesättigte Fettsäuren. Erweiterte Produktdaten und Etikettenwerte prüfen."
 }
