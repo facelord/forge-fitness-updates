@@ -1,7 +1,7 @@
 {
-  "versionCode": 10091,
-  "versionName": "14.10.91",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.10.91/FORGE-Fitness-14.10.91.apk",
-  "sha256": "948f12639c36bb1d34bce9ebf68b6c1dc04d7944d02c7af2b219c51715ad3eec",
-  "notes": "FORGE 14.10 Bildrunde 2: realistische Studiofotos mit Start-/Endposition und anatomischer Muskelansicht für Einarmiges Kurzhantelrudern, Brustgestütztes Rudern, Gerade-Arme-Pulldown, Hammer Curls und Überkopf-Trizepsstrecken. Bestehende Bilder bleiben erhalten."
+  "versionCode": 10096,
+  "versionName": "14.11.96",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.11.96/FORGE-Fitness-14.11.96.apk",
+  "sha256": "8d09f4c77aac6adb81eabdbcf46a2fc3c3ae77b1ba65050f6594d0e0a8a86ddd",
+  "notes": "FORGE 14.11 Bildrunde 3: realistische Start-/Endpositionen plus Muskelgrafik für Brustpresse, Butterfly, Kabel-Flys, Beinstrecker, Abduktoren, Adduktoren, einbeiniges RDL und Back Extensions. Bildstandard dokumentiert; bestehende Bilder bleiben erhalten."
 }
