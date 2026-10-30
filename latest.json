@@ -1,7 +1,7 @@
 {
-  "versionCode": 10126,
-  "versionName": "14.13.126",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.126/FORGE-Fitness-14.13.126.apk",
-  "sha256": "301c74d46bfef0d628318d5004292eca10fd47edd516096c0728f9acd2533b87",
-  "notes": "Übungskatalog übersichtlicher: zwei nebeneinanderliegende Kategorien Kraftübungen und Mobilitätstraining, eigene Suche und direkte Aktionen für Trainingsplan oder Mobilitätsmix. Alle vorhandenen Trainingsdaten bleiben bei regulären Updates erhalten."
+  "versionCode": 10127,
+  "versionName": "14.13.127",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.127/FORGE-Fitness-14.13.127.apk",
+  "sha256": "513e671eaf2da7fb4b8a8be14b000e4e644497c7f334294fa6d81aef3a5cb8a3",
+  "notes": "FORGE: 19 ältere Kraftübungen haben neue graue Muskelübersichten mit rot markierten Hauptmuskeln und orange markierten Hilfsmuskeln erhalten. Start-/Endpositionen unverändert; anatomische Grafiken sind illustrative Beta-Versionen. Vorhandene Trainingsdaten bleiben beim regulären Update erhalten."
 }
