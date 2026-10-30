@@ -3,5 +3,5 @@
   "versionName": "14.13.126",
   "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.126/FORGE-Fitness-14.13.126.apk",
   "sha256": "301c74d46bfef0d628318d5004292eca10fd47edd516096c0728f9acd2533b87",
-  "notes": "FORGE: Infrastruktur für einzeln geprüfte Mobilitäts-Fotobilder ergänzt. Bis zur Freigabe der jeweiligen Bildreihe werden weiterhin die bisherigen Übungsgrafiken angezeigt. Bestehende Trainingsdaten bleiben unverändert."
+  "notes": "Übungskatalog übersichtlicher: zwei nebeneinanderliegende Kategorien Kraftübungen und Mobilitätstraining, eigene Suche und direkte Aktionen für Trainingsplan oder Mobilitätsmix. Alle vorhandenen Trainingsdaten bleiben bei regulären Updates erhalten."
 }
