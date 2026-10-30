@@ -1,7 +1,7 @@
 {
-  "versionCode": 10124,
-  "versionName": "14.13.124",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.124/FORGE-Fitness-14.13.124.apk",
-  "sha256": "315c5ed2ac095d8139da1bf9a660c7a039917d31e058fe51237c6e3c60e7debc",
-  "notes": "FORGE: Alle 20 Mobilitäts-Übungskarten mit Startposition, Endposition und Muskelansicht für deinen Handy-Sichttest eingebunden. Einzelne Fotoreihen bleiben bis zur fachlichen Freigabe unveröffentlicht. Bestehende Trainingsdaten bleiben bei regulären Updates erhalten."
+  "versionCode": 10126,
+  "versionName": "14.13.126",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.126/FORGE-Fitness-14.13.126.apk",
+  "sha256": "301c74d46bfef0d628318d5004292eca10fd47edd516096c0728f9acd2533b87",
+  "notes": "FORGE: Infrastruktur für einzeln geprüfte Mobilitäts-Fotobilder ergänzt. Bis zur Freigabe der jeweiligen Bildreihe werden weiterhin die bisherigen Übungsgrafiken angezeigt. Bestehende Trainingsdaten bleiben unverändert."
 }
