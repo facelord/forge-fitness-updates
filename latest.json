@@ -1,7 +1,7 @@
 {
-  "versionCode": 10135,
-  "versionName": "14.13.135",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.135/FORGE-Fitness-14.13.135.apk",
-  "sha256": "635c43ad981902589d1ff25ce8c8e815a467c283bb9fb0ec4e13667357b97d35",
-  "notes": "FORGE: 19 Muskelgruppenbilder der Kraftübungen durch individuelle anatomische SVG-Vorder- und Rückansichten ersetzt. Rot zeigt Hauptmuskeln, Orange unterstützende Muskeln. Vollbildansicht mit Finger-Zoom und Verschieben für Kraftübungsbilder. Start-/Endfotos, Mobilitätsübungen und Trainingsdaten bleiben erhalten. Zudem kann der aktive Trainingsplan direkt bearbeitet werden."
+  "versionCode": 10137,
+  "versionName": "14.13.137",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.137/FORGE-Fitness-14.13.137.apk",
+  "sha256": "1128198f565c6ada1eaa5df6300153f4c73aa71794cd3bfc843eea4a0a64f40b",
+  "notes": "FORGE: Plan bearbeiten öffnet jetzt den AKTIVEN Trainingsplan direkt: Trainingstag auswählen, Übungen hinzufügen, austauschen, entfernen und sortieren sowie Sätze/Wdh. und Namen bearbeiten. Kein neuer Plan und keine automatische Archivierung. Vorhandene Trainingsdaten und X-Tage-Rhythmus bleiben erhalten."
 }
