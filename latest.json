@@ -3,5 +3,5 @@
   "versionName": "14.13.141",
   "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.141/FORGE-Fitness-14.13.141.apk",
   "sha256": "eef8fa3075ca1660c48a3ca37fb4836842bda3655008dd840ff863c2b5e9c980",
-  "notes": "FORGE: Plan bearbeiten öffnet jetzt den AKTIVEN Trainingsplan direkt: Trainingstag auswählen, Übungen hinzufügen, austauschen, entfernen und sortieren sowie Sätze/Wdh. und Namen bearbeiten. Kein neuer Plan und keine automatische Archivierung. Vorhandene Trainingsdaten und X-Tage-Rhythmus bleiben erhalten."
+  "notes": "FORGE: Archivierte Trainingspläne können wieder über den sichtbaren Button „Reaktivieren“ aktiviert werden. Der aktuelle Plan wird nach Bestätigung archiviert; abgeschlossene Workouts bleiben erhalten. Im Wochenplan lassen sich Trainingstage (z. B. Plan A am Dienstag) antippen, um Übungen, Sätze und Wiederholungen aufzuklappen. Gilt auch für zusätzliche Trainingseinheiten. Für Android und Web-App."
 }
