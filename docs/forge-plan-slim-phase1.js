@@ -123,7 +123,9 @@ function install(){
   const section=element('section','forge-slim-week');section.id='forgeSlimWeek';
   section.setAttribute('aria-label','Deine Trainingswoche');
   section.append(element('h2','','Deine Woche'),element('p','','Trainingstag antippen, um Übungen und Sätze anzusehen.'));
-  actions.after(section);
+  // Keep the direct active-plan editor directly below its action button.
+  const editor=$('forgeActivePlanEditor');
+  (editor||actions).after(section);
   // Move only the compact calendar. Legacy editor and weekly-move controls are untouched.
   section.append(week);
  }
@@ -145,6 +147,12 @@ function install(){
    buttons.append(button);
   }
   details.append(buttons);
+  details.addEventListener('toggle',()=>{
+   if(details.open||!currentPanel)return;
+   currentPanel=null;
+   page.dataset.forgeSlimPanel='none';
+   buttons.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed','false'));
+  });
   const section=$('forgeSlimWeek');section.after(details);
  }
  const oldOpen=window.forgeOpenPlanEditor;
