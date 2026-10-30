@@ -48,23 +48,42 @@ function planFold(){
  },true);
  return true;
 }
+/* Reinstate the archive's primary action even when the legacy archive renderer
+ * omitted or lost the button. The original reactivatePlan() owns confirmation,
+ * archiving the current plan, and restoring the selected plan/settings.
+ */
 function archiveActions(){
  const root=$('#planArchive');if(!root)return false;
- $$('.forge136-plan-row',root).forEach((row)=>{
-  if($('.forge159-delete',row))return;
-  const reactivate=$('.forge136-reactivate',row);
-  if(!reactivate)return;
-  const actions=document.createElement('div');actions.className='forge159-archive-actions';
-  reactivate.before(actions);actions.append(reactivate);
-  const del=document.createElement('button');del.type='button';
-  del.className='btn danger small forge159-delete';del.textContent='Löschen';
-  del.setAttribute('aria-label','Diesen archivierten Trainingsplan löschen');
-  actions.append(del);
+ const archived=Array.isArray(state?.planArchive)?state.planArchive:[];
+ $$('.forge136-plan-row',root).forEach((row,index)=>{
+  let actions=$('.forge159-archive-actions',row);
+  if(!actions){
+   actions=document.createElement('div');actions.className='forge159-archive-actions';
+   row.append(actions);
+  }
+  let reactivate=$('.forge136-reactivate',row);
+  if(!reactivate){
+   reactivate=document.createElement('button');
+   reactivate.className='btn alt small forge136-reactivate';
+   reactivate.textContent='Reaktivieren';
+  }
+  reactivate.type='button';
+  reactivate.removeAttribute('onclick'); // No unescaped archive IDs in inline JavaScript.
+  const plan=archived[index];
+  reactivate.setAttribute('aria-label',(plan?.name||'Archivierten Trainingsplan')+' reaktivieren');
+  if(reactivate.parentNode!==actions)actions.prepend(reactivate);
+  let del=$('.forge159-delete',row);
+  if(!del){
+   del=document.createElement('button');del.type='button';
+   del.className='btn danger small forge159-delete';del.textContent='Löschen';
+   del.setAttribute('aria-label','Diesen archivierten Trainingsplan löschen');
+  }
+  if(del.parentNode!==actions)actions.append(del);
  });
- if(!root.dataset.forge159DeleteEvents){
-  root.dataset.forge159DeleteEvents='1';
+ if(!root.dataset.forge159ArchiveEvents){
+  root.dataset.forge159ArchiveEvents='1';
   root.addEventListener('click',event=>{
-   const button=event.target.closest('button.forge159-delete');
+   const button=event.target.closest('button.forge136-reactivate,button.forge159-delete');
    if(!button||!root.contains(button))return;
    event.preventDefault();event.stopPropagation();
    if(!Array.isArray(state?.planArchive))return;
@@ -72,6 +91,12 @@ function archiveActions(){
    const index=$$('.forge136-plan-row',root).indexOf(row);
    const plan=state.planArchive[index];
    if(!plan)return;
+   if(button.classList.contains('forge136-reactivate')){
+    if(state.activeWorkout){alert('Bitte beende zuerst dein laufendes Training, bevor du den Trainingsplan wechselst.');return;}
+    if(typeof window.reactivatePlan!=='function'){alert('Die Reaktivierung ist momentan nicht verfügbar. Bitte FORGE neu laden.');return;}
+    window.reactivatePlan(plan.id); // Existing, confirmation-protected operation.
+    return;
+   }
    const name=String(plan.name||'Trainingsplan');
    if(!confirm('Archivierten Trainingsplan „'+name+'“ dauerhaft löschen?\n\nDein aktiver Plan, abgeschlossene Trainings und Statistiken bleiben erhalten.'))return;
    // ONLY the selected archive entry; no changes to workouts, stats or active plan.
@@ -144,9 +169,13 @@ function styles(){
  #plan.forge159-plan-closed > .forge150-plan-panel{display:none!important}
  #plan .forge159-plan-toggle[aria-expanded="true"]{border-radius:15px 15px 0 0;border-bottom:0}
  #plan .forge159-plan-toggle[aria-expanded="true"] + #forge150PlanHub{margin-top:0!important;border-radius:0!important}
- #plan .forge159-archive-actions{display:flex;gap:8px;align-items:center;justify-content:flex-end;
-   flex-wrap:wrap;min-width:0}
- #plan .forge159-archive-actions button{min-height:42px;white-space:nowrap}
+ #planArchive .forge136-plan-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;min-width:0}
+ #plan #planArchive .forge159-archive-actions{display:flex;gap:8px;align-items:center;justify-content:flex-end;
+   flex-wrap:wrap;min-width:0;margin-left:auto}
+ #plan #planArchive .forge159-archive-actions button{min-height:42px;white-space:nowrap}
+ #plan #planArchive .forge136-reactivate{display:inline-flex!important;align-items:center;justify-content:center;
+   visibility:visible!important;opacity:1!important;min-width:112px;background:#284938!important;
+   border:1px solid #78a26d!important;color:#e6ffe4!important;font-weight:750}
  #plan .forge159-delete{background:#512a32!important;border:1px solid #934750!important;color:#ffe4e6!important}
  #plan .forge159-delete:focus-visible{outline:2px solid #a8f55d;outline-offset:2px}
  #plan .forge-catalog-loaded .forge159-guide-body{background:transparent!important;border:0!important;

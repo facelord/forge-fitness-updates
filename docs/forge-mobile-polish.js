@@ -73,8 +73,21 @@ function swipeDirection(dx,dy,ms,blocked=false){
  if(blocked||ms>850||ms<40||Math.abs(dx)<78||Math.abs(dx)<1.7*Math.abs(dy))return 0;
  return dx<0?1:-1;
 }
-window.ForgeMobilePolish=Object.freeze({PAGES,localISO,isoWeek,weekModel,normalizedExtras,swipeDirection});
+function exercisePreview(plan){
+ const entries=Array.isArray(plan?.ex)?plan.ex:[];
+ return entries.map((exercise,i)=>{
+  const name=String(exercise?.name||'Übung '+(i+1));
+  const count=Number(exercise?.sets);
+  const sets=Number.isInteger(count)&&count>0?count:null;
+  const reps=exercise?.reps==null?'':String(exercise.reps).trim();
+  const isTime=['sec','seconds','time'].includes(exercise?.unit);
+  const description=sets&&reps?sets+' × '+reps+(isTime?' Sek.':''):sets?sets+' Sätze':reps?reps+(isTime?' Sek.':' Wiederholungen'):'';
+  return {name,description};
+ });
+}
+window.ForgeMobilePolish=Object.freeze({PAGES,localISO,isoWeek,weekModel,normalizedExtras,swipeDirection,exercisePreview});
 let restOpen=false,editorOpen=false,weekObserver=null,ready=false,swipeStart=null,rendering=false;
+const expandedTrainingDays=new Set();
 function activePlan(){
  return typeof state==='object'&&Array.isArray(state.plan)?state.plan:[];
 }
@@ -192,6 +205,37 @@ function moveDay(plan,weekday){
  const full=$('forgePolishFullWeek');
  if(full){full.open=true;full.scrollIntoView({behavior:'smooth',block:'center'});}
 }
+function sessionFold(plan,key,subline){
+ const fold=el('details','forge-polish-session');
+ fold.dataset.session=key;
+ fold.open=expandedTrainingDays.has(key);
+ fold.addEventListener('toggle',()=>{
+  if(fold.open)expandedTrainingDays.add(key);
+  else expandedTrainingDays.delete(key);
+ });
+ const summary=el('summary','forge-polish-session-summary');
+ const heading=el('span','forge-polish-session-labels');
+ heading.append(el('strong','',safeText(plan?.title)||'Krafttraining'));
+ heading.append(el('small','',subline));
+ summary.append(heading,el('span','forge-polish-session-chevron','⌄'));
+ fold.append(summary);
+ const body=el('div','forge-polish-session-body');
+ const exercises=exercisePreview(plan);
+ if(exercises.length){
+  const list=el('ol','forge-polish-exercise-list');
+  exercises.forEach(ex=>{
+   const item=el('li','forge-polish-exercise-line');
+   item.append(el('span','forge-polish-exercise-name',ex.name));
+   if(ex.description)item.append(el('small','forge-polish-exercise-meta',ex.description));
+   list.append(item);
+  });
+  body.append(list);
+ }else{
+  body.append(el('p','muted','Für diesen Trainingstag sind noch keine Übungen eingetragen.'));
+ }
+ fold.append(body);
+ return fold;
+}
 function renderCompact(){
  if(rendering)return;
  const root=$('forgePolishWeek'),details=$('forgePolishFullWeek');
@@ -212,8 +256,8 @@ function renderCompact(){
    date.append(el('strong','',day.label),el('small','',readable(day.date)));
    const content=el('div','forge-polish-day-content');
    if(day.primary){
-    content.append(el('strong','',day.primary.title||'Krafttraining'));
-    content.append(el('small','',String(day.primary.ex?.length||0)+' Übungen · '+(day.primary.location==='gym'?'Studio':'Zuhause')));
+    content.append(sessionFold(day.primary,day.date+':'+String(day.primary.id),
+     exercisePreview(day.primary).length+' Übungen · '+(day.primary.location==='gym'?'Studio':'Zuhause')));
     const tools=el('div','forge-polish-day-actions');
     tools.append(createBtn('▶ Start',()=>startPlanned(day.primary.id)));
     if(state.settings?.cadence?.mode!=='interval'){
@@ -224,8 +268,8 @@ function renderCompact(){
    if(day.extras.length){
     day.extras.forEach(extra=>{
      const special=el('div','forge-polish-extra');
-     special.append(el('strong','',extra.plan.title||'Zusatztraining'));
-     special.append(el('small','',extra.mode==='once'?'Einmalig geplant':'Jede Woche zusätzlich'));
+     special.append(sessionFold(extra.plan,day.date+':extra:'+extra.id,
+      exercisePreview(extra.plan).length+' Übungen · '+(extra.mode==='once'?'Einmalig geplant':'Jede Woche zusätzlich')));
      const controls=el('div','forge-polish-day-actions');
      controls.append(createBtn('▶ Start',()=>startPlanned(extra.planId)));
      const remove=createBtn('✕ Entfernen',()=>deleteExtra(extra.id),'btn alt small');
@@ -405,6 +449,21 @@ function styles(){
   '#plan .forge-polish-day-date strong{font-size:16px;color:#dff9ce}',
   '#plan .forge-polish-day-date small{font-size:11px;color:#bad2c3;margin-top:4px}',
   '#plan .forge-polish-day-content{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:6px}',
+  '#plan .forge-polish-session{border:0;background:transparent;margin:0;min-width:0}',
+  '#plan .forge-polish-session-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;min-height:42px;list-style:none}',
+  '#plan .forge-polish-session-summary::-webkit-details-marker{display:none}',
+  '#plan .forge-polish-session-labels{display:grid;gap:5px;min-width:0}',
+  '#plan .forge-polish-session-labels strong{font-size:14px;line-height:1.35;color:#eaf9ea}',
+  '#plan .forge-polish-session-labels small{font-size:11px;color:#b4c9c1;line-height:1.4}',
+  '#plan .forge-polish-session-chevron{font-size:22px;color:#a8f55d;transition:transform .15s;flex-shrink:0}',
+  '#plan .forge-polish-session[open] .forge-polish-session-chevron{transform:rotate(180deg)}',
+  '#plan .forge-polish-session-summary:focus-visible{outline:2px solid #a8f55d;outline-offset:3px;border-radius:6px}',
+  '#plan .forge-polish-session-body{margin:10px 0 7px;padding:10px 12px;border-radius:10px;background:#0e222a;border:1px solid #36564f}',
+  '#plan .forge-polish-exercise-list{margin:0;padding-left:22px;display:grid;gap:10px}',
+  '#plan .forge-polish-exercise-line{padding-left:3px;color:#e4f1ea;font-size:12px;line-height:1.45}',
+  '#plan .forge-polish-exercise-name{display:block;font-weight:650;overflow-wrap:anywhere}',
+  '#plan .forge-polish-exercise-meta{display:block;color:#b7d4c4;font-size:11px;margin-top:2px}',
+  '#plan .forge-polish-session-body>.muted{margin:0;font-size:12px}',
   '#plan .forge-polish-day-content>strong{font-size:14px;line-height:1.3}',
   '#plan .forge-polish-day-content small{font-size:11px;color:#b4c9c1}',
   '#plan .forge-polish-day-actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:4px}',
