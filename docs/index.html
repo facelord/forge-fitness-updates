@@ -1655,6 +1655,7 @@ function forge130Settings(){return {...{restEnabled:true,restSeconds:90,weightHi
 function forge130SetRestEnabled(v){state.forge130Settings={...forge130Settings(),restEnabled:!!v};if(!v)state.forgeRest=null;save();forge130RenderRest()}
 function forge130SetRestDuration(v){const n=Number(v);if(![45,60,90,120,180].includes(n))return;state.forge130Settings={...forge130Settings(),restSeconds:n};save();forge130RenderRest()}
 function forge130StartRest(){
+ if(state.activeWorkout?.forgePausedAt)return;
  if(!state.activeWorkout||!forge130Settings().restEnabled)return;
  const n=forge130Settings().restSeconds;
  state.forgeRest={endAt:Date.now()+n*1000,seconds:n,notified:false};save();forge130RenderRest();
@@ -1806,6 +1807,7 @@ function forge130SyncQuickDraft(){
 }
 document.getElementById('forgeQuickWorkout').addEventListener('input',e=>{if(e.target.id==='forge130QuickKg'||e.target.id==='forge130QuickReps')forge130SyncQuickDraft()});
 function forge130FinishQuickSet(actualSeconds=null){
+ if(state.activeWorkout?.forgePausedAt)return alert('Das Workout ist pausiert. Bitte zuerst fortsetzen.');
  const p=state.plan.find(x=>x.id===workoutSelect.value);if(!p||!state.activeWorkout)return alert('Bitte zuerst auf „Training starten“ tippen.');
  const focus=forge130CurrentFocus(p);if(!focus)return;
  const kg=document.getElementById('forge130QuickKg'),reps=document.getElementById('forge130QuickReps');
@@ -1986,6 +1988,7 @@ function forgeTimeRender(){
  root.innerHTML=`<div class="forge-time-panel"><div class="forge-time-title">⏱ Übungs-Countdown · Arbeitssatz ${focus.j+1}</div><div id="forgeTimeDigits" class="forge-time-digits ${finished?'finished':t&&!running?'paused':''}" role="timer">${forgeTimeClock(remaining)}</div><div id="forgeTimeMeta" class="forge-time-sub">Ziel ${forgeTimeClock(target*1000)} · Tatsächlich ${forgeTimeClock(Math.floor(elapsed/1000)*1000)}${finished?' · Zeit abgelaufen':''}</div><div class="forge-time-controls">${running?'<button type="button" class="btn alt" onclick="forgeTimePause()">⏸ Pausieren</button>':t&&!finished?'<button type="button" class="btn" onclick="forgeTimeResume()">▶ Fortsetzen</button>':!t?'<button type="button" class="btn" onclick="forgeTimeStart()">▶ Zeit starten</button>':''}<button type="button" class="btn alt" onclick="forgeTimeReset()">↶ Zurücksetzen</button></div><p class="forge-time-hint">Beendest du früher, wird <strong>die wirklich gestoppte Zeit</strong> übernommen. Beispiel: Ziel 2:00 Min., Stopp bei 1:12 Min. → gespeichert: 72 Sekunden. Die eingestellte Dauer wird nur für diesen Satz verwendet. Beim Verlassen des Trainings bleibt der Zeitstand gespeichert.</p></div>`;
 }
 function forgeTimeStart(){
+ if(state.activeWorkout?.forgePausedAt)return alert('Das Workout ist pausiert. Bitte zuerst fortsetzen.');
  const p=forgeTimePlan(),focus=p?forge130CurrentFocus(p):null;
  if(!p||!focus||!state.activeWorkout)return;
  const target=forgeTimeGetTarget(p,focus);
@@ -2002,6 +2005,7 @@ function forgeTimePause(){
  save();forgeTimeRender();
 }
 function forgeTimeResume(){
+ if(state.activeWorkout?.forgePausedAt)return alert('Das Workout ist pausiert. Bitte zuerst fortsetzen.');
  const p=forgeTimePlan(),focus=p?forge130CurrentFocus(p):null,t=forgeTimeMatching(p,focus);
  if(!t||t.running||t.finished)return;
  t.startedAt=Date.now();t.running=true;save();forgeTimeRender();
