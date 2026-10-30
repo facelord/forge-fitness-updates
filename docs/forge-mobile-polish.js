@@ -416,7 +416,7 @@ function moveDay(plan,weekday){
  const full=$('forgePolishFullWeek');
  if(full){full.open=true;full.scrollIntoView({behavior:'smooth',block:'center'});}
 }
-function sessionFold(plan,key,subline){
+function sessionFold(plan,key,subline,emptyText){
  const fold=el('details','forge-polish-session');
  fold.dataset.session=key;
  fold.open=expandedTrainingDays.has(key);
@@ -442,7 +442,7 @@ function sessionFold(plan,key,subline){
   });
   body.append(list);
  }else{
-  body.append(el('p','muted','Für diesen Trainingstag sind noch keine Übungen eingetragen.'));
+  body.append(el('p','muted',emptyText||'Für diesen Trainingstag sind noch keine Übungen eingetragen.'));
  }
  fold.append(body);
  return fold;
@@ -478,12 +478,28 @@ function renderCompact(){
    }
    if(day.extras.length){
     day.extras.forEach(extra=>{
-     const special=el('div','forge-polish-extra');
-     special.append(sessionFold(extra.plan,day.date+':extra:'+extra.id,
-      exercisePreview(extra.plan).length+' Übungen · '+(extra.mode==='once'?'Einmalig geplant':'Jede Woche zusätzlich')));
+     const type=extra.type||'strength',special=el('div','forge-polish-extra');
+     const plan=previewExtra(extra);
+     const kind=type==='strength'?'Krafttraining':type==='custom'?'Individuell':type==='mobility'?'Mobilität':'Video';
+     const period=extra.mode==='once'?'Einmalig':'Wöchentlich';
+     const duration=extra.mins?String(extra.mins)+' Min. · ':'';
+     special.append(sessionFold(plan,day.date+':extra:'+extra.id,duration+kind+' · '+period,
+      type==='video'?'Tippe unten auf „Video öffnen“, um deine Einheit zu starten.':
+      'Für diese Einheit sind noch keine einzelnen Übungen hinterlegt.'));
      const controls=el('div','forge-polish-day-actions');
-     controls.append(createBtn('▶ Start',()=>startPlanned(extra.planId)));
-     const remove=createBtn('✕ Entfernen',()=>deleteExtra(extra.id),'btn alt small');
+     if(type==='strength')controls.append(createBtn('▶ Start',()=>startPlanned(extra.planId)));
+     if(type==='video')controls.append(createBtn('▶ Video öffnen',()=>openExtraVideo(extra),'btn alt small'));
+     if(type!=='strength'){
+      const done=Array.isArray(extra.doneDates)&&extra.doneDates.includes(day.date);
+      const finish=createBtn(done?'✓ Erledigt':'✓ Erledigt markieren',()=>completeExtra(extra.id,day.date),'btn alt small');
+      finish.disabled=done;finish.setAttribute('aria-label','Zusätzliche Einheit für '+day.date+' als erledigt markieren');
+      controls.append(finish);
+     }
+     const edit=createBtn('✎ Bearbeiten',()=>addDialog(day.date,extra.id),'btn alt small');
+     edit.setAttribute('aria-label','Zusatztermin bearbeiten');controls.append(edit);
+     const remove=createBtn('✕ Entfernen',()=>{
+      if(confirm('Diese zusätzliche Einheit aus deinem Wochenplan entfernen?'))deleteExtra(extra.id);
+     },'btn alt small');
      remove.setAttribute('aria-label','Zusatztraining entfernen');
      controls.append(remove);special.append(controls);content.append(special);
     });
@@ -546,7 +562,7 @@ function renderExtraDashboard(){
  let host=root;
  if(!host){host=el('div','forge-polish-dash-extra');host.id='forgeCompactExtraDashboard';dashboard.after(host);}
  host.replaceChildren(el('strong','', 'Zusätzlich geplant'));
- extras.forEach(x=>host.append(el('p','',readable(x.date)+' · '+x.plan.title+(x.mode==='weekly'?' · wöchentlich':''))));
+ extras.forEach(x=>host.append(el('p','',readable(x.date)+' · '+(x.plan?.title||x.title||'Einheit')+(x.mode==='weekly'?' · wöchentlich':''))));
 }
 function initPlan(){
  const page=$('plan');
@@ -680,6 +696,9 @@ function styles(){
   '#plan .forge-polish-day-actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:4px}',
   '#plan .forge-polish-day-actions button{min-height:38px;padding:7px 10px;font-size:12px}',
   '#plan .forge-polish-extra{border-top:1px solid #3b5653;margin-top:9px;padding-top:8px;display:grid;gap:5px}',
+   '#plan .forge-polish-extra .forge-polish-session-summary{padding:4px 0}',
+   '#plan .forge-polish-extra .forge-polish-day-actions{margin-top:8px}',
+   '#plan .forge-polish-day-actions button:disabled{opacity:.7;border-color:#6e8b71;color:#bbe1b6;cursor:default}',
   '#plan .forge-polish-between{justify-self:center;border:1px dashed #5b845f;background:transparent;color:#c9f3b4;border-radius:24px;padding:8px 12px;font:inherit;font-size:12px;min-height:36px}',
   '#plan .forge-polish-week-footer{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 4px}',
   '#plan .forge-polish-week-footer button{font-size:12px;min-height:43px;padding:8px 7px;white-space:normal}',
@@ -689,13 +708,24 @@ function styles(){
   '#plan .forge-polish-full[open]>summary::after{content:"⌃"}',
   '#plan .forge-polish-full>#combinedWeek{margin:6px 0 12px}',
   '.forge-polish-overlay{position:fixed;inset:0;z-index:1000002;background:#030b0de8;display:grid;place-items:center;padding:12px}',
-  '.forge-polish-dialog{background:#172a32;color:#e9f7e8;border:1px solid #63856a;box-sizing:border-box;width:min(96vw,430px);max-height:90vh;overflow:auto;border-radius:16px;padding:18px}',
+  '.forge-polish-dialog{background:#172a32;color:#e9f7e8;border:1px solid #63856a;box-sizing:border-box;width:min(96vw,430px);max-height:90dvh;overflow-y:auto;border-radius:16px;padding:18px}',
   '.forge-polish-dialog h3{margin:0 0 8px;font-size:19px}',
   '.forge-polish-dialog .muted{font-size:12px;line-height:1.5;margin-bottom:15px}',
   '.forge-polish-dialog form,.forge-polish-dialog label{display:grid;gap:8px}',
   '.forge-polish-dialog form{gap:14px}',
   '.forge-polish-dialog label{font-size:13px;color:#d3e3d7}',
-  '.forge-polish-dialog select{min-height:46px;width:100%;max-width:100%;font:inherit}',
+  '.forge-polish-dialog select,.forge-polish-dialog input,.forge-polish-dialog textarea{box-sizing:border-box;min-height:45px;width:100%;max-width:100%;font:inherit;color:#e9f7e8;border:1px solid #4b6770;border-radius:10px;background:#0c1923;padding:10px 12px}',
+   '.forge-polish-dialog textarea{resize:vertical;min-height:88px;line-height:1.5}',
+   '.forge-polish-dialog [hidden]{display:none!important}',
+   '.forge-polish-type-fields{display:grid;gap:12px;padding:12px 0 5px;border-top:1px solid #39564b;border-bottom:1px solid #39564b}',
+   '.forge-polish-type-fields>label,.forge-polish-mob-builder>label{margin:0}',
+   '.forge-polish-mob-builder{display:grid;gap:9px;padding:7px 0}',
+   '.forge-polish-mob-exercises{display:grid;gap:8px}',
+   '.forge-polish-mob-row{display:grid;grid-template-columns:minmax(0,1fr) 77px 42px;gap:7px;align-items:center}',
+   '.forge-polish-mob-row input{min-width:0}',
+   '.forge-polish-mob-row button{padding:7px 0;min-height:44px}',
+   '.forge-polish-type-fields>.btn,.forge-polish-mob-builder>.btn{min-height:43px}',
+   '.forge-polish-dialog button:focus-visible,.forge-polish-dialog input:focus-visible,.forge-polish-dialog select:focus-visible{outline:2px solid #a8f55d;outline-offset:2px}',
   '.forge-polish-dialog .forge-polish-actions{display:flex;gap:9px;margin-top:5px}',
   '.forge-polish-dialog .forge-polish-actions button{flex:1;min-height:44px}',
   '.forge-polish-error{margin:0;color:#ffc5be;font-size:12px}',
