@@ -10,7 +10,7 @@ const node=(tag,cls,txt)=>{
  const n=document.createElement(tag);if(cls)n.className=cls;
  if(txt!==undefined)n.textContent=txt;return n;
 };
-let opened=false,selectedId=null,observer=null,pageObserver=null,scheduled=false,dismissAttached=false;
+let opened=false,selectedId=null,observer=null,pageObserver=null,refreshTimer=null,dismissAttached=false;
 const active=()=>typeof state!=='undefined'&&Array.isArray(state.plan)?state.plan:[];
 const planById=id=>active().find(x=>String(x.id)===String(id));
 function selectValidId(id,plans){
@@ -32,7 +32,14 @@ function updateSessionMeta(planId,title,location){
  p.title=label;p.location=location;
  save();render();return true;
 }
-window.ForgeActivePlanEdit=Object.freeze({selectValidId,normalizeHeading,updateSessionMeta,isOpen:()=>opened,closeEditor,closeIfInactive});
+// The core refreshes combinedWeek as users edit set values. Keep the actual
+// input node mounted while Android's keyboard is focused on it.
+function hasFocusedEditorField(root,focused=document.activeElement){
+ if(!root||!focused||!root.contains(focused))return false;
+ const tag=String(focused.tagName||'').toUpperCase();
+ return tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||focused.isContentEditable===true;
+}
+window.ForgeActivePlanEdit=Object.freeze({selectValidId,normalizeHeading,updateSessionMeta,hasFocusedEditorField,isOpen:()=>opened,closeEditor,closeIfInactive});
 function settings(){
  const container=$('forgeActivePlanEditor');
  if(!container)return;
@@ -57,6 +64,7 @@ function safeCreation(){
 function closeEditor(){
  if(!opened)return;
  opened=false;selectedId=null;
+ if(refreshTimer!==null){clearTimeout(refreshTimer);refreshTimer=null;}
  const panel=$('forgeActivePlanEditor');
  if(panel)panel.replaceChildren(); // Drop all unsaved form inputs and detached event handlers.
  settings();
@@ -163,9 +171,16 @@ function inject(){
   // The core renders the full-week view again after each permanent mutation.
   // Refresh our one selected editing surface without touching underlying data.
   observer=new MutationObserver(()=>{
-   if(!opened||scheduled)return;
-   scheduled=true;
-   Promise.resolve().then(()=>{scheduled=false;if(opened)renderEditor();});
+   if(!opened)return;
+   // Debounce rendering; an immediate microtask rebuild would blur numeric
+   // fields and dismiss the Android keyboard after the first keystroke.
+   if(refreshTimer!==null)clearTimeout(refreshTimer);
+   refreshTimer=setTimeout(()=>{
+    refreshTimer=null;
+    const panel=$('forgeActivePlanEditor');
+    if(!opened||hasFocusedEditorField(panel))return;
+    renderEditor();
+   },120);
   });
   observer.observe($('combinedWeek'),{childList:true});
  }
