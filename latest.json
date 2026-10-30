@@ -1,7 +1,7 @@
 {
-  "versionCode": 10120,
-  "versionName": "14.13.120",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.120/FORGE-Fitness-14.13.120.apk",
-  "sha256": "2564b39b377a9fdbb7d229aee546f057e6298f97a73a264da72ab3fdab919bd3",
-  "notes": "FORGE 14.13: zwei neue Studio-Bildreihen für Farmer’s Carry und Dead Bug, jeweils Startposition, Endposition und separate Muskelansicht. Vorhandene Bilder und Trainingsdaten bleiben unverändert."
+  "versionCode": 10122,
+  "versionName": "14.13.122",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.122/FORGE-Fitness-14.13.122.apk",
+  "sha256": "886ee3669712cdeb05e6235a6666da49a926fbf169a75efee10278d5228005d2",
+  "notes": "FORGE: Infrastruktur für einzeln geprüfte Mobilitäts-Fotobilder ergänzt. Bis zur Freigabe der jeweiligen Bildreihe werden weiterhin die bisherigen Übungsgrafiken angezeigt. Bestehende Trainingsdaten bleiben unverändert."
 }
