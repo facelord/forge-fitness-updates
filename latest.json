@@ -1,7 +1,7 @@
 {
-  "versionCode": 10133,
-  "versionName": "14.13.133",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.133/FORGE-Fitness-14.13.133.apk",
-  "sha256": "da649939d11f701e3c943bb60747866e8ada4d69ec9938db3ca9be77e3d46ca2",
-  "notes": "FORGE: Kompakter Wochenplan ohne Ruhetage, zusätzliche einmalige oder wöchentliche Trainings, klarere Plan- und Trainingsseiten, weniger doppelte Kacheln, gleichmäßige Tagesform, sicheres Wischen zwischen Hauptbereichen. Der Alle-X-Tage-Rhythmus und Trainingsdaten bleiben erhalten."
+  "versionCode": 10134,
+  "versionName": "14.13.134",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.134/FORGE-Fitness-14.13.134.apk",
+  "sha256": "4db4b8488e051d2539b3fd58a206cd42943db4a97fdaada983feb8afb53f2534",
+  "notes": "FORGE: Plan bearbeiten öffnet jetzt den AKTIVEN Trainingsplan direkt: Trainingstag auswählen, Übungen hinzufügen, austauschen, entfernen und sortieren sowie Sätze/Wdh. und Namen bearbeiten. Kein neuer Plan und keine automatische Archivierung. Vorhandene Trainingsdaten und X-Tage-Rhythmus bleiben erhalten."
 }
