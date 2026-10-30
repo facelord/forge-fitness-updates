@@ -1,7 +1,7 @@
 {
-  "versionCode": 10129,
-  "versionName": "14.13.129",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.129/FORGE-Fitness-14.13.129.apk",
-  "sha256": "ab6fa6d574faf46d899001bd01d75d7eb368b837ebd8c5f3b0111a72c8a586d3",
-  "notes": "FORGE: Abgeschlossene Krafttrainings nachträglich bearbeiten und ganze Übungen im laufenden Training per Pfeiltasten neu sortieren, ohne Satzdaten zu verlieren. Alle 20 Mobilitätskarten technisch überprüft. Der vorhandene Trainingsrhythmus bleibt unverändert."
+  "versionCode": 10132,
+  "versionName": "14.13.132",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.132/FORGE-Fitness-14.13.132.apk",
+  "sha256": "473dc2d07516829ed2a1cd6407771e44c0674986057835a2f23c6370f0aa82a7",
+  "notes": "FORGE: Kompakter Wochenplan ohne Ruhetage, zusätzliche einmalige oder wöchentliche Trainings, klarere Plan- und Trainingsseiten, weniger doppelte Kacheln, gleichmäßige Tagesform, sicheres Wischen zwischen Hauptbereichen. Der Alle-X-Tage-Rhythmus und Trainingsdaten bleiben erhalten."
 }
