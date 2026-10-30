@@ -72,8 +72,10 @@ function ensureUi(){
   live.after(controls);
  }
  const controls=$('forgeLiveControls');
- if(quick.previousElementSibling!==controls)controls.after(quick);
- // Surface the set-rest countdown above the current exercise rather than below.
+ // Only move a node when its final position is actually wrong. The previous
+ // ordering moved the focused quick-set input twice on every 350 ms tick,
+ // dismissing Android's keyboard while entering kilograms/repetitions.
+ // Final stable order: controls, rest, quick-entry card.
  if(rest.previousElementSibling!==controls)controls.after(rest);
  if(quick.previousElementSibling!==rest)rest.after(quick);
  if(!$('forgeLiveNext')){
