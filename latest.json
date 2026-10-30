@@ -3,5 +3,5 @@
   "versionName": "14.13.153",
   "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.153/FORGE-Fitness-14.13.153.apk",
   "sha256": "750a0af8c64b5789e173c0277dd582b794b8b810938ee3eb9a17551931e7140e",
-  "notes": "FORGE: Plan bearbeiten öffnet jetzt den AKTIVEN Trainingsplan direkt: Trainingstag auswählen, Übungen hinzufügen, austauschen, entfernen und sortieren sowie Sätze/Wdh. und Namen bearbeiten. Kein neuer Plan und keine automatische Archivierung. Vorhandene Trainingsdaten und X-Tage-Rhythmus bleiben erhalten."
+  "notes": "FORGE UX Phase 1: Vier Haupttabs (Plan, Training, Essen, Fortschritt) statt Home-Dashboard. Plan ist Startseite mit nächstem Training und direktem Trainingsstart. Plan bearbeiten und Training hinzufügen sind direkt erreichbar. Eine kompakte Wochenübersicht ohne doppelte Einfüge-Buttons. X-Tage-Rhythmus, Mobilität, Videos, Archive und Trainingsdaten bleiben erhalten."
 }
