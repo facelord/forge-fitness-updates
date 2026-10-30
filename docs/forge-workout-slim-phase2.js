@@ -42,6 +42,11 @@ function style(){
   '#workout.forge-slim-idle #forgeLiveOptions{margin-top:8px!important}',
   '#workout.forge-slim-idle #workoutStart{min-height:50px;width:100%;font-size:15px;background:#a8f55d!important;color:#14231c!important;border-radius:12px!important}',
   '#workout.forge-slim-idle .forge-clock{margin:6px 0 12px!important;padding:12px!important;border-radius:12px!important}',
+  '/* Compact app chrome only on the live workout tab; keep navigation intact. */',
+  'body.forge-slim-session-page>header{padding:8px 16px 5px!important;min-height:0!important}',
+  'body.forge-slim-session-page>header .logo{font-size:19px!important;letter-spacing:1px!important}',
+  'body.forge-slim-session-page>header .logo .sub,body.forge-slim-session-page>header .pill{display:none!important}',
+  'body.forge-slim-session-page main{padding-top:3px!important}',
   '/* Active: current exercise, net clock and pause take priority. */',
   '#workout.forge-slim-active>h1{display:none!important}',
   '#workout.forge-slim-active>#forge144WorkoutCoach{display:none!important}',
@@ -130,6 +135,7 @@ function install(){
  page.classList.toggle('forge-slim-show-alternate',alternate);
  page.classList.toggle('forge-slim-active',active);
  page.classList.toggle('forge-slim-idle',!active);
+ document.body.classList.toggle('forge-slim-session-page',active&&page.classList.contains('active'));
  const stamp=state?.activeWorkout?String(state.activeWorkout.planId)+':'+String(state.activeWorkout.startedAt):'none';
  if(stamp!==previousFocus){previousFocus=stamp;options.open=false;modePanel.open=false;}
  if(active){
