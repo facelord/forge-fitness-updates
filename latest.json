@@ -1,7 +1,7 @@
 {
-  "versionCode": 10142,
-  "versionName": "14.13.142",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.142/FORGE-Fitness-14.13.142.apk",
-  "sha256": "01a094ba359c69d1b85636a547ed55bb2ca2cf33c17a35222fee92a954899107",
-  "notes": "FORGE: Unter „Training einfügen“ jetzt vier Arten: vorhandenes Krafttraining, individuelle Aktivitäten, eigene oder fertige Mobilitätsroutinen sowie Yoga-/Mobilitätsvideos (auch mit eigenem YouTube-Link). Einmalig oder wöchentlich einplanen, im Wochenplan öffnen, bearbeiten und als erledigt markieren. Video öffnet mit bestehendem Mobilitätstimer. Aktiver Trainingsplan und X-Tage-Rhythmus bleiben unverändert."
+  "versionCode": 10146,
+  "versionName": "14.13.146",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.146/FORGE-Fitness-14.13.146.apk",
+  "sha256": "1ef336fb25a39ee56d2ba97e56ebd6cff964f6bc64f65d01ffdce06285d4089b",
+  "notes": "FORGE: Plan bearbeiten öffnet jetzt den AKTIVEN Trainingsplan direkt: Trainingstag auswählen, Übungen hinzufügen, austauschen, entfernen und sortieren sowie Sätze/Wdh. und Namen bearbeiten. Kein neuer Plan und keine automatische Archivierung. Vorhandene Trainingsdaten und X-Tage-Rhythmus bleiben erhalten."
 }
