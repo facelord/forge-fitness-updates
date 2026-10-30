@@ -9,7 +9,7 @@ const el=(tag,cls,text)=>{
  const n=document.createElement(tag);if(cls)n.className=cls;
  if(text!==undefined)n.textContent=text;return n;
 };
-const PAGES=['dashboard','plan','workout','progress','nutrition'];
+const PAGES=['plan','workout','nutrition','progress'];
 const WEEK=['Mo','Di','Mi','Do','Fr','Sa','So'];
 const DAY=86400000;
 const core=()=>window.ForgeCadenceCore;
@@ -415,6 +415,8 @@ function addDialog(preferredDate,editId=null){
  });
  typeBlock.select.focus();
 }
+// Shared addition dialog for the simplified Plan start surface.
+window.forgePolishOpenAdd=addDialog;
 function moveDay(plan,weekday){
  const c=state.settings?.cadence;
  if(c?.mode==='interval'){

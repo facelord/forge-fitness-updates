@@ -4,7 +4,7 @@
 (function () {
   'use strict';
   const ID='forge149';
-  const pages=['dashboard','plan','workout','progress','nutrition'];
+  const pages=['plan','workout','nutrition','progress'];
   const $=(selector,root=document)=>root.querySelector(selector);
   const $$=(selector,root=document)=>Array.from(root.querySelectorAll(selector));
 
