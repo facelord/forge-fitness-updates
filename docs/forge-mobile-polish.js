@@ -216,6 +216,21 @@ function previewExtra(extra){
 function openExtraVideo(extra){
  const url=safeVideoUrl(extra?.url);
  if(!url)return alert('Dieser Video-Link ist nicht gültig.');
+ const running=state.activeMobilityVideo;
+ if(running&&running.forgeExtraId!==extra.id){
+  alert('Es läuft bereits eine Mobilitäts- oder Videoeinheit. Bitte beende diese zuerst.');
+  return;
+ }
+ if(!running){
+  state.activeMobilityVideo={
+   day:-1,goal:extra.goal||'full',mins:extra.mins||15,title:extra.title,url,
+   verified:true,startedAt:Date.now(),linked:false,workoutPlanId:null,forgeExtraId:extra.id
+  };
+  save();
+  if(typeof window.updateMobilityClock==='function')window.updateMobilityClock();
+  if(typeof window.renderMobility==='function')window.renderMobility();
+  renderCompact();
+ }
  if(typeof window.ForgeAndroid?.openExternal==='function')window.ForgeAndroid.openExternal(url);
  else window.open(url,'_blank','noopener,noreferrer');
 }
@@ -488,7 +503,17 @@ function renderCompact(){
       'Für diese Einheit sind noch keine einzelnen Übungen hinterlegt.'));
      const controls=el('div','forge-polish-day-actions');
      if(type==='strength')controls.append(createBtn('▶ Start',()=>startPlanned(extra.planId)));
-     if(type==='video')controls.append(createBtn('▶ Video öffnen',()=>openExtraVideo(extra),'btn alt small'));
+     if(type==='video'){
+      controls.append(createBtn(state.activeMobilityVideo?.forgeExtraId===extra.id?'▶ Video erneut öffnen · Timer läuft':'▶ Video öffnen + Timer',
+       ()=>openExtraVideo(extra),'btn alt small'));
+      if(state.activeMobilityVideo?.forgeExtraId===extra.id){
+       controls.append(createBtn('■ Video beenden & speichern',()=>{
+        if(typeof window.finishMobilityVideo!=='function')return alert('Der Mobilitätstimer ist nicht verfügbar.');
+        window.finishMobilityVideo();
+        completeExtra(extra.id,day.date);
+       },'btn alt small'));
+      }
+     }
      if(type!=='strength'){
       const done=Array.isArray(extra.doneDates)&&extra.doneDates.includes(day.date);
       const finish=createBtn(done?'✓ Erledigt':'✓ Erledigt markieren',()=>completeExtra(extra.id,day.date),'btn alt small');
