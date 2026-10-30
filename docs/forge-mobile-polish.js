@@ -30,16 +30,44 @@ function isoWeek(iso=localISO()){
  const start=mondayOf(iso);
  return WEEK.map((label,weekday)=>({weekday,label,date:ordinalISO(start+weekday)}));
 }
+const EXTRA_TYPES=['strength','custom','mobility','video'];
+function extraType(x){return x?.type||'strength';}
+function validExtra(x){
+ if(!x||!['once','weekly'].includes(x.mode)||!EXTRA_TYPES.includes(extraType(x)))return false;
+ if(extraType(x)==='strength')return typeof x.planId==='string'&&x.planId.length>0&&x.planId.length<=160;
+ if(extraType(x)==='custom')return typeof x.title==='string'&&x.title.trim().length>0&&x.title.length<=100;
+ if(extraType(x)==='mobility')return typeof x.title==='string'&&x.title.trim().length>0&&
+  Array.isArray(x.ex)&&x.ex.length>0&&x.ex.length<=40;
+ if(extraType(x)==='video')return typeof x.title==='string'&&x.title.trim().length>0&&
+  typeof x.url==='string'&&safeVideoUrl(x.url)!==null;
+ return false;
+}
 function normalizedExtras(raw,dates){
- const allowed=new Set(dates.map(d=>d.date));
- const next=[];
+ const allowed=new Set(dates.map(d=>d.date)),next=[];
  if(!Array.isArray(raw))return next;
  for(const x of raw){
-  if(!x||!['once','weekly'].includes(x.mode)||typeof x.planId!=='string'||x.planId.length>160)continue;
-  if(x.mode==='once'&&typeof x.date==='string'&&allowed.has(x.date))next.push({...x});
-  if(x.mode==='weekly'&&Number.isInteger(x.weekday)&&x.weekday>=0&&x.weekday<7)next.push({...x});
+  if(!validExtra(x))continue;
+  if(x.mode==='once'&&typeof x.date==='string'&&allowed.has(x.date))next.push({...x,type:extraType(x)});
+  if(x.mode==='weekly'&&Number.isInteger(x.weekday)&&x.weekday>=0&&x.weekday<7)next.push({...x,type:extraType(x)});
  }
  return next;
+}
+function safeVideoUrl(raw){
+ try{
+  const url=new URL(String(raw||'').trim());
+  return url.protocol==='https:'&&['youtube.com','www.youtube.com','m.youtube.com','youtu.be','www.youtu.be','youtube-nocookie.com','www.youtube-nocookie.com'].includes(url.hostname)?
+   url.href:null;
+ }catch(_){return null;}
+}
+function makeExtra(base,detail){
+ const type=extraType(detail);
+ const extra={...base,...detail,type};
+ return validExtra(extra)?extra:null;
+}
+function extraIdentity(x){
+ if(extraType(x)==='strength')return 'strength:'+x.planId;
+ if(extraType(x)==='video')return 'video:'+x.url;
+ return extraType(x)+':'+String(x.title||'').trim().toLocaleLowerCase('de-DE');
 }
 function weekModel(plan,settings,rawExtras,iso=localISO(),weeklyMove={},mobilityDays=[],videoDays=[]){
  const days=isoWeek(iso),all=Array.isArray(plan)?plan:[];
@@ -62,8 +90,8 @@ function weekModel(plan,settings,rawExtras,iso=localISO(),weeklyMove={},mobility
  const extras=normalizedExtras(rawExtras,days);
  days.forEach(row=>{
   row.extras=extras.filter(x=>(x.mode==='once'&&x.date===row.date)||(x.mode==='weekly'&&x.weekday===row.weekday))
-   .map(x=>({...x,plan:all.find(p=>String(p.id)===x.planId)||null}))
-   .filter(x=>x.plan);
+   .map(x=>({...x,plan:x.type==='strength'?all.find(p=>String(p.id)===x.planId)||null:null}))
+   .filter(x=>x.type!=='strength'||x.plan);
   row.mobility=mobilityDays.includes(row.weekday)||videoDays.includes(row.weekday);
   row.isRest=!row.primary&&!row.extras.length&&!row.mobility;
  });
@@ -85,7 +113,7 @@ function exercisePreview(plan){
   return {name,description};
  });
 }
-window.ForgeMobilePolish=Object.freeze({PAGES,localISO,isoWeek,weekModel,normalizedExtras,swipeDirection,exercisePreview});
+window.ForgeMobilePolish=Object.freeze({PAGES,localISO,isoWeek,weekModel,normalizedExtras,swipeDirection,exercisePreview,safeVideoUrl,makeExtra,extraIdentity});
 let restOpen=false,editorOpen=false,weekObserver=null,ready=false,swipeStart=null,rendering=false;
 const expandedTrainingDays=new Set();
 function activePlan(){
@@ -137,13 +165,16 @@ function startPlanned(planId){
  if(typeof window.go==='function')window.go('workout');
  if(typeof window.startWorkout==='function')window.startWorkout(p.id);
 }
-function saveExtra(extra){
+function saveExtra(extra,editId=null){
  const clean=activeExtras().filter(x=>x&&typeof x==='object');
- if(clean.some(x=>x.mode===extra.mode&&x.planId===extra.planId&&
+ if(clean.some(x=>x.id!==editId&&x.mode===extra.mode&&extraIdentity(x)===extraIdentity(extra)&&
    (x.mode==='once'?x.date===extra.date:x.weekday===extra.weekday))){
-  return 'Diese zusätzliche Einheit ist für den Tag bereits eingetragen.';
+  return 'Diese Einheit ist für den Tag bereits eingetragen.';
  }
- state.forgePolishExtras=clean.concat(extra);
+ const index=editId==null?-1:clean.findIndex(x=>x.id===editId);
+ if(editId!=null&&index<0)return 'Dieser Termin existiert nicht mehr. Bitte erneut öffnen.';
+ if(index>=0)clean[index]=extra;else clean.push(extra);
+ state.forgePolishExtras=clean;
  save();renderCompact();renderExtraDashboard();return null;
 }
 function deleteExtra(id){
@@ -151,43 +182,223 @@ function deleteExtra(id){
  if(next.length===old.length)return;
  state.forgePolishExtras=next;save();renderCompact();renderExtraDashboard();
 }
-function addDialog(preferredDate){
- let prior=$('forgePolishAddOverlay');if(prior)prior.remove();
- const plans=activePlan(),days=isoWeek();
- if(!plans.length){activatePlanEditor();return;}
+function optionsSelect(labelText,values){
+ const field=el('label','',labelText),select=el('select');
+ values.forEach(([value,title])=>{const opt=el('option','',title);opt.value=value;select.append(opt);});
+ field.append(select);return {field,select};
+}
+function fieldInput(labelText,kind,value,placeholder){
+ const field=el('label','',labelText),input=el(kind==='textarea'?'textarea':'input');
+ if(kind!=='textarea')input.type=kind;
+ input.value=value||'';input.placeholder=placeholder||'';
+ field.append(input);return {field,input};
+}
+function knownRoutines(){
+ const src=typeof MOB_ROUTINES!=='undefined'?MOB_ROUTINES:{};
+ return Object.entries(src).filter(([key,r])=>r&&r.name&&Array.isArray(r.items));
+}
+function knownVideos(goal,mins){
+ try{return typeof videoCandidates==='function'?videoCandidates(goal,mins):[];}catch(_){return [];}
+}
+function customMobilityNames(){
+ return Array.isArray(window.forgeMobilitySingleCards?.names)?window.forgeMobilitySingleCards.names:[];
+}
+function routineExercises(key){
+ const r=knownRoutines().find(([id])=>id===key)?.[1];
+ return r?r.items.map(x=>({name:String(x[0]),seconds:Number(x[1])||60,note:String(x[2]||'')})):[];
+}
+function previewExtra(extra){
+ if(extra.type==='strength')return extra.plan;
+ return {title:(extra.type==='video'?'🎬 ':extra.type==='mobility'?'🧘 ':'✦ ')+extra.title,
+  ex:extra.type==='mobility'?(extra.ex||[]).map(x=>({name:x.name,sets:1,reps:x.seconds,unit:'sec'})):
+   extra.type==='custom'?(extra.ex||[]):[]};
+}
+function openExtraVideo(extra){
+ const url=safeVideoUrl(extra?.url);
+ if(!url)return alert('Dieser Video-Link ist nicht gültig.');
+ if(typeof window.ForgeAndroid?.openExternal==='function')window.ForgeAndroid.openExternal(url);
+ else window.open(url,'_blank','noopener,noreferrer');
+}
+function completeExtra(id,date){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return;
+ const extras=activeExtras(),entry=extras.find(x=>x.id===id);
+ if(!entry)return;
+ if(Array.isArray(entry.doneDates)&&entry.doneDates.includes(date))return;
+ const copy=extras.map(x=>x.id===id?{...x,doneDates:[...new Set([...(x.doneDates||[]),date])].slice(-120)}:x);
+ state.forgePolishExtras=copy;
+ // This is a manually completed activity, not a recorded strength workout.
+ save();renderCompact();renderExtraDashboard();
+}
+function addDialog(preferredDate,editId=null){
+ const previous=$('forgePolishAddOverlay');if(previous)previous.remove();
+ const plans=activePlan(),days=isoWeek(),editing=activeExtras().find(x=>x.id===editId)||null;
  const overlay=el('div','forge-polish-overlay');overlay.id='forgePolishAddOverlay';
  const dialog=el('section','forge-polish-dialog');dialog.setAttribute('role','dialog');
- dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-label','Zusätzliche Trainingseinheit planen');
- const title=el('h3','','＋ Training einfügen');
- const hint=el('p','muted','Zusätzliche Einheit aus deinem bestehenden Trainingsplan. Der Grundrhythmus bleibt unverändert.');
- const form=el('form');
- function labeled(text,options){
-  const label=el('label','',text),select=el('select');
-  options.forEach(([value,labelText])=>{const opt=el('option','',labelText);opt.value=value;select.append(opt);});
-  label.append(select);form.append(label);return select;
- }
- const planSelect=labeled('Trainingseinheit',plans.map(p=>[String(p.id),safeText(p.title)||'Training']));
- const dateSelect=labeled('Tag',days.map(x=>[x.date,x.label+' · '+readable(x.date)]));
- dateSelect.value=days.some(x=>x.date===preferredDate)?preferredDate:days[0].date;
- const scope=labeled('Wiederholung',[['once','Nur an diesem Datum'],['weekly','Jede Woche an diesem Wochentag']]);
- const message=el('p','forge-polish-error');message.setAttribute('role','alert');
+ dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-label','Zusätzliche Einheit planen');
+ const title=el('h3','',editing?'✎ Training ändern':'＋ Training einfügen');
+ const hint=el('p','muted','Kraft, individuelle Aktivität, Mobilitätsroutine oder Video. Der bestehende Trainingsrhythmus bleibt unverändert.');
+ const form=el('form');form.className='forge-polish-extra-form';
+ const typeBlock=optionsSelect('Art der Einheit',[
+  ['strength','🏋️ Bestehenden Kraftplan einfügen'],
+  ['custom','✦ Individuelles Training / Aktivität'],
+  ['mobility','🧘 Mobilitätsroutine'],
+  ['video','🎬 Yoga-/Mobilitätsvideo']
+ ]);
+ if(!plans.length)typeBlock.select.querySelector('option[value="strength"]')?.remove();
+ form.append(typeBlock.field);
+ const specific=el('div','forge-polish-type-fields');form.append(specific);
+ const dateBlock=optionsSelect('Tag',days.map(d=>[d.date,d.label+' · '+readable(d.date)]));
+ dateBlock.select.value=editing?.mode==='once'?editing.date:(days.some(x=>x.date===preferredDate)?preferredDate:days[0].date);
+ form.append(dateBlock.field);
+ const repeat=optionsSelect('Wiederholung',[['once','Nur an diesem Datum'],['weekly','Jede Woche an diesem Wochentag']]);
+ repeat.select.value=editing?.mode||'once';form.append(repeat.field);
+ const error=el('p','forge-polish-error');error.setAttribute('role','alert');
  const actions=el('div','forge-polish-actions');
  const cancel=createBtn('Abbrechen',()=>overlay.remove());
- const submit=el('button','btn small','Eintragen');submit.type='submit';
- actions.append(cancel,submit);form.append(message,actions);
- form.addEventListener('submit',event=>{
-  event.preventDefault();
-  const weekday=days.find(d=>d.date===dateSelect.value)?.weekday;
-  if(weekday==null||!activePlan().some(p=>String(p.id)===planSelect.value)){message.textContent='Bitte eine gültige Einheit und einen Tag auswählen.';return;}
-  const extra={id:'fx'+Math.random().toString(36).slice(2,12),planId:planSelect.value,mode:scope.value,
-   ...(scope.value==='once'?{date:dateSelect.value}:{weekday})};
-  const issue=saveExtra(extra);
-  if(issue){message.textContent=issue;return;}
-  overlay.remove();
- });
+ const submit=el('button','btn small',editing?'Änderung speichern':'Eintragen');submit.type='submit';
+ actions.append(cancel,submit);form.append(error,actions);
  dialog.append(title,hint,form);overlay.append(dialog);document.body.append(overlay);
  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
- planSelect.focus();
+
+ let values={};
+ function renderSpecific(){
+  const kind=typeBlock.select.value;
+  specific.replaceChildren();values={kind};
+  if(kind==='strength'){
+   const select=optionsSelect('Trainingseinheit',plans.map(p=>[String(p.id),safeText(p.title)||'Training']));
+   select.select.value=editing?.planId||String(plans[0]?.id||'');
+   specific.append(select.field);values.planSelect=select.select;return;
+  }
+  if(kind==='custom'){
+   const name=fieldInput('Name der Einheit','text',editing?.type==='custom'?editing.title:'','z. B. Padel, Spaziergang, eigenes Krafttraining');
+   name.input.maxLength=100;
+   const duration=fieldInput('Dauer in Minuten (optional)','number',editing?.type==='custom'?String(editing.mins||''):'','z. B. 45');
+   duration.input.min='1';duration.input.max='480';
+   const exercises=fieldInput('Inhalt / Übungen (optional, eine pro Zeile)','textarea',
+    editing?.type==='custom'?(editing.ex||[]).map(e=>e.name).join('\n'):'','z. B. Kniebeugen, Mobilisation oder freie Notizen');
+   exercises.input.rows=3;exercises.input.maxLength=2500;
+   specific.append(name.field,duration.field,exercises.field);
+   values={kind,name:name.input,duration:duration.input,exercises:exercises.input};return;
+  }
+  if(kind==='mobility'){
+   const templates=[...knownRoutines().map(([key,r])=>[key,r.name]),['custom','Eigene Routine zusammenstellen']];
+   const routine=optionsSelect('Mobilitätsroutine',templates);
+   routine.select.value=editing?.type==='mobility'?(editing.routineKey||'custom'):(templates[0]?.[0]||'custom');
+   specific.append(routine.field);
+   const custom=el('div','forge-polish-mob-builder');
+   const name=fieldInput('Name deiner Routine','text',editing?.type==='mobility'?editing.title:'Meine Mobilität','z. B. Hüfte & Rücken');
+   name.input.maxLength=100;
+   const picker=optionsSelect('Übung aus dem Mobilitätskatalog',customMobilityNames().map(x=>[x,x]));
+   const add=createBtn('＋ Übung hinzufügen',()=>appendMobExercise(picker.select.value),'btn alt small');
+   const manual=fieldInput('Oder eigene Übung','text','','Name der Mobilitätsübung');
+   manual.input.maxLength=100;
+   const addOwn=createBtn('＋ Eigene Übung',()=>{const n=manual.input.value.trim();if(n){appendMobExercise(n);manual.input.value='';}},'btn alt small');
+   const list=el('div','forge-polish-mob-exercises');
+   function appendMobExercise(name,seconds=60){
+    if(!name||list.children.length>=40)return;
+    const row=el('div','forge-polish-mob-row');
+    const input=el('input');input.type='text';input.value=name;input.maxLength=100;input.setAttribute('aria-label','Mobilitätsübung');
+    const sec=el('input');sec.type='number';sec.min='10';sec.max='1800';sec.value=String(seconds);sec.setAttribute('aria-label','Dauer in Sekunden');
+    const remove=createBtn('✕',()=>row.remove(),'btn alt small');remove.setAttribute('aria-label','Mobilitätsübung entfernen');
+    row.append(input,sec,remove);list.append(row);
+   }
+   if(picker.select.options.length)custom.append(picker.field,add);
+   custom.append(manual.field,addOwn,list);
+   if(editing?.type==='mobility'&&editing.routineKey==='custom'){
+    (editing.ex||[]).forEach(x=>appendMobExercise(x.name,x.seconds));
+   }
+   routine.select.addEventListener('change',()=>{custom.hidden=routine.select.value!=='custom';});
+   custom.hidden=routine.select.value!=='custom';specific.append(custom,name.field);
+   if(routine.select.value!=='custom'&&editing?.type!=='mobility')name.input.value=knownRoutines().find(([k])=>k===routine.select.value)?.[1]?.name||'Mobilität';
+   routine.select.addEventListener('change',()=>{if(routine.select.value!=='custom')name.input.value=knownRoutines().find(([k])=>k===routine.select.value)?.[1]?.name||name.input.value;});
+   values={kind,routine:routine.select,name:name.input,list};return;
+  }
+  if(kind==='video'){
+   const goals=typeof MOB_GOAL_LABELS!=='undefined'?Object.entries(MOB_GOAL_LABELS):[['full','Ganzkörper'],['hips','Hüfte'],['upper','Schultern']];
+   const goal=optionsSelect('Schwerpunkt',goals);
+   const durations=typeof VIDEO_TIMES!=='undefined'?VIDEO_TIMES:[5,10,15,20,30];
+   const duration=optionsSelect('Wunschdauer',durations.map(v=>[String(v),v+' Minuten']));
+   goal.select.value=editing?.type==='video'?editing.goal||goals[0]?.[0]:goals[0]?.[0];
+   duration.select.value=String(editing?.type==='video'?editing.mins||durations[0]:durations[0]);
+   const choice=optionsSelect('Video auswählen',[]);
+   const url=fieldInput('Eigener YouTube-Link','url',editing?.type==='video'&&editing.customUrl?editing.url:'','https://www.youtube.com/watch?v=…');
+   const name=fieldInput('Eigener Videotitel','text',editing?.type==='video'&&editing.customUrl?editing.title:'','Titel des Videos');
+   name.input.maxLength=100;
+   const note=el('p','muted','Verifizierte Videos werden direkt geöffnet. Falls keines verfügbar ist, kannst du deinen eigenen YouTube-Link eintragen.');
+   function refresh(){
+    choice.select.replaceChildren();
+    const candidates=knownVideos(goal.select.value,Number(duration.select.value));
+    candidates.forEach((v,i)=>{
+     if(!v?.verified)return;
+     const op=el('option','',v.title+' · '+v.creator);op.value=String(i);choice.select.append(op);
+    });
+    const own=el('option','','Eigenen YouTube-Link einfügen');own.value='custom';choice.select.append(own);
+    if(editing?.type==='video'&&editing.customUrl)choice.select.value='custom';
+    else if(editing?.type==='video'&&editing.goal===goal.select.value&&Number(editing.mins)===Number(duration.select.value)&&
+      candidates[Number(editing.choice)]?.verified)choice.select.value=String(editing.choice);
+    else choice.select.value=choice.select.options[0]?.value||'custom';
+    updateOwn();
+   }
+   function updateOwn(){
+    const enabled=choice.select.value==='custom';
+    url.field.hidden=!enabled;name.field.hidden=!enabled;
+   }
+   goal.select.addEventListener('change',refresh);duration.select.addEventListener('change',refresh);
+   choice.select.addEventListener('change',updateOwn);
+   specific.append(goal.field,duration.field,choice.field,note,url.field,name.field);
+   values={kind,goal:goal.select,duration:duration.select,choice:choice.select,url:url.input,name:name.input};
+   refresh();return;
+  }
+ }
+ typeBlock.select.value=editing?.type||'strength';
+ if(!plans.length&&typeBlock.select.value==='strength')typeBlock.select.value='mobility';
+ typeBlock.select.addEventListener('change',renderSpecific);
+ renderSpecific();
+ form.addEventListener('submit',event=>{
+  event.preventDefault();error.textContent='';
+  const day=days.find(d=>d.date===dateBlock.select.value),kind=typeBlock.select.value;
+  if(!day){error.textContent='Bitte einen gültigen Tag auswählen.';return;}
+  const base={id:editing?.id||'fx'+Math.random().toString(36).slice(2,12),mode:repeat.select.value,
+   ...(repeat.select.value==='once'?{date:day.date}:{weekday:day.weekday})};
+  let detail=null;
+  if(kind==='strength'){
+   if(!plans.some(p=>String(p.id)===values.planSelect.value)){error.textContent='Bitte eine Trainingseinheit auswählen.';return;}
+   detail={type:kind,planId:values.planSelect.value};
+  }else if(kind==='custom'){
+   const title=values.name.value.trim(),minutes=Number(values.duration.value);
+   if(!title){error.textContent='Bitte einen Namen für die Einheit eingeben.';return;}
+   if(values.duration.value&&(minutes<1||minutes>480||!Number.isInteger(minutes))){error.textContent='Die Dauer muss zwischen 1 und 480 Minuten liegen.';return;}
+   const names=values.exercises.value.split('\n').map(x=>x.trim()).filter(Boolean);
+   if(names.length>40){error.textContent='Bitte höchstens 40 Übungen eingeben.';return;}
+   detail={type:kind,title,mins:values.duration.value?minutes:0,ex:names.map(name=>({name:name.slice(0,150)}))};
+  }else if(kind==='mobility'){
+   const key=values.routine.value,title=values.name.value.trim();
+   const exercises=key==='custom'?Array.from(values.list.children).map(row=>({
+    name:row.children[0].value.trim(),seconds:Number(row.children[1].value)
+   })):routineExercises(key);
+   if(!title||!exercises.length||exercises.some(x=>!x.name||!Number.isInteger(x.seconds)||x.seconds<10||x.seconds>1800)){
+    error.textContent='Bitte einen Namen und gültige Übungen mit 10–1800 Sekunden Dauer eingeben.';return;
+   }
+   detail={type:kind,title,routineKey:key,ex:exercises};
+  }else if(kind==='video'){
+   const goal=values.goal.value,mins=Number(values.duration.value),choice=values.choice.value;
+   const candidate=knownVideos(goal,mins)[Number(choice)];
+   if(choice==='custom'){
+    const url=safeVideoUrl(values.url.value),title=values.name.value.trim();
+    if(!url||!title){error.textContent='Bitte einen gültigen YouTube-Link und Videotitel angeben.';return;}
+    detail={type:kind,title,url,goal,mins,customUrl:true};
+   }else if(candidate?.verified&&safeVideoUrl(candidate.url)){
+    detail={type:kind,title:candidate.title,url:candidate.url,goal,mins,choice:Number(choice),customUrl:false};
+   }else {error.textContent='Bitte ein verifiziertes Video auswählen oder einen eigenen YouTube-Link einfügen.';return;}
+  }
+  const extra=makeExtra(base,detail);
+  if(!extra){error.textContent='Diese Einheit konnte nicht gespeichert werden. Bitte Eingaben prüfen.';return;}
+  if(editing?.doneDates)extra.doneDates=editing.doneDates;
+  const issue=saveExtra(extra,editing?.id||null);
+  if(issue){error.textContent=issue;return;}
+  overlay.remove();
+ });
+ typeBlock.select.focus();
 }
 function moveDay(plan,weekday){
  const c=state.settings?.cadence;
