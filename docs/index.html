@@ -1187,7 +1187,7 @@ save();updateMobilityClock();updateWorkoutClock();renderMobility();
 }
 function finishMobilityVideo(silent=false){
 const a=state.activeMobilityVideo;if(!a)return;
-const finishedAt=Date.now(),durationMs=Math.max(0,finishedAt-a.startedAt);
+const finishedAt=Date.now(),durationMs=forgeMobilityNetMs(a,finishedAt);
 if(!Array.isArray(state.mobilityVideoSessions))state.mobilityVideoSessions=[];
 state.mobilityVideoSessions.push({...a,id:uid(),finishedAt:new Date(finishedAt).toISOString(),durationMs});
 if(a.linked&&state.activeWorkout&&a.workoutPlanId===state.activeWorkout.planId){
@@ -1202,11 +1202,22 @@ const a=state.activeMobilityVideo,bar=document.getElementById('mobilityLiveBar')
 bar.style.display=a?'block':'none';
 if(a){
 const linked=a.linked&&state.activeWorkout&&a.workoutPlanId===state.activeWorkout.planId;
-document.getElementById('mobilityLiveClock').textContent=formatElapsed(Date.now()-(linked?state.activeWorkout.startedAt:a.startedAt));
+document.getElementById('mobilityLiveClock').textContent=formatElapsed(linked?forgeWorkoutNetMs(state.activeWorkout):forgeMobilityNetMs(a));
 document.getElementById('mobilityLiveName').textContent=a.title+' · '+a.mins+' Min. geplant'+(linked?' · gemeinsame Trainingsuhr':' · eigene Mobilitätsuhr');
 }
 }
 setInterval(updateMobilityClock,1000);
+function forgeWorkoutNetMs(a,now=Date.now()){
+ if(!a)return 0;
+ const until=a.forgePausedAt?Math.min(now,Number(a.forgePausedAt)):now;
+ return Math.max(0,until-Number(a.startedAt||until)-Math.max(0,Number(a.forgeTotalPausedMs)||0));
+}
+function forgeMobilityNetMs(a,now=Date.now()){
+ if(!a)return 0;
+ const linked=a.linked&&state.activeWorkout&&a.workoutPlanId===state.activeWorkout.planId;
+ const until=linked&&state.activeWorkout.forgePausedAt?Math.min(now,state.activeWorkout.forgePausedAt):now;
+ return Math.max(0,until-Number(a.startedAt||until));
+}
 function formatElapsed(ms){const sec=Math.max(0,Math.floor(ms/1000));return String(Math.floor(sec/3600)).padStart(2,'0')+':'+String(Math.floor(sec%3600/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0')}
 function startWorkout(id){
 if(state.activeWorkout){if(id&&state.activeWorkout.planId!==id){alert('Bitte beende und speichere erst das laufende Training.');go('workout');return}go('workout');return}
@@ -1218,8 +1229,8 @@ state.activeWorkout={planId:plan.id,startedAt:Date.now(),focus:forge130NextPendi
 function startWorkoutFromDashboard(){const now=(new Date().getDay()+6)%7;const p=state.plan.find(p=>forge130Weekday(p)===now)||state.plan.find(p=>forge130Weekday(p)>now)||state.plan[0];if(p)startWorkout(p.id);else go('plan')}
 function formatClock(ms){const t=Math.max(0,Math.floor(ms/1000));return [Math.floor(t/3600),Math.floor(t/60)%60,t%60].map(x=>String(x).padStart(2,'0')).join(':')}
 function updateWorkoutClock(){
-const a=state.activeWorkout,elapsed=a?formatElapsed(Date.now()-a.startedAt):null;
-const el=document.getElementById('workoutTimer');if(el)el.textContent=a?'Training läuft · seit Start':'Noch kein Training gestartet';const digital=document.getElementById('workoutDigitalClock');if(digital)digital.textContent=a?formatClock(Date.now()-a.startedAt):'00:00:00';const clock=digital?.closest('.forge-clock');if(clock)clock.classList.toggle('running',!!a);
+const a=state.activeWorkout,elapsed=a?formatElapsed(forgeWorkoutNetMs(a)):null;
+const el=document.getElementById('workoutTimer');if(el)el.textContent=a?'Training läuft · seit Start':'Noch kein Training gestartet';const digital=document.getElementById('workoutDigitalClock');if(digital)digital.textContent=a?formatClock(forgeWorkoutNetMs(a)):'00:00:00';const clock=digital?.closest('.forge-clock');if(clock)clock.classList.toggle('running',!!a);
 const dash=document.getElementById('dashboardTimer');if(dash)dash.textContent=a?'⏱ Laufendes Training: '+elapsed:'';
 const start=document.getElementById('workoutStart');if(start)start.style.display=a?'none':'';
 const end=document.getElementById('saveWorkout');if(end)end.textContent=a?'■ Training beenden & speichern':'Workout speichern (ohne Timer)';
@@ -1656,7 +1667,7 @@ function forge130RenderRest(){
   root.innerHTML=`<div class="forge-rest-control"><label><input type="checkbox" ${forge130Settings().restEnabled?'checked':''} onchange="forge130SetRestEnabled(this.checked)"> Automatischer Pausentimer</label><select aria-label="Pausenlänge" onchange="forge130SetRestDuration(this.value)">${[45,60,90,120,180].map(n=>`<option value="${n}" ${forge130Settings().restSeconds===n?'selected':''}>${n} Sek.</option>`).join('')}</select></div>`;
   return;
  }
- const remaining=Math.max(0,Math.ceil((state.forgeRest.endAt-Date.now())/1000));
+ const remaining=Math.max(0,Math.ceil((state.forgeRest.endAt-(state.activeWorkout?.forgePausedAt||Date.now()))/1000));
  if(remaining===0&&!state.forgeRest.notified){state.forgeRest.notified=true;save();try{if(document.visibilityState==='visible'&&navigator.vibrate)navigator.vibrate([150,80,150])}catch(e){}}
  root.innerHTML=`<div class="forge-rest-top"><div><strong>${remaining?'⏸ Satzpause läuft':'✓ Pause vorbei!'}</strong><div class="forge130-focus-card-hint">Beim Wiederöffnen aktualisiert · keine Hintergrund-Mitteilung.</div></div><div class="forge-rest-digits" aria-label="Restzeit">${String(Math.floor(remaining/60)).padStart(2,'0')}:${String(remaining%60).padStart(2,'0')}</div></div><div class="forge-rest-actions"><button class="btn alt small" onclick="forge130RestSkip()">Überspringen</button><button class="btn alt small" onclick="forge130RestAdd(30)">+ 30 Sek.</button></div><div class="forge-rest-control"><label><input type="checkbox" ${forge130Settings().restEnabled?'checked':''} onchange="forge130SetRestEnabled(this.checked)"> Timer automatisch starten</label><select aria-label="Pausenlänge" onchange="forge130SetRestDuration(this.value)">${[45,60,90,120,180].map(n=>`<option value="${n}" ${forge130Settings().restSeconds===n?'selected':''}>${n} Sek.</option>`).join('')}</select></div>`;
 }
@@ -1937,6 +1948,7 @@ function forgeTimeMatching(p,focus){
 }
 function forgeTimeElapsedMs(t,now=Date.now()){
  if(!t)return 0;
+ if(state.activeWorkout?.forgePausedAt)now=Math.min(now,state.activeWorkout.forgePausedAt);
  const elapsed=Math.max(0,Number(t.elapsedMs)||0)+(t.running?Math.max(0,now-(Number(t.startedAt)||now)):0);
  return Math.min(Math.max(1000,(Number(t.targetSecs)||0)*1000),elapsed);
 }
@@ -2125,7 +2137,7 @@ function finishWorkout(){
  const mobilityIds=new Set((state.mobilityVideoSessions||[]).map(x=>x.id));
  if(state.activeMobilityVideo?.linked&&state.activeMobilityVideo.workoutPlanId===state.activeWorkout?.planId)finishMobilityVideo(true);
  const finishedMobilitySessionId=(state.mobilityVideoSessions||[]).find(x=>!mobilityIds.has(x.id))?.id||null;
- const durationMs=state.activeWorkout?Math.max(0,Date.now()-state.activeWorkout.startedAt):null;
+ const durationMs=state.activeWorkout?forgeWorkoutNetMs(state.activeWorkout):null;
  const mobilityDurationMs=state.activeWorkout?.mobilityDurationMs||0;
  const strengthDurationMs=durationMs==null?null:Math.max(0,durationMs-mobilityDurationMs);
  const id=uid();
@@ -3092,4 +3104,4 @@ if (window.ForgeAndroid) {
   }, true);
 }
 </script>
-<script src="./scanner.js"></script><script src="./nutrition-plus.js"></script><script src="./nutrition-library.js"></script><script src="./exercise-plus.js"></script><script src="./plan-ui.js"></script><script src="./cadence-core.js"></script><script src="./cadence.js"></script><script src="./scanner-touch.js"></script><script src="./forge-ux-149.js"></script><script src="./forge-ux-finish.js"></script><script src="./forge-catalog-archive.js"></script><script src="./forge-exercise-illustrations.js"></script><script src="./forge-photo-batch01.js"></script><script src="./forge-photo-batch02.js"></script><script src="./forge-photo-batch03.js"></script><script src="./forge-photo-rotation-approved.js"></script><script src="./forge-photo-batch04.js"></script><script src="./forge-muscle-upgrade-qa.js"></script><script src="./forge-mobility-photos.js"></script><script src="./forge-mobility-cards.js"></script><script src="./forge-catalog-categories.js"></script><script src="./forge-workout-edit-order.js"></script><script src="./forge-mobile-polish.js"></script><script src="./forge-active-plan-editor.js"></script><script src="./iphone-web.js"></script></body></html>
+<script src="./scanner.js"></script><script src="./nutrition-plus.js"></script><script src="./nutrition-library.js"></script><script src="./exercise-plus.js"></script><script src="./plan-ui.js"></script><script src="./cadence-core.js"></script><script src="./cadence.js"></script><script src="./scanner-touch.js"></script><script src="./forge-ux-149.js"></script><script src="./forge-ux-finish.js"></script><script src="./forge-catalog-archive.js"></script><script src="./forge-exercise-illustrations.js"></script><script src="./forge-photo-batch01.js"></script><script src="./forge-photo-batch02.js"></script><script src="./forge-photo-batch03.js"></script><script src="./forge-photo-rotation-approved.js"></script><script src="./forge-photo-batch04.js"></script><script src="./forge-muscle-upgrade-qa.js"></script><script src="./forge-mobility-photos.js"></script><script src="./forge-mobility-cards.js"></script><script src="./forge-catalog-categories.js"></script><script src="./forge-workout-edit-order.js"></script><script src="./forge-mobile-polish.js"></script><script src="./forge-active-plan-editor.js"></script><script src="./forge-workout-focus.js"></script><script src="./iphone-web.js"></script></body></html>
