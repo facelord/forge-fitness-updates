@@ -73,10 +73,12 @@ function ensureUi(){
  }
  const controls=$('forgeLiveControls');
  if(quick.previousElementSibling!==controls)controls.after(quick);
- if(rest.previousElementSibling!==quick)quick.after(rest);
+ // Surface the set-rest countdown above the current exercise rather than below.
+ if(rest.previousElementSibling!==controls)controls.after(rest);
+ if(quick.previousElementSibling!==rest)rest.after(quick);
  if(!$('forgeLiveNext')){
   const next=make('div','forge-live-next');next.id='forgeLiveNext';
-  rest.after(next);
+  quick.after(next);
  }
  if(!$('forgeLiveOptions')){
   const options=make('details','forge-live-options');options.id='forgeLiveOptions';

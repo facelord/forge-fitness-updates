@@ -98,7 +98,7 @@ function style(){
   '#workout.forge-slim-active #forgeWorkoutUndoBanner{display:none!important}',
   '#workout.forge-slim-active .forge-polish-reorder-btn{display:none!important}',
   '#workout.forge-slim-active #forgeWorkoutHistoryPanel{display:none!important}',
-  '#workout.forge-slim-active .forge149-workout-section:not(:has(.forge150-workout-lead)){display:none!important}',
+  '#workout.forge-slim-active:not(.forge-slim-show-alternate) .forge149-workout-section:not(:has(.forge150-workout-lead)){display:none!important}',
   '#workout.forge-slim-active #forgeSlimModesPanel .forge150-modes{display:flex!important;flex-wrap:wrap}',
   '#workout.forge-slim-idle #forgeSlimModesPanel{display:none!important}',
   '#workout.forge-slim-active #forgeQuickWorkout .forge-slim-focus-tools>summary:focus-visible,#workout.forge-slim-workout #forgeLiveOptions>summary:focus-visible{outline:2px solid #a8f55d;outline-offset:2px}',
@@ -126,6 +126,8 @@ function install(){
  }
  const modePanel=$('forgeSlimModesPanel');
  const active=modeFor(state)==='active',mode=active?'active':'idle';
+ const alternate=!!modes?.querySelector('button[data-mode="mobility"][aria-pressed="true"],button[data-mode="cardio"][aria-pressed="true"]');
+ page.classList.toggle('forge-slim-show-alternate',alternate);
  page.classList.toggle('forge-slim-active',active);
  page.classList.toggle('forge-slim-idle',!active);
  const stamp=state?.activeWorkout?String(state.activeWorkout.planId)+':'+String(state.activeWorkout.startedAt):'none';
