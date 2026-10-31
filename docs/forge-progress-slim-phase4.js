@@ -32,7 +32,7 @@ function reveal(id){
  panel.scrollIntoView?.({behavior:'smooth',block:'start'});
  return true;
 }
-window.ForgeProgressSlim=Object.freeze({panelFor,reveal,isInstalled:()=>installed});
+window.ForgeProgressSlim=Object.freeze({panelFor,reveal,simplifyChallenges,isInstalled:()=>installed});
 function style(){
  if($('forgeProgressSlimPhase4Style'))return;
  const css=node('style');
@@ -77,10 +77,60 @@ function style(){
   '#progress.forge-slim-phase4 #forgeProgressChallenges>details.forge-stats-fold>summary{min-height:53px;padding:13px 3px;font-size:14px}',
   '#progress.forge-slim-phase4 #forgeProgressChallenges>details.forge-stats-fold>.disclosure-body{padding:5px 0 16px!important}',
   '#progress.forge-slim-phase4 #forgeProgressChallenges .card{box-shadow:none!important;border:0!important;background:transparent!important;padding:0!important;margin:0!important}',
+  '#progress.forge-slim-phase4 #forgeProgressChallenges>details[data-forge-slim-challenges="primary"]{border:0!important;margin:0!important;padding:0!important}',
+  '#progress.forge-slim-phase4 #forgeProgressChallenges>details[data-forge-slim-challenges="primary"]>summary{display:none!important}',
+  '#progress.forge-slim-phase4 #forgeProgressChallenges>details[data-forge-slim-challenges="primary"]>.disclosure-body{padding:0!important}',
+  '#progress.forge-slim-phase4 #forgeChallengeCards{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px!important;margin:4px 0 17px!important}',
+  '#progress.forge-slim-phase4 #forgeChallengeCards>.forge-challenge{min-width:0;margin:0!important;padding:13px 11px!important;border:1px solid #395448!important;border-radius:14px!important;background:#182d30!important;box-shadow:none!important}',
+  '#progress.forge-slim-phase4 #forgeChallengeCards>.forge-challenge:first-child{grid-column:1/-1;background:linear-gradient(120deg,#203e33,#192f2c)!important;border-color:#5a8456!important;padding:16px!important}',
+  '#progress.forge-slim-phase4 #forgeChallengeCards>.forge-challenge:first-child .head b{font-size:17px!important;color:#f0f8e9!important}',
+  '#progress.forge-slim-phase4 #forgeChallengeCards>.forge-challenge:first-child .detail{font-size:12px!important;color:#b7cdbb!important;line-height:1.4;margin:8px 0 10px}',
+  '#progress.forge-slim-phase4 #forgeChallengeCards>.forge-challenge:first-child .track{height:9px!important;border-radius:9px!important;margin:11px 0!important}',
+  '#progress.forge-slim-phase4 #forgeChallengeCards>.forge-challenge:not(:first-child) .track{display:none!important}',
+  '#progress.forge-slim-phase4 #forgeChallengeCards>.forge-challenge:not(:first-child) .head .pill{display:none!important}',
+  '#progress.forge-slim-phase4 #forgeChallengeCards>.forge-challenge:not(:first-child) .detail{display:none!important}',
+  '#progress.forge-slim-phase4 #forgeChallengeCards>.forge-challenge:not(:first-child) .head b{font-size:13px!important;line-height:1.4;color:#e7f2eb!important}',
+  '#progress.forge-slim-phase4 #forgeChallengeCards>.forge-challenge:not(:first-child) .foot{margin-top:11px!important;font-size:12px;color:#b9e69d!important}',
+  '#progress.forge-slim-phase4 #forgeChallengeCards>.forge-challenge:not(:first-child) .foot span:last-child{display:none!important}',
+  '#progress.forge-slim-phase4 #forgeProgressChallenges [role="progressbar"]{display:none!important}',
+  '#progress.forge-slim-phase4 #forgeChallengeCards>.forge-challenge:first-child .track[role="progressbar"]{display:block!important}',
+  '#progress.forge-slim-phase4 #forgeProgressChallenges .forge-stats-footnote{font-size:11px!important;line-height:1.45!important;color:#8da49c!important;margin:16px 2px 8px!important}',
+  '#progress.forge-slim-phase4 #forgeProgressChallenges>details.forge-stats-fold:not([data-forge-slim-challenges="primary"])>summary{font-size:13px!important;min-height:50px!important;padding:12px 3px!important}',
   '@media(max-width:365px){#progress.forge-slim-phase4 #forgeProgressSummary>.forge-stats-tile strong{font-size:21px!important}#progress.forge-slim-phase4 .forge-progress-tabs button{font-size:12px!important}}'
  ].join('\n');
  document.head.append(css);
 }
+function simplifyChallenges(root){
+ // The first legacy disclosure is just a static motivational introduction,
+ // with no saved data, inputs, progress calculations or actionable controls.
+ const panels=Array.from(root.children).filter(x=>x.matches?.('details.forge-stats-fold'));
+ const intro=panels.find(p=>{
+  const summary=p.querySelector(':scope > summary');
+  return /Deine Challenges\s*[–-]\s*Übersicht/i.test(summary?.textContent||'');
+ });
+ if(intro&&!intro.querySelector('input,select,button,[id]'))intro.remove();
+ const cards=panelFor('forgeChallengeCards',root);
+ const weekly=panelFor('forgeWeeklyGoal',root);
+ if(cards){
+  cards.open=true;
+  cards.dataset.forgeSlimChallenges='primary';
+  // Only the weekly-goal card has a target progress bar. Other metrics remain
+  // numeric. The existing renderForgeChallenges() still owns the values.
+  root.prepend(cards);
+ }
+ if(weekly){
+  weekly.open=false;
+  const summary=weekly.querySelector(':scope > summary');
+  if(summary)summary.textContent='Wochenziel anpassen';
+  if(cards)cards.after(weekly);
+ }
+ for(const p of panels){
+  if(p===cards||p===weekly||p===intro)continue;
+  p.open=false;
+ }
+ return !!cards;
+}
+
 function install(){
  if(installed)return true;
  const page=$('progress'),stats=$('forgeProgressStats'),challenges=$('forgeProgressChallenges');
@@ -101,9 +151,8 @@ function install(){
  // Move the existing control under Statistics, without replacing its inputs.
  const wellness=page.querySelector(':scope > details.forge-stats-wellness');
  if(wellness){wellness.open=false;stats.append(wellness);}
- // For challenges, open the actual goal-progress cards, not the redundant intro.
- const cards=panelFor('forgeChallengeCards',challenges);
- if(cards){cards.open=true;cards.dataset.forgeSlimChallenges='cards';}
+ // Prioritize one weekly-goal bar; turn the other challenges into quiet KPIs.
+ simplifyChallenges(challenges);
  // Preserve the old progress/challenge switch: do not wrap or override it.
  const heading=page.querySelector(':scope > h1');
  if(heading)heading.textContent='Fortschritt';
