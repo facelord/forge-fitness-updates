@@ -3,5 +3,5 @@
   "versionName": "14.13.213",
   "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.213/FORGE-Fitness-14.13.213.apk",
   "sha256": "9f5e0e2a37122f7b2bf2a09a5305347121e35da18c84bc129405a91840393ec6",
-  "notes": "FORGE Amazfit/Zepp, Bluetooth-Pulsmesser und manuelle Pulsfelder auf Web und Android vorerst unsichtbar; bestehende Integrationen und gespeicherte Cardio-Daten bleiben erhalten. Tagesform liegt weiterhin schlank unter Fortschritt > Statistiken."
+  "notes": "FORGE 14.13.213: Im Tab Plan alle Übungen des aktiven Plans direkt mit Sätzen und Wiederholungen sichtbar. Training zeigt die für die laufende Einheit nötigen Aktionen; dauerhafte Satzpausen-Vorgaben unter Einstellungen, Trainingsverlauf unter Fortschritt. Planbearbeitung und alle X Tage bleiben erhalten. Vor Android-Updates bitte ein JSON-Backup exportieren."
 }
