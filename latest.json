@@ -1,7 +1,7 @@
 {
-  "versionCode": 10169,
-  "versionName": "14.13.169",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.169/FORGE-Fitness-14.13.169.apk",
-  "sha256": "7be65b774269eea5a660b8d9d650323639e876d6aa036a1bb8edd43d15f1a7cd",
-  "notes": "FORGE UX Schritt 3: Essen vereinfacht – Tagesbilanz, Mahlzeiten und direkte Aktionen für Erfassen, Scannen und Wiederholen. Such- und Nährwertfunktionen bleiben erhalten. Zusätzlich: Tastatur-Fix beim Tippen im Plan und Training."
+  "versionCode": 10173,
+  "versionName": "14.13.173",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.173/FORGE-Fitness-14.13.173.apk",
+  "sha256": "ae25fa76f6a49596a8289ed2b967985a9d60e7c1c02fc8838531de124048d88c",
+  "notes": "FORGE UX Schritte 1–4: Plan, Training, Essen und Fortschritt vereinfacht. Fortschritt zeigt Trainingsbilanz und 7-Tage-Aktivität sofort; zusätzliche Auswertungen und Challenges bleiben erreichbar. Eingaben in FORGE sind gegen unerwünschtes Neuzeichnen abgesichert."
 }
