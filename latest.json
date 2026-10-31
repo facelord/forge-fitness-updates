@@ -3,5 +3,5 @@
   "versionName": "14.13.205",
   "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.205/FORGE-Fitness-14.13.205.apk",
   "sha256": "0e84cd4367253408c3ea4b14323b1db4a4e1c27a806793fd73a950960a3a6731",
-  "notes": "FORGE Amazfit/Zepp, Bluetooth-Pulsmesser und manuelle Pulsfelder auf Web und Android vorerst unsichtbar; bestehende Integrationen und gespeicherte Cardio-Daten bleiben erhalten. Tagesform liegt weiterhin schlank unter Fortschritt > Statistiken."
+  "notes": "FORGE 14.13.205: Krafttraining lässt sich jetzt manuell einklappen und bleibt bis zum erneuten Öffnen des Training-Tabs geschlossen. „Übungen & Sätze“ ist größer und deutlicher hervorgehoben. Keine Änderung an Trainingsdaten oder Timern."
 }
