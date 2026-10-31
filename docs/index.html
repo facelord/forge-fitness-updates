@@ -1230,7 +1230,7 @@ function startWorkoutFromDashboard(){const now=(new Date().getDay()+6)%7;const p
 function formatClock(ms){const t=Math.max(0,Math.floor(ms/1000));return [Math.floor(t/3600),Math.floor(t/60)%60,t%60].map(x=>String(x).padStart(2,'0')).join(':')}
 function updateWorkoutClock(){
 const a=state.activeWorkout,elapsed=a?formatElapsed(forgeWorkoutNetMs(a)):null;
-const el=document.getElementById('workoutTimer');if(el)el.textContent=a?'Training läuft · seit Start':'Noch kein Training gestartet';const digital=document.getElementById('workoutDigitalClock');if(digital)digital.textContent=a?formatClock(forgeWorkoutNetMs(a)):'00:00:00';const clock=digital?.closest('.forge-clock');if(clock)clock.classList.toggle('running',!!a);
+const el=document.getElementById('workoutTimer');if(el)el.textContent=a?(a.forgePausedAt?'⏸ Trainingszeit angehalten':'● Netto-Trainingszeit'):'Noch kein Training gestartet';const digital=document.getElementById('workoutDigitalClock');if(digital)digital.textContent=a?formatClock(forgeWorkoutNetMs(a)):'00:00:00';const clock=digital?.closest('.forge-clock');if(clock)clock.classList.toggle('running',!!a);
 const dash=document.getElementById('dashboardTimer');if(dash)dash.textContent=a?'⏱ Laufendes Training: '+elapsed:'';
 const start=document.getElementById('workoutStart');if(start)start.style.display=a?'none':'';
 const end=document.getElementById('saveWorkout');if(end)end.textContent=a?'■ Training beenden & speichern':'Workout speichern (ohne Timer)';
