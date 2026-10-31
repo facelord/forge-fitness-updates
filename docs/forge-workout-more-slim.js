@@ -11,7 +11,7 @@ const el=(tag,cls,text)=>{
  if(text!==undefined)node.textContent=text;
  return node;
 };
-let installed=false,mobilityWrapped=false;
+let installed=false,mobilityWrapped=false,readinessObserver=null;
 function sections(page=$('workout')){
  if(!page)return null;
  const mobility=page.querySelector('#mobWorkout')?.closest('details.forge149-workout-section');
@@ -20,20 +20,38 @@ function sections(page=$('workout')){
  const readiness=$('forge144WorkoutCoach');
  return {mobility,cardio,history,readiness};
 }
+function openReadiness(){
+ const host=$('forge144WorkoutCoach'),stats=$('forgeProgressStats');
+ if(!host||!stats||!stats.contains(host))return false;
+ if(typeof window.go==='function')window.go('progress');
+ if(typeof window.showForgeProgressTab==='function')window.showForgeProgressTab('stats');
+ const panel=$('forge144WorkoutEnergyPanel');
+ if(panel)panel.open=true;
+ host.scrollIntoView?.({behavior:'smooth',block:'nearest'});
+ return true;
+}
 function openExtras(type){
+ if(type==='readiness')return openReadiness();
  const outer=$('forgeSlimWorkoutExtras');
  if(!outer)return false;
  outer.open=true;
  if(type==='mobility'||type==='cardio'){
   const section=sections()?.[type];
   if(section)section.open=true;
- }else if(type==='readiness'){
-  const s=$('forge144WorkoutEnergyPanel');
-  if(s)s.open=true;
  }
  return true;
 }
-window.ForgeWorkoutMore=Object.freeze({sections,openExtras,isInstalled:()=>installed});
+function syncReadiness(){
+ const host=$('forge144WorkoutCoach');
+ const panel=$('forge144WorkoutEnergyPanel');
+ const title=panel?.querySelector(':scope > summary');
+ if(!title||!host)return false;
+ const value=(title.textContent||'').match(/(?:·\s*)?([1-5])\s*\/\s*5\b/);
+ const label='◌ Tagesform heute'+(value?' · '+value[1]+'/5':'');
+ if(title.textContent!==label)title.textContent=label;
+ return true;
+}
+window.ForgeWorkoutMore=Object.freeze({sections,openExtras,openReadiness,syncReadiness,isInstalled:()=>installed});
 function styles(){
  if($('forgeWorkoutMoreStyle'))return;
  const s=el('style');
@@ -57,17 +75,17 @@ function styles(){
   '#workout.forge-training-more #forgeSlimWorkoutExtrasBody .forge150-modes{display:none!important}',
   '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #mobWorkout>.forge-intro{display:none!important}',
   '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forgeWorkoutHistoryPanel .disclosure-body{padding:0 2px 15px!important}',
-  '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forge144WorkoutCoach{padding:0!important;margin:0!important;border:0!important;background:transparent!important;box-shadow:none!important}',
-  '/* Readiness is a live-rendered nested details: make its collapsed row identical to siblings. */',
-  '#workout.forge-training-more #forgeSlimWorkoutExtrasBody>#forge144WorkoutCoach{display:block!important;width:100%!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;border-top:1px solid #38524a!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important}',
-  '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forge144WorkoutEnergyPanel{display:block!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important}',
-  '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forge144WorkoutEnergyPanel>summary{display:flex!important;align-items:center!important;gap:8px!important;min-height:55px!important;box-sizing:border-box!important;margin:0!important;padding:14px 2px!important;border:0!important;background:transparent!important;color:#e7f1ea!important;font-size:14px!important;font-weight:750!important;line-height:1.4!important;list-style:none!important;cursor:pointer!important}',
-  '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forge144WorkoutEnergyPanel>summary::-webkit-details-marker{display:none!important}',
-  '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forge144WorkoutEnergyPanel>summary::after{content:"⌄"!important;margin-left:auto!important;color:#a8f55d!important;font-size:18px!important;line-height:1!important;flex-shrink:0!important}',
-  '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forge144WorkoutEnergyPanel[open]>summary::after{content:"⌃"!important}',
-  '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forge144WorkoutEnergyPanel>p,#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forge144WorkoutEnergyPanel>.forge144-checkin,#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forge144WorkoutEnergyPanel>span{margin-left:2px!important;margin-right:2px!important}',
-  '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forge144WorkoutCoach>.forge144-celebrate{display:none!important}',
-  '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forge144WorkoutEnergyPanel>summary:focus-visible{outline:2px solid #a8f55d!important;outline-offset:-2px}',
+  '/* The compact daily check-in lives at the top of the progress stats tab. */',
+  '#progress.forge-slim-phase4 #forgeProgressStats>#forge144WorkoutCoach{order:-4.5;display:block!important;min-height:0!important;width:100%!important;margin:1px 0 12px!important;padding:0!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:visible!important}',
+  '#progress.forge-slim-phase4 #forgeProgressStats>#forge144WorkoutCoach>.forge144-celebrate{display:none!important}',
+  '#progress.forge-slim-phase4 #forge144WorkoutEnergyPanel{display:block!important;margin:0!important;padding:0!important;background:#182b2b!important;border:1px solid #3b5949!important;border-radius:12px!important;box-shadow:none!important;overflow:visible!important}',
+  '#progress.forge-slim-phase4 #forge144WorkoutEnergyPanel>summary{display:flex!important;align-items:center!important;gap:8px!important;box-sizing:border-box!important;min-height:42px!important;padding:9px 12px!important;margin:0!important;border:0!important;background:transparent!important;color:#cbdfd1!important;font-size:12px!important;font-weight:700!important;line-height:1.35!important;list-style:none!important;cursor:pointer!important}',
+  '#progress.forge-slim-phase4 #forge144WorkoutEnergyPanel>summary::-webkit-details-marker{display:none!important}',
+  '#progress.forge-slim-phase4 #forge144WorkoutEnergyPanel>summary::after{content:"⌄"!important;color:#a8f55d!important;font-size:18px!important;line-height:1!important;flex-shrink:0!important;margin-left:auto!important}',
+  '#progress.forge-slim-phase4 #forge144WorkoutEnergyPanel[open]>summary::after{content:"⌃"!important}',
+  '#progress.forge-slim-phase4 #forge144WorkoutEnergyPanel>p,#progress.forge-slim-phase4 #forge144WorkoutEnergyPanel>.forge144-checkin,#progress.forge-slim-phase4 #forge144WorkoutEnergyPanel>span{margin:8px 12px!important;font-size:12px!important}',
+  '#progress.forge-slim-phase4 #forge144WorkoutEnergyPanel>.forge144-checkin{display:flex!important;gap:7px!important;flex-wrap:wrap!important}',
+  '#progress.forge-slim-phase4 #forge144WorkoutEnergyPanel>summary:focus-visible{outline:2px solid #a8f55d!important;outline-offset:-2px}',
   '/* During a strength session the side modes remain accessible if consciously expanded. */',
   '#workout.forge-slim-active #forgeSlimWorkoutExtras[open] #forgeSlimWorkoutExtrasBody>details.forge149-workout-section{display:block!important}',
   '#workout.forge-slim-active #forgeSlimWorkoutExtras[open] #forgeSlimWorkoutExtrasBody>details#forgeWorkoutHistoryPanel{display:block!important}',
@@ -93,7 +111,7 @@ function wrapMobilityTimer(){
 function install(){
  if(installed)return true;
  const page=$('workout'),parts=sections(page);
- if(!page||!parts?.mobility||!parts.cardio||!parts.history)return false;
+ if(!page||!parts?.mobility||!parts.cardio||!parts.history||!parts.readiness||!$('forgeProgressStats'))return false;
  styles();
  const outer=el('details','forge-workout-extras');outer.id='forgeSlimWorkoutExtras';
  const summary=el('summary','','Weitere Trainings & Verlauf');
@@ -102,8 +120,7 @@ function install(){
  const targets=[
   [parts.mobility,'🧘 Mobilität & Yoga'],
   [parts.cardio,'🏃 Cardio & Sport'],
-  [parts.history,null],
-  [parts.readiness,'🧠 Tagesform vor dem Training']
+  [parts.history,null]
  ];
  for(const [target,label] of targets){
   if(!target)continue;
@@ -119,9 +136,18 @@ function install(){
  outer.open=false;
  // The strength panel remains the primary action, extras follow it.
  page.append(outer);
- // The original nested readiness control is now inside the mounted page.
- const readinessPanel=$('forge144WorkoutEnergyPanel');
- if(readinessPanel)readinessPanel.open=false;
+ // Move the actual live check-in (never clone it) to daily statistics.
+ const stats=$('forgeProgressStats'),readiness=parts.readiness;
+ if(stats&&readiness){
+  stats.append(readiness);
+  const readinessPanel=$('forge144WorkoutEnergyPanel');
+  if(readinessPanel)readinessPanel.open=false;
+  syncReadiness();
+  if(typeof MutationObserver==='function'){
+   readinessObserver=new MutationObserver(syncReadiness);
+   readinessObserver.observe(readiness,{childList:true,subtree:true});
+  }
+ }
  page.classList.add('forge-training-more');
  installed=true;
  wrapMobilityTimer();
