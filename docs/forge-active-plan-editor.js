@@ -10,7 +10,7 @@ const node=(tag,cls,txt)=>{
  const n=document.createElement(tag);if(cls)n.className=cls;
  if(txt!==undefined)n.textContent=txt;return n;
 };
-let opened=false,selectedId=null,observer=null,pageObserver=null,refreshTimer=null,dismissAttached=false;
+let opened=false,selectedId=null,expandedExercise=null,observer=null,pageObserver=null,refreshTimer=null,dismissAttached=false;
 const active=()=>typeof state!=='undefined'&&Array.isArray(state.plan)?state.plan:[];
 const planById=id=>active().find(x=>String(x.id)===String(id));
 function selectValidId(id,plans){
@@ -39,7 +39,7 @@ function hasFocusedEditorField(root,focused=document.activeElement){
  const tag=String(focused.tagName||'').toUpperCase();
  return tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||focused.isContentEditable===true;
 }
-window.ForgeActivePlanEdit=Object.freeze({selectValidId,normalizeHeading,updateSessionMeta,hasFocusedEditorField,isOpen:()=>opened,closeEditor,closeIfInactive});
+window.ForgeActivePlanEdit=Object.freeze({selectValidId,normalizeHeading,updateSessionMeta,hasFocusedEditorField,isOpen:()=>opened,closeEditor,closeIfInactive,flattenExerciseRows});
 function settings(){
  const container=$('forgeActivePlanEditor');
  if(!container)return;
@@ -63,7 +63,7 @@ function safeCreation(){
 }
 function closeEditor(){
  if(!opened)return;
- opened=false;selectedId=null;
+ opened=false;selectedId=null;expandedExercise=null;
  if(refreshTimer!==null){clearTimeout(refreshTimer);refreshTimer=null;}
  const panel=$('forgeActivePlanEditor');
  if(panel)panel.replaceChildren(); // Drop all unsaved form inputs and detached event handlers.
@@ -85,8 +85,46 @@ function openEditor(){
  $('forgeActivePlanEditor')?.scrollIntoView?.({behavior:'smooth',block:'start'});
 }
 function toggleEditor(){if(opened)closeEditor();else openEditor();}
+function openDay(id){
+ if(!planById(id))return;
+ if(!opened)openEditor();
+ if(!opened)return;
+ if(selectedId!==String(id)){selectedId=String(id);expandedExercise=null;}
+ renderEditor();settings();
+ $('forgeActivePlanEditor')?.scrollIntoView?.({behavior:'smooth',block:'start'});
+}
 window.forgeOpenActivePlanEditor=toggleEditor;
+window.forgeOpenActivePlanDay=openDay;
 window.forgeCloseActivePlanEditor=closeEditor;
+function flattenExerciseRows(source){
+ if(!source)return 0;
+ let count=0;
+ source.querySelectorAll('.forge138-edit-row').forEach((row,index)=>{
+  if(row.classList.contains('forge-editor-item'))return;
+  const header=row.querySelector(':scope > .forge138-edit-head');
+  const summary=node('summary','forge-editor-item-summary',header?.textContent?.trim().replace(/\s+/g,' ')||'Übung '+(index+1));
+  const inside=node('div','forge-editor-item-body');
+  const details=node('details','forge-editor-item');
+  details.dataset.index=String(index);
+  details.open=expandedExercise===index;
+  for(const item of Array.from(row.children)){if(item!==header)inside.append(item);}
+  details.append(summary,inside);
+  details.addEventListener('toggle',()=>{
+   if(details.open){
+    expandedExercise=index;
+    source.querySelectorAll('.forge-editor-item').forEach(other=>{if(other!==details)other.open=false;});
+   }else if(expandedExercise===index)expandedExercise=null;
+  });
+  row.replaceWith(details);count++;
+ });
+ // Replace a second nested accordion with a flat, directly editable form.
+ source.querySelectorAll('.forge138-edit-disclosure').forEach(fold=>{
+  const flat=node('div','forge-editor-direct-fields');
+  for(const child of Array.from(fold.children))if(child.tagName!=='SUMMARY')flat.append(child);
+  fold.replaceWith(flat);
+ });
+ return count;
+}
 function renderEditor(){
  const root=$('forgeActivePlanEditor');
  if(!root||!opened)return;
@@ -101,7 +139,7 @@ function renderEditor(){
  cancel.type='button';cancel.setAttribute('aria-label','Planbearbeitung abbrechen und schließen');
  cancel.addEventListener('click',closeEditor);
  heading.append(cancel);header.append(heading);
- header.append(node('p','muted','Nur bestätigte Änderungen werden gespeichert. „Abbrechen“ verwirft nicht gespeicherte Eingaben; bereits bestätigte Änderungen bleiben erhalten.'));
+ header.append(node('p','muted','Tippe auf eine Übung, um sie zu ändern. Bestätigte Änderungen gelten dauerhaft.'));
  root.append(header);
  const pills=node('div','forge-active-editor-tabs');
  pills.setAttribute('role','group');pills.setAttribute('aria-label','Trainingseinheit auswählen');
@@ -109,7 +147,7 @@ function renderEditor(){
   const chosen=String(p.id)===selectedId;
   const btn=node('button','forge-active-editor-tab',p.title||'Einheit '+(index+1));
   btn.type='button';btn.setAttribute('aria-pressed',String(chosen));
-  btn.addEventListener('click',()=>{selectedId=String(p.id);renderEditor();});
+  btn.addEventListener('click',()=>{selectedId=String(p.id);expandedExercise=null;renderEditor();});
   pills.append(btn);
  });
  root.append(pills);
@@ -135,14 +173,18 @@ function renderEditor(){
   const ok=updateSessionMeta(selected.id,titleInput.value,select.value);
   if(ok){renderEditor();}else status.textContent='Änderung nicht möglich oder abgebrochen.';
  });
- info.append(title,loc,saveMeta,status);content.append(info);
+ info.append(title,loc,saveMeta,status);
+ const rename=node('details','forge-editor-meta');
+ rename.append(node('summary','','✎ Name & Trainingsort ändern'),info);
+ content.append(rename);
  const section=node('section','forge-active-exercise-manager');
- section.append(node('h3','','Übungen in dieser Einheit'));
+ section.append(node('h3','','Übungen · antippen zum Bearbeiten'));
  if(typeof window.forge138PlanEditPanel==='function'){
   const template=node('div');
   template.innerHTML=window.forge138PlanEditPanel(selected);
   const source=template.querySelector('.forge138-editor-content');
   if(source){
+   flattenExerciseRows(source);
    section.append(source);
   }else section.append(node('p','muted','Übungsbearbeitung konnte nicht geöffnet werden.'));
  }else{
@@ -216,7 +258,7 @@ function style(){
   '#plan .forge-active-editor-tabs{display:flex;gap:8px;max-width:100%;overflow-x:auto;scrollbar-width:thin;padding:2px 0 12px}',
   '#plan .forge-active-editor-tab{flex:0 0 auto;max-width:230px;padding:10px 13px;min-height:42px;font:inherit;font-size:12px;border-radius:10px;background:#20373a;color:#d6e8db;border:1px solid #48675c;cursor:pointer;text-align:left}',
   '#plan .forge-active-editor-tab[aria-pressed="true"]{border-color:#b2f875;background:#2b4a38;color:#eaffd8}',
-  '#plan .forge-active-editor-settings{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 0 16px;border-bottom:1px solid #375850}',
+  '#plan .forge-active-editor-settings{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 0 16px;border-bottom:1px solid #375850}',
   '#plan .forge-active-editor-settings label{display:grid;gap:5px;font-size:12px;color:#c8dfcb;min-width:0}',
   '#plan .forge-active-editor-settings input,#plan .forge-active-editor-settings select{width:100%;min-width:0;box-sizing:border-box;min-height:43px;font-size:14px;background:#10232c;color:#f0fff2;border:1px solid #4c6862;border-radius:9px;padding:9px 7px}',
   '#plan .forge-active-editor-settings>button{grid-column:1/-1;min-height:43px}',
@@ -224,6 +266,20 @@ function style(){
   '#plan .forge-active-exercise-manager>h3{margin:16px 0 12px;font-size:16px;color:#ddf7db}',
   '#plan .forge-active-exercise-manager .forge138-editor-content{padding:0!important;margin:0!important;background:transparent!important;border:0!important}',
   '#plan .forge-active-exercise-manager .forge138-edit-row{padding:12px 0!important;border:0!important;border-bottom:1px solid #36554b!important;margin:0!important;background:transparent!important}',
+  '#plan .forge-editor-meta{border-bottom:1px solid #395549;margin-top:8px}',
+  '#plan .forge-editor-meta>summary{list-style:none;min-height:48px;display:flex;align-items:center;font-size:14px;font-weight:750;color:#c7f1b0;cursor:pointer}',
+  '#plan .forge-editor-meta>summary:after{content:"⌄";margin-left:auto;color:#a8f55d;font-size:19px}',
+  '#plan .forge-editor-meta[open]>summary:after{content:"⌃"}',
+  '#plan .forge-editor-item{border-bottom:1px solid #365448;background:transparent;margin:0;padding:0}',
+  '#plan .forge-editor-item>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none;min-height:58px;padding:12px 1px;font-size:14px;font-weight:750;color:#f1f9ed;line-height:1.5}',
+  '#plan .forge-editor-item>summary:after{content:"⌄";font-size:22px;color:#a8f55d;flex:none}',
+  '#plan .forge-editor-item[open]>summary:after{content:"⌃"}',
+  '#plan .forge-editor-item-body{padding:2px 0 14px}',
+  '#plan .forge-editor-item-body .forge138-edit-tools{padding-bottom:9px}',
+  '#plan .forge-editor-direct-fields{display:grid;gap:8px;padding:8px 0;border-top:1px solid #344e43}',
+  '#plan .forge-editor-direct-fields label{display:grid;gap:6px;font-size:13px;color:#cedccb}',
+  '#plan .forge-editor-direct-fields select,#plan .forge-editor-direct-fields input{min-height:45px;max-width:100%;box-sizing:border-box}',
+  '#plan .forge-editor-item>summary:focus-visible,#plan .forge-editor-meta>summary:focus-visible{outline:2px solid #a8f55d;outline-offset:2px}',
   '#plan .forge-active-exercise-manager .forge138-edit-tools{display:flex;gap:5px;flex-wrap:wrap}',
   '#plan .forge-active-exercise-manager .forge138-edit-tools button{min-height:40px}',
   '#plan .forge-active-exercise-manager .forge138-edit-disclosure{border:0!important;margin:6px 0;background:transparent!important}',
