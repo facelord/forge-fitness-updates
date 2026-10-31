@@ -28,11 +28,13 @@ function reveal(id){
  const field=$(id);if(!field)return false;
  const panel=field.closest?.('details.forge-stats-fold');
  if(!panel)return false;
+ const outer=panel.closest?.('#forgeSlimProgressMore, #forgeSlimChallengesMore');
+ if(outer)outer.open=true;
  panel.open=true;
  panel.scrollIntoView?.({behavior:'smooth',block:'start'});
  return true;
 }
-window.ForgeProgressSlim=Object.freeze({panelFor,reveal,simplifyChallenges,isInstalled:()=>installed});
+window.ForgeProgressSlim=Object.freeze({panelFor,reveal,bundleDetails,simplifyStatistics,simplifyChallenges,isInstalled:()=>installed});
 function style(){
  if($('forgeProgressSlimPhase4Style'))return;
  const css=node('style');
@@ -96,17 +98,101 @@ function style(){
   '#progress.forge-slim-phase4 #forgeChallengeCards>.forge-challenge:first-child .track[role="progressbar"]{display:block!important}',
   '#progress.forge-slim-phase4 #forgeProgressChallenges .forge-stats-footnote{font-size:11px!important;line-height:1.45!important;color:#8da49c!important;margin:16px 2px 8px!important}',
   '#progress.forge-slim-phase4 #forgeProgressChallenges>details.forge-stats-fold:not([data-forge-slim-challenges="primary"])>summary{font-size:13px!important;min-height:50px!important;padding:12px 3px!important}',
+  '#progress.forge-slim-phase4 #forgeSlimProgressMore{order:-1;margin:13px 0 2px!important}',
+  '#progress.forge-slim-phase4 #forgeSlimProgressMore,#progress.forge-slim-phase4 #forgeSlimChallengesMore{background:#17272d!important;border:1px solid #3b584b!important;border-radius:14px!important;box-shadow:none!important;overflow:hidden!important}',
+  '#progress.forge-slim-phase4 #forgeSlimProgressMore>summary,#progress.forge-slim-phase4 #forgeSlimChallengesMore>summary{display:flex;align-items:center;justify-content:space-between;gap:8px;list-style:none;cursor:pointer;padding:15px 14px!important;min-height:54px!important;font-size:14px!important;font-weight:750!important;color:#e6f5e8!important;border:0!important;background:transparent!important}',
+  '#progress.forge-slim-phase4 #forgeSlimProgressMore>summary::-webkit-details-marker,#progress.forge-slim-phase4 #forgeSlimChallengesMore>summary::-webkit-details-marker{display:none!important}',
+  '#progress.forge-slim-phase4 #forgeSlimProgressMore>summary::after,#progress.forge-slim-phase4 #forgeSlimChallengesMore>summary::after{content:"⌄";color:#a8f55d;font-size:21px}',
+  '#progress.forge-slim-phase4 #forgeSlimProgressMore[open]>summary::after,#progress.forge-slim-phase4 #forgeSlimChallengesMore[open]>summary::after{content:"⌃"}',
+  '#progress.forge-slim-phase4 #forgeSlimProgressMoreBody,#progress.forge-slim-phase4 #forgeSlimChallengesMoreBody{padding:0 13px 9px!important;margin:0!important;background:transparent!important}',
+  '#progress.forge-slim-phase4 #forgeSlimProgressMoreBody>details,#progress.forge-slim-phase4 #forgeSlimChallengesMoreBody>details{display:block!important;margin:0!important;padding:0!important;border:0!important;border-top:1px solid #354c42!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important}',
+  '#progress.forge-slim-phase4 #forgeSlimProgressMoreBody>details>summary,#progress.forge-slim-phase4 #forgeSlimChallengesMoreBody>details>summary{display:flex!important;align-items:center;gap:10px;list-style:none;cursor:pointer;padding:13px 2px!important;min-height:52px!important;background:transparent!important;border:0!important;color:#e2efe6!important;font-size:13px!important;font-weight:650!important}',
+  '#progress.forge-slim-phase4 #forgeSlimProgressMoreBody>details>summary::-webkit-details-marker,#progress.forge-slim-phase4 #forgeSlimChallengesMoreBody>details>summary::-webkit-details-marker{display:none!important}',
+  '#progress.forge-slim-phase4 #forgeSlimProgressMoreBody>details>summary::after,#progress.forge-slim-phase4 #forgeSlimChallengesMoreBody>details>summary::after{content:"⌄";margin-left:auto;color:#a8f55d;font-size:18px}',
+  '#progress.forge-slim-phase4 #forgeSlimProgressMoreBody>details[open]>summary::after,#progress.forge-slim-phase4 #forgeSlimChallengesMoreBody>details[open]>summary::after{content:"⌃"}',
+  '#progress.forge-slim-phase4 #forgeSlimProgressMoreBody>details>.disclosure-body,#progress.forge-slim-phase4 #forgeSlimChallengesMoreBody>details>.disclosure-body{padding:3px 0 15px!important;margin:0!important;border:0!important;background:transparent!important}',
+  '#progress.forge-slim-phase4 #forgeSlimProgressMoreBody .card,#progress.forge-slim-phase4 #forgeSlimChallengesMoreBody .card{border:0!important;background:transparent!important;border-radius:0!important;padding:0!important;margin:0!important;box-shadow:none!important}',
+  '#progress.forge-slim-phase4 #forgeSlimProgressMoreBody .forge130-cockpit{margin:0!important;display:block!important}',
+  '#progress.forge-slim-phase4 #forgeSlimProgressMoreBody .forge130-cockpit>.forge130-card{padding:0!important;margin:4px 0 15px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}',
+  '#progress.forge-slim-phase4 #forgeSlimProgressMoreBody .forge130-cockpit>.forge130-card:nth-child(2),#progress.forge-slim-phase4 #forgeSlimProgressMoreBody .forge130-cockpit>.forge130-card:first-child>.row,#progress.forge-slim-phase4 #forgeSlimProgressMoreBody .forge130-cockpit>.forge130-card:first-child>.forge130-kpis,#progress.forge-slim-phase4 #forgeSlimProgressMoreBody .forge130-cockpit>.forge130-card:first-child>p.muted:first-of-type{display:none!important}',
+  '#progress.forge-slim-phase4 #forgeSlimProgressMoreBody .forge130-cockpit>.forge130-card:first-child>h3{font-size:14px!important;margin:4px 0 12px!important}',
+  '#progress.forge-slim-phase4 #forgeSlimProgressRenderCache{display:none!important}',
+  '#progress.forge-slim-phase4 #forgeSlimChallengesMore{margin:10px 0!important}',
   '@media(max-width:365px){#progress.forge-slim-phase4 #forgeProgressSummary>.forge-stats-tile strong{font-size:21px!important}#progress.forge-slim-phase4 .forge-progress-tabs button{font-size:12px!important}}'
  ].join('\n');
  document.head.append(css);
 }
+function bundleDetails(root,id,title,panels){
+ const outer=node('details','forge-slim-progress-more');
+ outer.id=id;
+ const summary=node('summary','',title);
+ if(id==='forgeSlimProgressMore')summary.id='forgeSlimProgressMoreTitle';
+ const body=node('div','forge-slim-progress-more-body');
+ body.id=id+'Body';
+ outer.append(summary,body);
+ for(const part of panels){if(!part)continue;part.open=false;body.append(part);}
+ outer.open=false;
+ root.append(outer);
+ return outer;
+}
+function simplifyStatistics(stats,page){
+ // Keep the four visible statistics and seven-day activity as the entire
+ // default screen. Do not add extra copies of their values further down.
+ const cockpitPanel=panelFor('forge130Cockpit',stats);
+ const volume=panelFor('volumeChart',stats);
+ const cockpit=$('forge130Cockpit'),volumeBody=volume?.querySelector(':scope > .disclosure-body');
+ if(cockpitPanel&&cockpit&&volume&&cockpitPanel!==volume&&volumeBody){
+  // Preserve the *unique* four-week volume history with the workout-volume chart.
+  // Duplicate cockpit counts and PR list are only visually suppressed by CSS.
+  volumeBody.prepend(cockpit);
+  cockpitPanel.remove();
+ }
+ const recordsPanel=panelFor('records',stats),records=$('records');
+ if(recordsPanel&&records){
+  // renderProgress() still writes to #records on every update. Keep the live
+  // render target mounted but remove the duplicated PR tile from the UI.
+  const cache=node('div');cache.id='forgeSlimProgressRenderCache';
+  cache.hidden=true;cache.setAttribute('aria-hidden','true');
+  cache.append(records);stats.append(cache);recordsPanel.remove();
+ }
+ const wellness=page.querySelector(':scope > details.forge-stats-wellness');
+ const keyed=[
+  ['forgeCoachDeep','Trainingscoach & Leistungsanalyse'],
+  ['bodyWeight','Körpergewicht'],
+  ['volumeChart','Trainingsvolumen & Wochenvergleich'],
+  ['forgeCardioStats','Cardio & Sport'],
+  ['forgeTimeSummary','Trainingszeit im Detail']
+ ];
+ const chosen=[];
+ for(const [id,label] of keyed){
+  const panel=panelFor(id,stats);if(!panel||chosen.includes(panel))continue;
+  const heading=panel.querySelector(':scope > summary');
+  if(heading)heading.textContent=label;
+  chosen.push(panel);
+ }
+ if(wellness){
+  const heading=wellness.querySelector(':scope > summary');
+  if(heading)heading.textContent='Tagesform & Regeneration';
+  chosen.push(wellness);
+ }
+ const other=Array.from(stats.children).filter(p=>
+  p.matches?.('details.forge-stats-fold')&&!p.dataset.forgeSlimFeature&&!chosen.includes(p)
+ );
+ for(const panel of other){
+  const heading=panel.querySelector(':scope > summary');
+  if(/Amazfit|Zepp/i.test(heading?.textContent||''))heading.textContent='Smartwatch & Datenanbindung';
+ }
+ const detailPanels=chosen.concat(other);
+ if(detailPanels.length)bundleDetails(stats,'forgeSlimProgressMore','Weitere Auswertungen & Einstellungen',detailPanels);
+ return {detailCount:detailPanels.length,removedDuplicatePr:!!recordsPanel,mergedCockpit:!!cockpitPanel&&!stats.contains(cockpitPanel)};
+}
 function simplifyChallenges(root){
- // The first legacy disclosure is just a static motivational introduction,
- // with no saved data, inputs, progress calculations or actionable controls.
+ // Only the weekly goal is visible at the top. Group all secondary challenges
+ // and goal settings behind one disclosure, defaulting to closed.
  const panels=Array.from(root.children).filter(x=>x.matches?.('details.forge-stats-fold'));
  const intro=panels.find(p=>{
   const summary=p.querySelector(':scope > summary');
-  return /Deine Challenges\s*[–-]\s*Übersicht/i.test(summary?.textContent||'');
+  return /Deine Challenges\\s*[–-]\\s*Übersicht/i.test(summary?.textContent||'');
  });
  if(intro&&!intro.querySelector('input,select,button,[id]'))intro.remove();
  const cards=panelFor('forgeChallengeCards',root);
@@ -114,20 +200,16 @@ function simplifyChallenges(root){
  if(cards){
   cards.open=true;
   cards.dataset.forgeSlimChallenges='primary';
-  // Only the weekly-goal card has a target progress bar. Other metrics remain
-  // numeric. The existing renderForgeChallenges() still owns the values.
   root.prepend(cards);
  }
  if(weekly){
-  weekly.open=false;
   const summary=weekly.querySelector(':scope > summary');
   if(summary)summary.textContent='Wochenziel anpassen';
-  if(cards)cards.after(weekly);
  }
- for(const p of panels){
-  if(p===cards||p===weekly||p===intro)continue;
-  p.open=false;
- }
+ const remaining=Array.from(root.children).filter(p=>
+  p.matches?.('details.forge-stats-fold')&&p!==cards&&p!==intro
+ );
+ if(remaining.length)bundleDetails(root,'forgeSlimChallengesMore','Weitere Challenges & Einstellungen',remaining);
  return !!cards;
 }
 
@@ -141,16 +223,13 @@ function install(){
  // Keep the existing official statistics and their live render targets.
  feature(summary,'summary');feature(activity,'activity');
  const intro=node('div');intro.id='forgeSlimProgressIntro';
- intro.append(node('h2','','Deine Trainingsbilanz'),node('p','','Deine protokollierten Einheiten, Zeit und Bestleistungen im Überblick.'));
+ intro.append(node('h2','','Deine Trainingsbilanz'));
  stats.prepend(intro);
  const activityTitle=node('h2','','Trainingsaktivität · letzte 7 Tage');
  activityTitle.id='forgeSlimProgressActivityTitle';stats.append(activityTitle);
- const more=node('h2','','Weitere Auswertungen');more.id='forgeSlimProgressMoreTitle';
- stats.append(more);
- // This originally sat above both tabs, creating a distracting first screen.
- // Move the existing control under Statistics, without replacing its inputs.
- const wellness=page.querySelector(':scope > details.forge-stats-wellness');
- if(wellness){wellness.open=false;stats.append(wellness);}
+ // Merge overlapping panels and put all optional analyses into a single
+ // collapsed disclosure. The original DOM IDs/renderers remain alive.
+ simplifyStatistics(stats,page);
  // Prioritize one weekly-goal bar; turn the other challenges into quiet KPIs.
  simplifyChallenges(challenges);
  // Preserve the old progress/challenge switch: do not wrap or override it.
