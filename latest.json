@@ -3,5 +3,5 @@
   "versionName": "14.13.220",
   "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.220/FORGE-Fitness-14.13.220.apk",
   "sha256": "43cd84ff3efed91de8106e07753dea76979680a01e3f827a6fd7ed80abf43ef3",
-  "notes": "FORGE Amazfit/Zepp, Bluetooth-Pulsmesser und manuelle Pulsfelder auf Web und Android vorerst unsichtbar; bestehende Integrationen und gespeicherte Cardio-Daten bleiben erhalten. Tagesform liegt weiterhin schlank unter Fortschritt > Statistiken."
+  "notes": "FORGE 14.13.220: Fehlerbehebung „Training beenden & speichern“: Der Trainingsabschluss überprüft jetzt das Speichern im lokalen Gerätespeicher. Bei Fehlern bleiben die aktive Einheit und erfasste Sätze erhalten. Abschlussbutton, Erfolgsmeldung und Rückgängig liegen außerhalb eingeklappter Kacheln. Verhindert doppelte Einträge. Vor APK-Update bitte JSON-Backup exportieren."
 }
