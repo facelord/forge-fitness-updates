@@ -1,7 +1,7 @@
 {
-  "versionCode": 10177,
-  "versionName": "14.13.177",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.177/FORGE-Fitness-14.13.177.apk",
-  "sha256": "6ac24e8023d58ffaca92324518283562e0271f8e57866bb456f1aeb9ea1f4ec9",
-  "notes": "FORGE UX Schritte 1–4: Plan, Training, Essen und Fortschritt vereinfacht. Fortschritt zeigt Trainingsbilanz und 7-Tage-Aktivität sofort; zusätzliche Auswertungen und Challenges bleiben erreichbar. Eingaben in FORGE sind gegen unerwünschtes Neuzeichnen abgesichert."
+  "versionCode": 10181,
+  "versionName": "14.13.181",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.181/FORGE-Fitness-14.13.181.apk",
+  "sha256": "4e33b094e117b46ef10feafdf8aea3ce25fab0bc87a07c4943e079e0daa07af5",
+  "notes": "FORGE Fortschritt aufgeräumt: doppelte Bestleistungen-Kachel entfernt; Wochenvergleich in Trainingsvolumen integriert; Coach-Kennzahlen und Trainingszeit-Dopplungen reduziert. Alle weiteren Auswertungen, Einstellungen und Challenges zunächst in geschlossenen Sammelkacheln. Gespeicherte Daten bleiben erhalten."
 }
