@@ -51,7 +51,7 @@ function restorePlan(s,rows,selection){
    const id=active.planId||draft?.planId||('forge-rescue-'+Date.now());
    const ex=evidence.map((item,i)=>({
     name:String(item.name||'Übung '+(i+1)),
-    sets:Math.max(1,item.sets?.length||1),
+    sets:Math.max(1,item.sets?.length||0,rows[i]?.sets?.length||0),
     reps:Math.max(1,Number(item.sets?.find(x=>Number(x?.reps)>0)?.reps)||10),
     unit:'reps'
    }));
