@@ -17,7 +17,20 @@ function modeFor(state){
 function isTimeAction(onclick){
  return /forgeTimeFinish/.test(String(onclick||''));
 }
-window.ForgeWorkoutSlim=Object.freeze({modeFor,isTimeAction});
+// Only expand the strength fold on a real tab visit, not during every 600ms refresh.
+// A user's manual close must persist until they leave and re-enter Training.
+function createLeadVisitController(){
+ let previouslyOnTraining=false;
+ return function syncLeadOnVisit(page,fold){
+  const onTraining=!!page?.classList?.contains('active');
+  const entering=onTraining&&!previouslyOnTraining;
+  previouslyOnTraining=onTraining;
+  if(entering&&fold){fold.open=true;return true;}
+  return false;
+ };
+}
+const syncLeadOnVisit=createLeadVisitController();
+window.ForgeWorkoutSlim=Object.freeze({modeFor,isTimeAction,createLeadVisitController});
 let enabled=false,updating=false,previousMode=null,previousFocus=null;
 function style(){
  if($('forgeWorkoutSlimStyle'))return;
@@ -51,7 +64,7 @@ function style(){
   '#workout.forge-slim-active>h1{display:none!important}',
   '#workout.forge-slim-active>#forge144WorkoutCoach{display:none!important}',
   '#workout.forge-slim-active>#forge150WorkoutModes{display:none!important}',
-  '#workout.forge-slim-active .forge150-workout-lead>.forge-fold-details>summary{display:none!important}',
+  '#workout.forge-slim-active .forge150-workout-lead>.forge-fold-details>summary{display:flex!important}',
   '#workout.forge-slim-active .forge150-workout-lead .forge-fold-body>.card>label:first-child,',
   '#workout.forge-slim-active #workoutSelect,',
   '#workout.forge-slim-active #workoutInfo{display:none!important}',
@@ -107,6 +120,9 @@ function style(){
   '#workout.forge-slim-active #forgeSlimModesPanel .forge150-modes{display:flex!important;flex-wrap:wrap}',
   '#workout.forge-slim-idle #forgeSlimModesPanel{display:none!important}',
   '#workout.forge-slim-active #forgeQuickWorkout .forge-slim-focus-tools>summary:focus-visible,#workout.forge-slim-workout #forgeLiveOptions>summary:focus-visible{outline:2px solid #a8f55d;outline-offset:2px}',
+  '/* Prominent and tappable, without another nested card. Also wins over live-focus styles. */',
+  '#workout.forge-slim-workout details.forge-workout-all>summary,#workout.forge-slim-active #forgeLiveOptions details.forge-workout-all>summary{display:flex!important;align-items:center;gap:9px;min-height:54px!important;padding:13px 12px!important;background:#182f29!important;border-left:4px solid #a8f55d!important;border-radius:0 10px 10px 0!important;color:#d9ffc3!important;font-size:18px!important;font-weight:800!important;line-height:1.35!important}',
+  '#workout.forge-slim-workout details.forge-workout-all>summary:focus-visible{outline:2px solid #a8f55d;outline-offset:3px}',
   '@media(max-width:380px){#workout.forge-slim-active #forgeLiveProgress{font-size:10px!important}#workout.forge-slim-active .forge-clock .forge-clock-digits{font-size:29px!important}#workout.forge-slim-active #forgeLivePause{min-width:130px}}',
   '@media(prefers-reduced-motion:reduce){#workout.forge-slim-workout *{scroll-behavior:auto!important;transition:none!important}}'
  ].join('\n');
@@ -119,7 +135,7 @@ function install(){
  const top=page.querySelector(':scope > h1');
  if(top)top.textContent='Training';
  const details=lead.querySelector(':scope > details.forge-fold-details');
- if(details&&state?.activeWorkout)details.open=true;
+ syncLeadOnVisit(page,details);
  const options=$('forgeLiveOptions'),optionsBody=options.querySelector('.forge-live-options-body');
  if(!optionsBody)return false;
  const all=$('workoutExercises')?.closest('details.forge-workout-all');
@@ -139,7 +155,6 @@ function install(){
  const stamp=state?.activeWorkout?String(state.activeWorkout.planId)+':'+String(state.activeWorkout.startedAt):'none';
  if(stamp!==previousFocus){previousFocus=stamp;options.open=false;modePanel.open=false;}
  if(active){
-  if(details&&!details.open)details.open=true;
   if(all&&!optionsBody.contains(all)){optionsBody.append(all);all.open=false;}
   if(modes&&modes.parentNode!==modePanel)modePanel.append(modes);
   if(save&&options.contains(save))options.after(save);
@@ -148,7 +163,6 @@ function install(){
   if(all&&optionsBody.contains(all))options.before(all);
   if(modes&&modePanel.contains(modes))lead.before(modes);
   if(save&&!optionsBody.contains(save))optionsBody.append(save);
-  if(details&&!details.open)details.open=true;
  }
  const selector=lead.querySelector('#workoutSelect');
  if(selector){
