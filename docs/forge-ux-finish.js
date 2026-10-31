@@ -108,9 +108,11 @@
   if(!coach||!root||$('#forge150ReadinessLink'))return;
   const btn=document.createElement('button');btn.id='forge150ReadinessLink';
   btn.className='btn alt small forge150-readiness-link';btn.type='button';
-  btn.textContent='🧠 Tagesform einschätzen · zum Training';
+  btn.textContent='◌ Tagesform heute · zu Statistiken';
   btn.addEventListener('click',()=>{
-   if(typeof window.go==='function')window.go('workout');
+   if(window.ForgeWorkoutMore?.openReadiness?.())return;
+   if(typeof window.go==='function')window.go('progress');
+   if(typeof window.showForgeProgressTab==='function')window.showForgeProgressTab('stats');
    const panel=$('#forge144WorkoutEnergyPanel');if(panel)panel.open=true;
    panel?.scrollIntoView?.({behavior:'smooth',block:'nearest'});
   });

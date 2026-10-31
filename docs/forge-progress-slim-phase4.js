@@ -175,7 +175,7 @@ function simplifyStatistics(stats,page){
  }
  if(wellness){
   const heading=wellness.querySelector(':scope > summary');
-  if(heading)heading.textContent='Tagesform & Regeneration';
+  if(heading)heading.textContent='Schlaf & Regeneration im Detail';
   chosen.push(wellness);
  }
  const other=Array.from(stats.children).filter(p=>
