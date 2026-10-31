@@ -58,6 +58,16 @@ function styles(){
   '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #mobWorkout>.forge-intro{display:none!important}',
   '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forgeWorkoutHistoryPanel .disclosure-body{padding:0 2px 15px!important}',
   '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forge144WorkoutCoach{padding:0!important;margin:0!important;border:0!important;background:transparent!important;box-shadow:none!important}',
+  '/* Readiness is a live-rendered nested details: make its collapsed row identical to siblings. */',
+  '#workout.forge-training-more #forgeSlimWorkoutExtrasBody>#forge144WorkoutCoach{display:block!important;width:100%!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;border-top:1px solid #38524a!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important}',
+  '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forge144WorkoutEnergyPanel{display:block!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important}',
+  '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forge144WorkoutEnergyPanel>summary{display:flex!important;align-items:center!important;gap:8px!important;min-height:55px!important;box-sizing:border-box!important;margin:0!important;padding:14px 2px!important;border:0!important;background:transparent!important;color:#e7f1ea!important;font-size:14px!important;font-weight:750!important;line-height:1.4!important;list-style:none!important;cursor:pointer!important}',
+  '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forge144WorkoutEnergyPanel>summary::-webkit-details-marker{display:none!important}',
+  '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forge144WorkoutEnergyPanel>summary::after{content:"⌄"!important;margin-left:auto!important;color:#a8f55d!important;font-size:18px!important;line-height:1!important;flex-shrink:0!important}',
+  '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forge144WorkoutEnergyPanel[open]>summary::after{content:"⌃"!important}',
+  '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forge144WorkoutEnergyPanel>p,#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forge144WorkoutEnergyPanel>.forge144-checkin,#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forge144WorkoutEnergyPanel>span{margin-left:2px!important;margin-right:2px!important}',
+  '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forge144WorkoutCoach>.forge144-celebrate{display:none!important}',
+  '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forge144WorkoutEnergyPanel>summary:focus-visible{outline:2px solid #a8f55d!important;outline-offset:-2px}',
   '/* During a strength session the side modes remain accessible if consciously expanded. */',
   '#workout.forge-slim-active #forgeSlimWorkoutExtras[open] #forgeSlimWorkoutExtrasBody>details.forge149-workout-section{display:block!important}',
   '#workout.forge-slim-active #forgeSlimWorkoutExtras[open] #forgeSlimWorkoutExtrasBody>details#forgeWorkoutHistoryPanel{display:block!important}',
@@ -104,6 +114,10 @@ function install(){
   }
   body.append(target);
  }
+ // The core may render today's readiness as open by default; only the user
+ // should expand it, like every other optional training category.
+ const readinessPanel=$('forge144WorkoutEnergyPanel');
+ if(readinessPanel)readinessPanel.open=false;
  outer.open=false;
  // The strength panel remains the primary action, extras follow it.
  page.append(outer);
