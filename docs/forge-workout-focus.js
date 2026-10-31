@@ -84,7 +84,7 @@ function ensureUi(){
  }
  if(!$('forgeLiveOptions')){
   const options=make('details','forge-live-options');options.id='forgeLiveOptions';
-  const summary=make('summary','','⚙ Weitere Einstellungen & Aufwärmen');
+  const summary=make('summary','','Aufwärmen & Übungsreihenfolge');
   const body=make('div','forge-live-options-body');
   const order=$('forge142OrderPanel'),warm=$('forge140WarmupPanel');
   if(order)body.append(order);
@@ -201,6 +201,8 @@ function styles(){
  '#workout .forge-live-options{margin:12px 0;border-top:1px solid #40584e}',
  '#workout .forge-live-options>summary{cursor:pointer;list-style:none;padding:14px 3px;font-size:13px;color:#bad3c0;font-weight:700}',
  '#workout .forge-live-options-body{display:grid;gap:10px;padding:5px 0 11px}',
+ '/* Persistent default rest-timer settings are in the header settings, not in the workout. Leave original nodes for compatibility. */',
+ '#workout #forgeLiveOptions .forge-live-rest-settings{display:none!important}',
  '#workout .forge-live-rest-settings{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:#153034;padding:12px;border-radius:12px}',
  '#workout .forge-live-rest-settings strong{flex:1 1 100%;font-size:13px}',
  '#workout .forge-live-rest-settings label{display:flex;align-items:center;gap:7px;margin:0}',

@@ -74,7 +74,9 @@ function styles(){
   '#workout.forge-training-more #forgeSlimWorkoutExtrasBody .card{box-shadow:none!important}',
   '#workout.forge-training-more #forgeSlimWorkoutExtrasBody .forge150-modes{display:none!important}',
   '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #mobWorkout>.forge-intro{display:none!important}',
-  '#workout.forge-training-more #forgeSlimWorkoutExtrasBody #forgeWorkoutHistoryPanel .disclosure-body{padding:0 2px 15px!important}',
+  '#progress #forgeProgressStats>#forgeWorkoutHistoryPanel{order:6;margin:9px 0 15px!important;padding:0!important;background:transparent!important;border:0!important;border-top:1px solid #38584b!important;border-radius:0!important;box-shadow:none!important}',
+  '#progress #forgeProgressStats>#forgeWorkoutHistoryPanel>summary{display:flex!important;align-items:center!important;gap:8px!important;min-height:54px!important;padding:12px 3px!important;color:#e7f1e9!important;font-size:15px!important;font-weight:750!important;background:transparent!important}',
+  '#progress #forgeWorkoutHistoryPanel>.disclosure-body{padding:3px 1px 17px!important;background:transparent!important;border:0!important}',
   '/* The compact daily check-in lives at the top of the progress stats tab. */',
   '#progress.forge-slim-phase4 #forgeProgressStats>#forge144WorkoutCoach{order:-4.5;display:block!important;min-height:0!important;width:100%!important;margin:1px 0 12px!important;padding:0!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:visible!important}',
   '#progress.forge-slim-phase4 #forgeProgressStats>#forge144WorkoutCoach>.forge144-celebrate{display:none!important}',
@@ -114,13 +116,12 @@ function install(){
  if(!page||!parts?.mobility||!parts.cardio||!parts.history||!parts.readiness||!$('forgeProgressStats'))return false;
  styles();
  const outer=el('details','forge-workout-extras');outer.id='forgeSlimWorkoutExtras';
- const summary=el('summary','','Weitere Trainings & Verlauf');
+ const summary=el('summary','','Weitere Trainingsarten');
  const body=el('div','forge-workout-extras-body');body.id='forgeSlimWorkoutExtrasBody';
  outer.append(summary,body);
  const targets=[
   [parts.mobility,'🧘 Mobilität & Yoga'],
-  [parts.cardio,'🏃 Cardio & Sport'],
-  [parts.history,null]
+  [parts.cardio,'🏃 Cardio & Sport']
  ];
  for(const [target,label] of targets){
   if(!target)continue;
@@ -138,6 +139,12 @@ function install(){
  page.append(outer);
  // Move the actual live check-in (never clone it) to daily statistics.
  const stats=$('forgeProgressStats'),readiness=parts.readiness;
+ // Completed workout records are for review, not a live-set control. Move
+ // the real history node to Progress; its old IDs and handlers remain intact.
+ if(stats&&parts.history){
+  parts.history.open=false;
+  stats.append(parts.history);
+ }
  if(stats&&readiness){
   stats.append(readiness);
   const readinessPanel=$('forge144WorkoutEnergyPanel');
