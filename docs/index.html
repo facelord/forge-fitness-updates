@@ -1473,10 +1473,15 @@ function forgeWorkoutChanged(ev){
  }
 }
 function forgeSaveWorkoutDraft(){
- const p=state.plan.find(p=>p.id===workoutSelect.value);if(!p)return;
- const exercises=p.ex.map((e,i)=>({name:state.workoutDraft?.planId===p.id?state.workoutDraft.exercises?.[i]?.name||e.name:e.name,sets:Array.from({length:e.sets},(_,j)=>{
-  const q=(field)=>workoutExercises.querySelector(`[data-ex="${i}"][data-set="${j}"][data-field="${field}"]`);
-  return {kg:q('kg')?.value??'',reps:q('reps')?.value??'',done:!!q('done')?.checked};
+ // Saving a finished training must never erase confirmed sets because an
+ // accordion re-rendered or the active workout selector temporarily drifted.
+ const p=state.plan.find(p=>p.id===(state.activeWorkout?.planId||workoutSelect.value));if(!p)return;
+ const prior=state.workoutDraft?.planId===p.id?state.workoutDraft:null;
+ const matches=workoutSelect.value===p.id;
+ const exercises=p.ex.map((e,i)=>({name:prior?.exercises?.[i]?.name||e.name,sets:Array.from({length:e.sets},(_,j)=>{
+  const old=prior?.exercises?.[i]?.sets?.[j]||{};
+  const q=(field)=>matches?workoutExercises.querySelector(`[data-ex="${i}"][data-set="${j}"][data-field="${field}"]`):null;
+  return {kg:q('kg')?.value??old.kg??'',reps:q('reps')?.value??old.reps??'',done:q('done')?.checked??!!old.done};
  })}));
  state.workoutDraft={planId:p.id,updatedAt:new Date().toISOString(),exercises,swapUndo:state.workoutDraft?.planId===p.id?(state.workoutDraft.swapUndo||{}):{},order:state.workoutDraft?.planId===p.id?state.workoutDraft.order:null,warmup:state.workoutDraft?.planId===p.id?(state.workoutDraft.warmup||{general:{type:'none',minutes:5,done:false},exercises:{}}):{general:{type:'none',minutes:5,done:false},exercises:{}}};save();
  forgeUpdateWorkoutDraftStatus();
@@ -2128,7 +2133,7 @@ function renderWorkout(){
  forgeUpdateWorkoutDraftStatus();forgeRenderUndoBanner();forge142RenderOrderEditor();forge140RenderGeneralWarmup();forge130RenderRest();forge130RenderFocus();
 }
 function finishWorkout(){
- const p=state.plan.find(p=>p.id===(state.activeWorkout?.planId||workoutSelect.value));if(!p)return;
+ const p=state.plan.find(p=>p.id===(state.activeWorkout?.planId||workoutSelect.value));if(!p)return alert('Der aktive Trainingsplan wurde nicht gefunden. Deine bisherigen Eingaben bleiben erhalten.');
  if(state.workoutDraft&&state.workoutDraft.planId!==p.id)return alert('Ein anderer Trainingsentwurf ist gespeichert. Bitte zuerst die richtige Einheit auswählen oder den Entwurf beim Trainingsstart bewusst ersetzen.');
  forgeSaveWorkoutDraft();
  const draft=state.workoutDraft;

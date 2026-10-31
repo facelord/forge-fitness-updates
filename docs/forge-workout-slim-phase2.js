@@ -112,7 +112,11 @@ function style(){
   '#workout.forge-slim-active #forgeLiveOptions .forge-live-rest-settings{background:transparent!important;border:0!important;border-bottom:1px solid #3b5349!important;border-radius:0!important;padding:12px 0!important}',
   '#workout.forge-slim-active #forgeLiveOptions .forge-workout-all{margin:6px 0!important;border-top:1px solid #344e45!important}',
   '#workout.forge-slim-active #forgeLiveOptions .forge-workout-all>summary{font-size:12px!important;min-height:42px!important}',
-  '#workout.forge-slim-active #saveWorkout{margin:10px 0 5px!important;background:transparent!important;border:1px solid #547365!important;min-height:46px!important;color:#d4e9da!important;font-size:13px!important;border-radius:11px!important}',
+  '#workout.forge-slim-active #saveWorkout{display:flex!important;justify-content:center;align-items:center;width:100%!important;margin:14px 0 10px!important;padding:14px 12px!important;background:#a8f55d!important;border:1px solid #8dcc57!important;min-height:54px!important;color:#102318!important;font-size:16px!important;font-weight:800!important;border-radius:12px!important;cursor:pointer}',
+  '#workout.forge-slim-active #saveWorkout:focus-visible{outline:2px solid #d5ffc1!important;outline-offset:3px}',
+  '#workout.forge-slim-active #saveWorkout:disabled{opacity:.55!important}',
+  '#workout.forge-slim-active #forgeSaveSessionHint{display:block!important;color:#a9c3b4!important;font-size:12px!important;line-height:1.5!important;padding:0 4px 6px}',
+  '#workout.forge-slim-idle #forgeSaveSessionHint{display:none!important}',
   '#workout.forge-slim-active #forgeWorkoutUndoBanner{display:none!important}',
   '#workout.forge-slim-active .forge-polish-reorder-btn{display:none!important}',
   '#workout.forge-slim-active #forgeWorkoutHistoryPanel{display:none!important}',
@@ -157,7 +161,9 @@ function install(){
  if(active){
   if(all&&!optionsBody.contains(all)){optionsBody.append(all);all.open=false;}
   if(modes&&modes.parentNode!==modePanel)modePanel.append(modes);
-  if(save&&options.contains(save))options.after(save);
+  // Keep the original save/finish button outside all closed <details> areas.
+  // Preserve the core onclick=finishWorkout() handler and data state.
+  if(save&&save.parentElement!==lead)lead.append(save);
   const history=$('forgeWorkoutHistoryPanel');if(history)history.open=false;
  }else{
   if(all&&optionsBody.contains(all))options.before(all);
@@ -170,7 +176,24 @@ function install(){
  }
  const start=$('workoutStart');if(start)start.textContent='▶ Training starten';
  const saveText=active?'■ Training beenden & speichern':'Workout ohne Timer speichern';
- if(save)save.textContent=saveText;
+ if(save){
+  if(save.textContent!==saveText)save.textContent=saveText;
+  save.setAttribute('aria-label',active?'Training beenden und bestätigte Sätze speichern':'Workout ohne Timer speichern');
+ }
+ let saveHint=$('forgeSaveSessionHint');
+ if(active&&save){
+  if(!saveHint){
+   saveHint=el('p','forge-save-hint');saveHint.id='forgeSaveSessionHint';
+   saveHint.setAttribute('aria-live','polite');
+  }
+  if(saveHint.previousElementSibling!==save)save.after(saveHint);
+  const confirmed=state.workoutDraft?.planId===state.activeWorkout?.planId
+   ?(state.workoutDraft?.exercises||[]).reduce((n,ex)=>n+(ex.sets||[]).filter(s=>s.done&&Number(s.reps)>0).length,0):0;
+  const description=confirmed
+   ?confirmed+' bestätigte Sätze · bereit zum Speichern.'
+   :'Noch kein Satz bestätigt. Bitte zuerst mindestens einen Satz abschließen.';
+  if(saveHint.textContent!==description)saveHint.textContent=description;
+ }else if(saveHint){saveHint.remove();}
  previousMode=mode;
  enabled=true;
  return true;
