@@ -1,7 +1,7 @@
 {
-  "versionCode": 10195,
-  "versionName": "14.13.195",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.195/FORGE-Fitness-14.13.195.apk",
-  "sha256": "29b4355aaffab54d3bd86e91be781da61270856dcf59f6443bfa56c42a7eaafb",
-  "notes": "FORGE Tagesform jetzt direkt unter Fortschritt > Statistiken als schlanker Check-in (1 bis 5) statt auf der Trainingsseite. Weitere Trainings & Verlauf bleibt kompakt geschlossen. Alle bisherigen Tagesform-Einträge, Trainings- und Mobilitätsdaten bleiben erhalten."
+  "versionCode": 10198,
+  "versionName": "14.13.198",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.198/FORGE-Fitness-14.13.198.apk",
+  "sha256": "cdb8af912af1b44c21e5532afbde0781516c8d2abc65c2152d4a44bcbd05cf4d",
+  "notes": "FORGE Amazfit/Zepp, Bluetooth-Pulsmesser und manuelle Pulsfelder auf Web und Android vorerst unsichtbar; bestehende Integrationen und gespeicherte Cardio-Daten bleiben erhalten. Tagesform liegt weiterhin schlank unter Fortschritt > Statistiken."
 }
