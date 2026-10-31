@@ -1,7 +1,7 @@
 {
-  "versionCode": 10211,
-  "versionName": "14.13.211",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.211/FORGE-Fitness-14.13.211.apk",
-  "sha256": "e8aa2f682f054f3cbcacf50fea29cf6f9f689f6e03f3b243f3d10fef65509333",
-  "notes": "FORGE 14.13.211: Einfachere Planerstellung in drei klaren Abschnitten, freie Wahl zwischen Planvorschlag und komplett eigenem Plan, fester Wochenrhythmus oder alle X Tage, und direkte Bearbeitung jeder Trainingseinheit im aktiven Plan. Übungen, Sätze, Reihenfolge, Name und Ort einfach ändern. Bestehende Daten und archivierte Pläne bleiben erhalten. Vor APK-Updates sicherheitshalber ein JSON-Backup exportieren."
+  "versionCode": 10213,
+  "versionName": "14.13.213",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.213/FORGE-Fitness-14.13.213.apk",
+  "sha256": "9f5e0e2a37122f7b2bf2a09a5305347121e35da18c84bc129405a91840393ec6",
+  "notes": "FORGE Amazfit/Zepp, Bluetooth-Pulsmesser und manuelle Pulsfelder auf Web und Android vorerst unsichtbar; bestehende Integrationen und gespeicherte Cardio-Daten bleiben erhalten. Tagesform liegt weiterhin schlank unter Fortschritt > Statistiken."
 }
