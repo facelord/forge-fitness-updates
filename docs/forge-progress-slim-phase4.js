@@ -117,6 +117,9 @@ function style(){
   '#progress.forge-slim-phase4 #forgeSlimProgressMoreBody .forge130-cockpit>.forge130-card:nth-child(2),#progress.forge-slim-phase4 #forgeSlimProgressMoreBody .forge130-cockpit>.forge130-card:first-child>.row,#progress.forge-slim-phase4 #forgeSlimProgressMoreBody .forge130-cockpit>.forge130-card:first-child>.forge130-kpis,#progress.forge-slim-phase4 #forgeSlimProgressMoreBody .forge130-cockpit>.forge130-card:first-child>p.muted:first-of-type{display:none!important}',
   '#progress.forge-slim-phase4 #forgeSlimProgressMoreBody .forge130-cockpit>.forge130-card:first-child>h3{font-size:14px!important;margin:4px 0 12px!important}',
   '#progress.forge-slim-phase4 #forgeSlimProgressRenderCache{display:none!important}',
+  '#progress.forge-slim-phase4 #forgeSlimProgressMoreBody #forgeTimeSummary>.forge-time-list>.forge-time-row:first-child{display:none!important}',
+  '#progress.forge-slim-phase4 #forgeSlimProgressMoreBody #forgeCoachDeep>.forge-coach-summary{display:none!important}',
+  '#progress.forge-slim-phase4 #forgeSlimProgressMoreBody #forgeV6Overview>.forge-v6-grid{display:none!important}',
   '#progress.forge-slim-phase4 #forgeSlimChallengesMore{margin:10px 0!important}',
   '@media(max-width:365px){#progress.forge-slim-phase4 #forgeProgressSummary>.forge-stats-tile strong{font-size:21px!important}#progress.forge-slim-phase4 .forge-progress-tabs button{font-size:12px!important}}'
  ].join('\n');
@@ -192,7 +195,7 @@ function simplifyChallenges(root){
  const panels=Array.from(root.children).filter(x=>x.matches?.('details.forge-stats-fold'));
  const intro=panels.find(p=>{
   const summary=p.querySelector(':scope > summary');
-  return /Deine Challenges\\s*[–-]\\s*Übersicht/i.test(summary?.textContent||'');
+  return /Deine Challenges\s*[–-]\s*Übersicht/i.test(summary?.textContent||'');
  });
  if(intro&&!intro.querySelector('input,select,button,[id]'))intro.remove();
  const cards=panelFor('forgeChallengeCards',root);
