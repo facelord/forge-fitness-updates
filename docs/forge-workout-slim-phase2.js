@@ -117,6 +117,9 @@ function style(){
   '#workout.forge-slim-active #saveWorkout{display:flex!important;justify-content:center;align-items:center;width:100%!important;margin:14px 0 10px!important;padding:14px 12px!important;background:#a8f55d!important;border:1px solid #8dcc57!important;min-height:54px!important;color:#102318!important;font-size:16px!important;font-weight:800!important;border-radius:12px!important;cursor:pointer}',
   '#workout.forge-slim-active #saveWorkout:focus-visible{outline:2px solid #d5ffc1!important;outline-offset:3px}',
   '#workout.forge-slim-active #saveWorkout:disabled{opacity:.55!important}',
+  '#workout .forge-workout-finish-notice{margin:12px 0 9px;padding:13px 12px;border:1px solid #5b9861;border-radius:12px;color:#dcfbd6;font-size:14px;line-height:1.5;background:#1a352c}',
+  '#workout .forge-workout-finish-notice[hidden]{display:none!important}',
+  '#workout.forge-slim-idle #forgeWorkoutUndoBanner{margin:10px 0 14px}',
   '#workout.forge-slim-active #forgeSaveSessionHint{display:block!important;color:#a9c3b4!important;font-size:12px!important;line-height:1.5!important;padding:0 4px 6px}',
   '#workout.forge-slim-idle #forgeSaveSessionHint{display:none!important}',
   '#workout.forge-slim-active #forgeWorkoutUndoBanner{display:none!important}',
@@ -171,15 +174,30 @@ function install(){
    anchor.after(all);
   }
   if(modes&&modes.parentNode!==modePanel)modePanel.append(modes);
-  // Keep the original save/finish button outside all closed <details> areas.
-  // Preserve the core onclick=finishWorkout() handler and data state.
-  if(save&&save.parentElement!==lead)lead.append(save);
+  // End the active training from a FULLY VISIBLE sibling of the strength
+  // accordion. An element appended to lead can still be hidden when the
+  // enclosing <details> is closed; the direct page-level action cannot.
+  if(save&&save.previousElementSibling!==lead)lead.after(save);
   const history=$('forgeWorkoutHistoryPanel');if(history)history.open=false;
  }else{
   if(all&&optionsBody.contains(all))options.before(all);
   if(modes&&modePanel.contains(modes))lead.before(modes);
   if(save&&!optionsBody.contains(save))optionsBody.append(save);
  }
+ // Success/Undo belong outside all foldable areas too, so the user can see
+ // proof of completion immediately after the active session disappears.
+ const undo=$('forgeWorkoutUndoBanner');
+ if(undo&&undo.parentElement!==page)lead.after(undo);
+ const notice=$('forgeWorkoutFinishNotice')||el('div','forge-workout-finish-notice');
+ if(!notice.id){
+  notice.id='forgeWorkoutFinishNotice';
+  notice.setAttribute('role','status');
+  notice.setAttribute('aria-live','polite');
+  notice.hidden=true;
+ }
+ if(active)notice.hidden=true;
+ const anchor=undo||save||lead;
+ if(anchor&&notice.previousElementSibling!==anchor)anchor.after(notice);
  const selector=lead.querySelector('#workoutSelect');
  if(selector){
   selector.setAttribute('aria-label','Trainingseinheit auswählen');

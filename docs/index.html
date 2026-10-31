@@ -2133,29 +2133,116 @@ function renderWorkout(){
  forgeUpdateWorkoutDraftStatus();forgeRenderUndoBanner();forge142RenderOrderEditor();forge140RenderGeneralWarmup();forge130RenderRest();forge130RenderFocus();
 }
 function finishWorkout(){
- const p=state.plan.find(p=>p.id===(state.activeWorkout?.planId||workoutSelect.value));if(!p)return alert('Der aktive Trainingsplan wurde nicht gefunden. Deine bisherigen Eingaben bleiben erhalten.');
- if(state.workoutDraft&&state.workoutDraft.planId!==p.id)return alert('Ein anderer Trainingsentwurf ist gespeichert. Bitte zuerst die richtige Einheit auswählen oder den Entwurf beim Trainingsstart bewusst ersetzen.');
- forgeSaveWorkoutDraft();
- const draft=state.workoutDraft;
- const entries=forge142Order(p).map(i=>{const e=p.ex[i];return {name:draft?.exercises?.[i]?.name||e.name,unit:forgeTimeIsExercise(draft?.exercises?.[i]?.name||e.name,e)?'sec':'reps',sets:(draft?.exercises?.[i]?.sets||[]).filter(s=>s.done&&Number(s.reps)>0).map(s=>({kg:Math.max(0,Number(s.kg)||0),reps:Number(s.reps)||0}))}});
- if(!entries.some(e=>e.sets.length))return alert('Bitte mindestens einen tatsächlich erledigten Satz abhaken. Deine Eingaben bleiben als Entwurf gespeichert.');
- const activeWorkout=state.activeWorkout?structuredClone(state.activeWorkout):null;
- const savedRest=state.forgeRest?structuredClone(state.forgeRest):null;
- const savedTimeSession=state.forgeTimeSession?structuredClone(state.forgeTimeSession):null;
- const activeMobilityVideo=state.activeMobilityVideo?structuredClone(state.activeMobilityVideo):null;
- const mobilityIds=new Set((state.mobilityVideoSessions||[]).map(x=>x.id));
- if(state.activeMobilityVideo?.linked&&state.activeMobilityVideo.workoutPlanId===state.activeWorkout?.planId)finishMobilityVideo(true);
- const finishedMobilitySessionId=(state.mobilityVideoSessions||[]).find(x=>!mobilityIds.has(x.id))?.id||null;
- const durationMs=state.activeWorkout?forgeWorkoutNetMs(state.activeWorkout):null;
- const mobilityDurationMs=state.activeWorkout?.mobilityDurationMs||0;
- const strengthDurationMs=durationMs==null?null:Math.max(0,durationMs-mobilityDurationMs);
- const id=uid();
- state.workouts.push({id,date:new Date().toISOString(),title:p.title,entries,warmup:draft?.warmup?structuredClone(draft.warmup):null,warmupExerciseNames:Object.fromEntries((draft?.exercises||[]).map((e,i)=>[i,e.name])),durationMs,strengthDurationMs,mobilityDurationMs});
- state.lastSaveUndo={workoutId:id,draft:structuredClone(draft),activeWorkout,activeMobilityVideo,finishedMobilitySessionId,savedRest,savedTimeSession};
- state.activeWorkout=null;state.workoutDraft=null;state.forgeRest=null;state.forgeTimeSession=null;forge144AfterSaved(id);save();render();
- // Rückgängig direkt nach dem Speichern anbieten, statt die Ansicht ganz nach oben zu scrollen.
- if(!document.getElementById('workout').classList.contains('active'))go('workout');
- document.getElementById('forgeWorkoutUndoBanner')?.scrollIntoView({block:'center',behavior:'smooth'});
+ // A workout can be committed only once, and only after the complete set
+ // data is verified in local storage. Legacy save() swallows quota errors.
+ if(window.forgeWorkoutFinishing)return false;
+ window.forgeWorkoutFinishing=true;
+ try{
+  const idToFinish=state.activeWorkout?.planId||workoutSelect.value;
+  const p=state.plan.find(x=>x.id===idToFinish);
+  if(!p){alert('Die aktive Trainingseinheit wurde nicht gefunden. Bitte überprüfe deinen Plan.');return false;}
+  if(!state.activeWorkout&&!state.workoutDraft){
+   alert('Es gibt aktuell keinen Trainingsentwurf zum Speichern.');return false;
+  }
+  if(state.workoutDraft&&state.workoutDraft.planId!==p.id){
+   alert('Ein anderer Trainingsentwurf ist geöffnet. Deine bisherige Einheit bleibt erhalten.');return false;
+  }
+  if(state.activeWorkout&&workoutSelect.value!==p.id)workoutSelect.value=p.id;
+  // Commit any currently typed kg/reps from the foreground quick set before
+  // reading the full set list. Completion still requires conscious confirmation.
+  try{
+   if(state.activeWorkout&&typeof forge130SyncQuickDraft==='function')forge130SyncQuickDraft();
+   forgeSaveWorkoutDraft();
+  }catch(err){
+   console.error('FORGE workout draft sync failed:',err);
+   alert('Die aktuellen Satzwerte konnten nicht übernommen werden. Deine Einheit bleibt aktiv. Bitte versuche es erneut.');
+   return false;
+  }
+  const draft=state.workoutDraft;
+  const entries=forge142Order(p).map(i=>{
+   const e=p.ex[i],name=draft?.exercises?.[i]?.name||e.name;
+   return {name,unit:forgeTimeIsExercise(name,e)?'sec':'reps',
+    sets:(draft?.exercises?.[i]?.sets||[]).filter(s=>s.done&&Number(s.reps)>0)
+     .map(s=>({kg:Math.max(0,Number(s.kg)||0),reps:Number(s.reps)||0}))};
+  });
+  const confirmed=entries.reduce((n,e)=>n+e.sets.length,0);
+  if(!confirmed){
+   alert('Noch kein Satz abgeschlossen. Tippe erst auf „✓ Satz abschließen“ oder hake mindestens einen erledigten Satz ab. Deine Eingaben bleiben gespeichert.');
+   document.getElementById('forgeQuickWorkout')?.scrollIntoView?.({block:'center',behavior:'smooth'});
+   return false;
+  }
+  // Take a complete rollback snapshot BEFORE finishing a linked video or
+  // changing any workout history. This also prevents duplicate partial saves.
+  let previous,raw;
+  try{
+   previous=structuredClone(state);
+   raw=localStorage.getItem(KEY);
+  }catch(err){
+   console.error('FORGE cannot prepare local workout save:',err);
+   alert('Lokaler Speicher ist nicht verfügbar. Dein Training bleibt aktiv. Bitte prüfe die Speicherberechtigung.');
+   return false;
+  }
+  let savedId=null;
+  try{
+   const activeWorkout=state.activeWorkout?structuredClone(state.activeWorkout):null;
+   const savedRest=state.forgeRest?structuredClone(state.forgeRest):null;
+   const savedTimeSession=state.forgeTimeSession?structuredClone(state.forgeTimeSession):null;
+   const activeMobilityVideo=state.activeMobilityVideo?structuredClone(state.activeMobilityVideo):null;
+   const mobilityIds=new Set((state.mobilityVideoSessions||[]).map(x=>x.id));
+   if(state.activeMobilityVideo?.linked&&state.activeMobilityVideo.workoutPlanId===state.activeWorkout?.planId)
+    finishMobilityVideo(true);
+   const finishedMobilitySessionId=(state.mobilityVideoSessions||[]).find(x=>!mobilityIds.has(x.id))?.id||null;
+   const durationMs=state.activeWorkout?forgeWorkoutNetMs(state.activeWorkout):null;
+   const mobilityDurationMs=state.activeWorkout?.mobilityDurationMs||0;
+   const strengthDurationMs=durationMs==null?null:Math.max(0,durationMs-mobilityDurationMs);
+   savedId=uid();
+   state.workouts.push({
+    id:savedId,date:new Date().toISOString(),title:p.title,entries,
+    warmup:draft?.warmup?structuredClone(draft.warmup):null,
+    warmupExerciseNames:Object.fromEntries((draft?.exercises||[]).map((e,i)=>[i,e.name])),
+    durationMs,strengthDurationMs,mobilityDurationMs
+   });
+   state.lastSaveUndo={workoutId:savedId,draft:structuredClone(draft),activeWorkout,
+    activeMobilityVideo,finishedMobilitySessionId,savedRest,savedTimeSession};
+   state.activeWorkout=null;state.workoutDraft=null;
+   state.forgeRest=null;state.forgeTimeSession=null;
+   forge144AfterSaved(savedId);
+   // Do not call legacy save() here: it catches storage errors and only alerts.
+   // Ensure the exact record was actually persisted before announcing success.
+   localStorage.setItem(KEY,JSON.stringify(state));
+   const written=JSON.parse(localStorage.getItem(KEY)||'null');
+   if(!written||!Array.isArray(written.workouts)||written.workouts.at(-1)?.id!==savedId)
+    throw new Error('Das Training konnte nicht im lokalen Speicher bestätigt werden.');
+  }catch(err){
+   console.error('FORGE workout commit failed:',err);
+   state=previous;
+   try{
+    if(raw==null)localStorage.removeItem(KEY);
+    else localStorage.setItem(KEY,raw);
+   }catch(restoreError){console.error('FORGE recovery write failed:',restoreError);}
+   alert('Speichern fehlgeschlagen. Das Training wurde nicht beendet und bleibt als Entwurf erhalten. Bitte prüfe den Gerätespeicher.');
+   return false;
+  }
+  // Persistence is already proven. A rendering error must never turn a
+  // successfully saved workout into an apparently unfinished session.
+  const page=document.getElementById('workout');
+  page?.classList?.remove('forge-slim-active','forge-v3-live');
+  page?.classList?.add('forge-slim-idle','forge-v3-ready');
+  document.body?.classList?.remove('forge-session-live','forge-slim-session-page');
+  try{render();}catch(err){console.error('FORGE post-save refresh failed:',err);}
+  const banner=document.getElementById('forgeWorkoutUndoBanner');
+  try{forgeRenderUndoBanner();}catch(err){console.error('FORGE undo UI refresh failed:',err);}
+  if(banner)banner.scrollIntoView?.({block:'center',behavior:'smooth'});
+  // A visible confirmation outside any accordion.
+  const feedback=document.getElementById('forgeWorkoutFinishNotice');
+  if(feedback){
+   feedback.hidden=false;
+   feedback.textContent='✓ Training gespeichert und beendet · '+confirmed+' '+(confirmed===1?'Satz':'Sätze')+'. Du findest es unter Fortschritt.';
+  }
+  return savedId;
+ }finally{
+  window.forgeWorkoutFinishing=false;
+ }
 }
 function nutritionTotals(){return state.foods.filter(f=>f.date===today()).reduce((a,f)=>{for(let k of ['cal','protein','carbs','fat'])a[k]+=Number(f[k])||0;return a},{cal:0,protein:0,carbs:0,fat:0})}function dailyNutrients(){
 const foods=state.foods.filter(f=>f.date===today()),keys=['cal','protein','carbs','fat','sugar','addedSugar','fructose','fiber','sat','mono','poly','polyols'],out={};
