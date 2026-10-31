@@ -116,11 +116,12 @@ function install(){
  }
  // The core may render today's readiness as open by default; only the user
  // should expand it, like every other optional training category.
- const readinessPanel=$('forge144WorkoutEnergyPanel');
- if(readinessPanel)readinessPanel.open=false;
  outer.open=false;
  // The strength panel remains the primary action, extras follow it.
  page.append(outer);
+ // The original nested readiness control is now inside the mounted page.
+ const readinessPanel=$('forge144WorkoutEnergyPanel');
+ if(readinessPanel)readinessPanel.open=false;
  page.classList.add('forge-training-more');
  installed=true;
  wrapMobilityTimer();
