@@ -1,7 +1,7 @@
 {
-  "versionCode": 10181,
-  "versionName": "14.13.181",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.181/FORGE-Fitness-14.13.181.apk",
-  "sha256": "4e33b094e117b46ef10feafdf8aea3ce25fab0bc87a07c4943e079e0daa07af5",
-  "notes": "FORGE Fortschritt aufgeräumt: doppelte Bestleistungen-Kachel entfernt; Wochenvergleich in Trainingsvolumen integriert; Coach-Kennzahlen und Trainingszeit-Dopplungen reduziert. Alle weiteren Auswertungen, Einstellungen und Challenges zunächst in geschlossenen Sammelkacheln. Gespeicherte Daten bleiben erhalten."
+  "versionCode": 10195,
+  "versionName": "14.13.195",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.195/FORGE-Fitness-14.13.195.apk",
+  "sha256": "29b4355aaffab54d3bd86e91be781da61270856dcf59f6443bfa56c42a7eaafb",
+  "notes": "FORGE Tagesform jetzt direkt unter Fortschritt > Statistiken als schlanker Check-in (1 bis 5) statt auf der Trainingsseite. Weitere Trainings & Verlauf bleibt kompakt geschlossen. Alle bisherigen Tagesform-Einträge, Trainings- und Mobilitätsdaten bleiben erhalten."
 }
