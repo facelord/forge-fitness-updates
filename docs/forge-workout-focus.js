@@ -25,7 +25,7 @@ function mobilityMs(session,now=Date.now()){
 window.forgeWorkoutNetMs=netMs;
 window.forgeMobilityNetMs=mobilityMs;
 window.ForgeWorkoutFocusMath=Object.freeze({netMs,mobilityMs});
-let ready=false,rendering=false,previousSession=null,refreshInterval=null;
+let ready=false,rendering=false,previousSession=null,refreshInterval=null,lastNextSignature=null;
 function paused(){return !!state?.activeWorkout?.forgePausedAt;}
 function stopOrResume(){
  const a=state?.activeWorkout;
@@ -119,9 +119,11 @@ function progressFor(p){
 }
 function drawNext(p){
  const root=$('forgeLiveNext');if(!root)return;
- root.replaceChildren();
  const draft=state.workoutDraft?.planId===p?.id?state.workoutDraft:null;
- if(!p||!draft)return;
+ if(!p||!draft){
+  if(lastNextSignature!=='empty'){root.replaceChildren();lastNextSignature='empty';}
+  return;
+ }
  const focus=typeof window.forge130CurrentFocus==='function'?window.forge130CurrentFocus(p):state.activeWorkout?.focus;
  const order=typeof window.forge142Order==='function'?window.forge142Order(p):p.ex.map((_,i)=>i);
  const names=[];
@@ -131,6 +133,11 @@ function drawNext(p){
   if(sets.length&&sets.every(s=>s.done))continue;
   names.push(draft.exercises?.[i]?.name||p.ex[i]?.name||'Übung');
  }
+ // Keep the existing preview DOM until a set or exercise actually changes.
+ const signature=JSON.stringify([p.id,focus?.i,focus?.j,names]);
+ if(signature===lastNextSignature)return;
+ lastNextSignature=signature;
+ root.replaceChildren();
  const heading=make('div','forge-live-next-title','Als Nächstes');
  root.append(heading);
  if(!names.length){root.append(make('p','muted','Weitere Übungen erledigt.'));return}
@@ -151,6 +158,7 @@ function renderLive(){
   const all=$('workoutExercises')?.closest('details.forge-workout-all');
   if(id!==previousSession){
    previousSession=id;
+   lastNextSignature=null;
    if(id&&all)all.open=false;
    const options=$('forgeLiveOptions');if(options)options.open=false;
   }
@@ -171,7 +179,8 @@ function renderLive(){
   const digital=$('workoutDigitalClock');
   if(digital){
    const ms=netMs(a),s=Math.floor(ms/1000);
-   digital.textContent=[Math.floor(s/3600),Math.floor(s/60)%60,s%60].map(n=>String(n).padStart(2,'0')).join(':');
+   const label=[Math.floor(s/3600),Math.floor(s/60)%60,s%60].map(n=>String(n).padStart(2,'0')).join(':');
+   if(digital.textContent!==label)digital.textContent=label;
   }
   drawNext(p);
  }finally{rendering=false}
@@ -234,7 +243,7 @@ function boot(){
  renderLive();
  // Core's original setInterval keeps using its initial callback; the active
  // state overlay corrects the frozen clock without mutating the core timer.
- refreshInterval=setInterval(renderLive,350);
+ refreshInterval=setInterval(renderLive,900);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();

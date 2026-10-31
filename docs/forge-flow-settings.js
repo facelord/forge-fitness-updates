@@ -97,6 +97,11 @@ function open(){
     }
     persist({...current(),weightHints:v});
    }));
+ // Automatic rest is an application preference, not a live-set input.
+ workout.append(check('Automatische Satzpause',
+   typeof window.forge130Settings==='function'?window.forge130Settings().restEnabled!==false:
+     state?.forge130Settings?.restEnabled!==false,
+   enabled=>{if(typeof window.forge130SetRestEnabled==='function')window.forge130SetRestEnabled(enabled);}));
  const rest=row('Satzpause');
  const select=make('select');
  for(const secs of [45,60,90,120,180]){

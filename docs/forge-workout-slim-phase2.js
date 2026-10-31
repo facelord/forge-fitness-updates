@@ -96,6 +96,8 @@ function style(){
   '#workout.forge-slim-active #forgeQuickWorkout .forge-slim-focus-tools>summary:after{content:"⌄";font-size:19px;margin-left:auto;color:#a8f55d}',
   '#workout.forge-slim-active #forgeQuickWorkout .forge-slim-focus-tools[open]>summary:after{content:"⌃"}',
   '#workout.forge-slim-active #forgeQuickWorkout .forge-slim-focus-tools>.forge130-actions{margin:8px 0!important;gap:7px!important}',
+  '#workout.forge-slim-active #forgeQuickWorkout .forge130-actions{display:grid!important;grid-template-columns:1fr 1fr;gap:8px!important;margin:8px 0!important}',
+  '#workout.forge-slim-active #forgeQuickWorkout .forge130-actions button{min-height:45px!important;padding:9px 7px!important;font-size:12px!important;white-space:normal!important}',
   '#workout.forge-slim-active #forgeQuickWorkout .forge-slim-focus-tools>.forge130-actions button{font-size:12px!important;min-height:42px!important}',
   '#workout.forge-slim-active #forgeQuickWorkout .forge-slim-focus-tools>details{margin:5px 0!important;border:0!important;border-top:1px solid #324944!important;background:transparent!important;padding:10px 0!important;border-radius:0!important}',
   '#workout.forge-slim-active #forgeRestTimer.forge-live-rest-running{display:flex!important;align-items:center;justify-content:space-between;gap:9px;background:transparent!important;border:0!important;border-bottom:1px solid #35524b!important;padding:10px 1px!important;margin:0!important;border-radius:0!important;box-shadow:none!important}',
@@ -110,7 +112,7 @@ function style(){
   '#workout.forge-slim-active #forgeLiveOptions{margin:10px 0 2px!important;border-top:1px solid #37524b!important}',
   '#workout.forge-slim-active #forgeLiveOptions>summary{font-size:13px!important;min-height:48px!important;display:flex!important;align-items:center}',
   '#workout.forge-slim-active #forgeLiveOptions .forge-live-rest-settings{background:transparent!important;border:0!important;border-bottom:1px solid #3b5349!important;border-radius:0!important;padding:12px 0!important}',
-  '#workout.forge-slim-active #forgeLiveOptions .forge-workout-all{margin:6px 0!important;border-top:1px solid #344e45!important}',
+  '#workout.forge-slim-active .forge-workout-all{margin:12px 0!important;border-top:1px solid #344e45!important}',
   '#workout.forge-slim-active #forgeLiveOptions .forge-workout-all>summary{font-size:12px!important;min-height:42px!important}',
   '#workout.forge-slim-active #saveWorkout{display:flex!important;justify-content:center;align-items:center;width:100%!important;margin:14px 0 10px!important;padding:14px 12px!important;background:#a8f55d!important;border:1px solid #8dcc57!important;min-height:54px!important;color:#102318!important;font-size:16px!important;font-weight:800!important;border-radius:12px!important;cursor:pointer}',
   '#workout.forge-slim-active #saveWorkout:focus-visible{outline:2px solid #d5ffc1!important;outline-offset:3px}',
@@ -159,7 +161,15 @@ function install(){
  const stamp=state?.activeWorkout?String(state.activeWorkout.planId)+':'+String(state.activeWorkout.startedAt):'none';
  if(stamp!==previousFocus){previousFocus=stamp;options.open=false;modePanel.open=false;}
  if(active){
-  if(all&&!optionsBody.contains(all)){optionsBody.append(all);all.open=false;}
+  // The complete exercise/set list is a primary training function, not a
+  // nested setting. Keep it BELOW the live current-set card & next preview.
+  // Move only when its location is wrong: never detach editable fields
+  // on recurring 600ms UI checks (Android keyboard would otherwise close).
+  const next=$('forgeLiveNext'),quick=$('forgeQuickWorkout');
+  const anchor=next||quick;
+  if(all&&anchor&&all.previousElementSibling!==anchor){
+   anchor.after(all);
+  }
   if(modes&&modes.parentNode!==modePanel)modePanel.append(modes);
   // Keep the original save/finish button outside all closed <details> areas.
   // Preserve the core onclick=finishWorkout() handler and data state.
@@ -203,17 +213,21 @@ function focusTools(){
  if(!root||!state?.activeWorkout)return;
  const card=root.querySelector(':scope > .forge130-focus-card');
  if(!card)return;
+ // Next/previous SETS are used during every workout, not "advanced settings".
+ // Keep original controls and handlers, but make them one tap away.
+ const action=card.querySelector(':scope > .forge-primary-action');
+ const steps=card.querySelector('.forge130-actions');
+ if(steps&&action&&steps.previousElementSibling!==action)action.after(steps);
  let advanced=card.querySelector(':scope > .forge-slim-focus-tools');
  if(!advanced){
-  const related=card.querySelectorAll(':scope > .forge130-actions,:scope > .forge130-substitute,:scope > .forge140-exercise-warmup,:scope > .forge130-suggestion');
+  const related=card.querySelectorAll(':scope > .forge130-substitute,:scope > .forge140-exercise-warmup,:scope > .forge130-suggestion');
   if(related.length){
    advanced=el('details','forge-slim-focus-tools');
-   advanced.append(el('summary','','Andere Sätze, Übung tauschen & Aufwärmen'));
+   advanced.append(el('summary','','Übung tauschen · Aufwärmen · Tipps'));
    for(const item of related)advanced.append(item);
    card.append(advanced);
   }
  }
- const action=card.querySelector(':scope > .forge-primary-action');
  if(action){
   const isTimed=isTimeAction(action.getAttribute('onclick'));
   action.textContent=isTimed?'■ Zeitsatz abschließen':'✓ Satz abschließen';
