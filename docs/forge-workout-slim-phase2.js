@@ -177,7 +177,7 @@ function install(){
   // End the active training from a FULLY VISIBLE sibling of the strength
   // accordion. An element appended to lead can still be hidden when the
   // enclosing <details> is closed; the direct page-level action cannot.
-  if(save&&save.previousElementSibling!==lead)lead.after(save);
+  if(save&&!page.classList.contains('forge-premium-layout')&&save.previousElementSibling!==lead)lead.after(save);
   const history=$('forgeWorkoutHistoryPanel');if(history)history.open=false;
  }else{
   if(all&&optionsBody.contains(all))options.before(all);
