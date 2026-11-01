@@ -1,7 +1,7 @@
 {
-  "versionCode": 10244,
-  "versionName": "14.13.244",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.244/FORGE-Fitness-14.13.244.apk",
-  "sha256": "434f7f54d80b98a3f17a9df556e5d7c3f963f057ab3812a18135e65d152a958d",
-  "notes": "FORGE: Trainingsseite übersichtlicher – Auswahl mit kompakter sichtbarer Übungsliste, großer Leerlauf-Timer entfernt; während des Krafttrainings feste Ein-Bildschirm-Ansicht ohne Seiten-Scrollen, Übungen und Optionen separat erreichbar. Android-Tastatur bleibt bedienbar. Speichern/Beenden und Trainingszeit unverändert."
+  "versionCode": 10247,
+  "versionName": "14.13.247",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.247/FORGE-Fitness-14.13.247.apk",
+  "sha256": "061087c51051cf0f7bcd855e922540e86bccf0816c8c6b84d9976193d46e6c72",
+  "notes": "FORGE Amazfit/Zepp, Bluetooth-Pulsmesser und manuelle Pulsfelder auf Web und Android vorerst unsichtbar; bestehende Integrationen und gespeicherte Cardio-Daten bleiben erhalten. Tagesform liegt weiterhin schlank unter Fortschritt > Statistiken."
 }
