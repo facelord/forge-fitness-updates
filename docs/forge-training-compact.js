@@ -221,7 +221,12 @@ function displayPlanSheet(){
   const up=button('↑',()=>move(-1));up.disabled=i===0;up.setAttribute('aria-label',exercise.name+' nach oben');
   const down=button('↓',()=>move(1));down.disabled=i===draft.ex.length-1;down.setAttribute('aria-label',exercise.name+' nach unten');
   const swap=button('⇄ Tauschen',()=>{
-   planSheet.editIndex=planSheet.editIndex===i?null:i;displayPlanSheet();
+   if(window.ForgeExerciseSwap?.openForPlan?.(draft,i,()=>{
+    planSheet.message='Änderung vorgemerkt · bitte speichern.';
+    planSheet.editIndex=null;displayPlanSheet();
+   }))return;
+   planSheet.message='Die Übungsauswahl ist momentan nicht verfügbar.';
+   displayPlanSheet();
   });
   swap.setAttribute('aria-expanded',String(planSheet.editIndex===i));
   const remove=button('✕',()=>{
@@ -314,12 +319,8 @@ function decorateSessionExercises(){
    ['↑',()=>move(-1),position===0,'Übung nach oben schieben (nur heute)'],
    ['↓',()=>move(1),position===order.length-1,'Übung nach unten schieben (nur heute)'],
    ['⇄',()=>{
-     exercise.open=true;
-     const native=exercise.querySelector('.forge130-substitute');
-     if(!native)return;
-     native.open=true;
-     native.querySelector('select')?.focus?.({preventScroll:true});
-     native.scrollIntoView?.({block:'nearest'});
+     if(window.ForgeExerciseSwap?.openForSession?.(i))return;
+     alert('Die Übungsauswahl ist momentan nicht verfügbar.');
     },!exercise.querySelector('.forge130-substitute'),'Übung tauschen (nur heute)']
   ];
   for(const [text,handler,disabled,label] of controls){
@@ -394,7 +395,7 @@ function install(){
   }
  }
  document.addEventListener('keydown',e=>{
-  if(e.key!=='Escape')return;
+  if(e.key!=='Escape'||window.ForgeExerciseSwap?.isOpen?.())return;
   if(planSheet){if(closePlanSheet()){e.preventDefault();e.stopPropagation();}return;}
   if(closeDrawer()){e.preventDefault();e.stopPropagation();}
  },true);
