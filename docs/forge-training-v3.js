@@ -24,7 +24,23 @@ function model(plans,selected,active,draft){
   exercises:exercises.map(ex=>({name:String(ex.name||'Übung'),sets:Math.max(0,Number(ex.sets)||0),reps:Number(ex.reps)||0,unit:ex.unit==='sec'?' Sek.':' Wdh.'})),
   total,done,live:!!active};
 }
-window.ForgeTrainingV3=Object.freeze({model,isInstalled:()=>installed});
+function lastPerformance(history,name){
+ if(!Array.isArray(history)||!name)return null;
+ for(let i=history.length-1;i>=0;i--){
+  const w=history[i],entry=(Array.isArray(w?.entries)?w.entries:[]).find(e=>e.name===name);
+  const sets=Array.isArray(entry?.sets)?entry.sets:[];
+  const first=sets.find(x=>Number.isFinite(Number(x?.kg))&&Number(x.kg)>=0&&Number(x?.reps)>0);
+  if(first)return {kg:Number(first.kg),reps:Number(first.reps),date:w.date||null};
+ }
+ return null;
+}
+function progressionFor(history,name,suggestion,setIndex){
+ const last=lastPerformance(history,name);
+ const raw=Number(suggestion?.weights?.[setIndex]);
+ const suggested=Number.isFinite(raw)&&raw>0?raw:null;
+ return {last,suggested};
+}
+window.ForgeTrainingV3=Object.freeze({model,lastPerformance,progressionFor,isInstalled:()=>installed});
 let installed=false,signature='',lastProgress='',lastLive=null,visit=null;
 function placeStable(node,anchor){
  if(!node||!anchor||node.previousElementSibling===anchor)return;
@@ -71,7 +87,9 @@ function render(){
  const sub=$('forgeTrainingV3Status')?.querySelector('.forge-v3-sub');
  const titleText=m.live?'● Training läuft':'Deine nächste Einheit';
  if(title&&title.textContent!==titleText)title.textContent=titleText;
- const summary=m.title+' · '+m.location+' · '+m.exercises.length+' Übungen';
+ const summary=m.live
+  ?m.title+' · '+m.done+' von '+m.total+' Sätzen abgeschlossen'
+  :m.title+' · '+m.exercises.length+' Übungen · '+m.location;
  if(sub&&sub.textContent!==summary)sub.textContent=summary;
  const preview=$('forgeTrainingV3Preview');
  if(preview)preview.hidden=m.live||!m.id;
@@ -118,6 +136,68 @@ function render(){
   lastProgress='';
  }
  if(lastLive!==m.live)lastLive=m.live;
+ // Only the small read-only tip below the existing kg/reps inputs changes.
+ // Never replace the input card, the set list or the proven save handler.
+ try{renderProgression(m);}catch(error){console.warn('FORGE: Progression hint skipped',error);}
+}
+function renderProgression(m){
+ const root=$('forgeQuickWorkout');
+ if(!root)return;
+ const card=root.querySelector(':scope > .forge130-focus-card');
+ if(!card)return;
+ const old=card.querySelector(':scope > .forge-v3-progression');
+ if(!m.live||!m.id||typeof state==='undefined'){
+  old?.remove();return;
+ }
+ const p=state.plan?.find(x=>x.id===state.activeWorkout?.planId);
+ if(!p||String($('workoutSelect')?.value)!==String(p.id)||typeof forge130CurrentFocus!=='function'){
+  old?.remove();return;
+ }
+ const focus=forge130CurrentFocus(p);
+ const ex=focus&&p.ex?.[focus.i],grid=card.querySelector('.forge130-focus-card-grid');
+ if(!focus||!ex||!grid){old?.remove();return;}
+ const name=state.workoutDraft?.planId===p.id
+  ?state.workoutDraft.exercises?.[focus.i]?.name||ex.name:ex.name;
+ const timed=ex.unit==='sec'||(typeof forgeTimeIsExercise==='function'&&forgeTimeIsExercise(name,ex));
+ if(timed){old?.remove();return;}
+ const suggestion=typeof forge130LoadSuggestion==='function'
+  ?forge130LoadSuggestion(name,Number(ex.sets),Number(ex.reps)):null;
+ const info=progressionFor(state.workouts,name,suggestion,focus.j);
+ if(!info.last&&info.suggested===null){old?.remove();return;}
+ let note=old;
+ if(!note){
+  note=create('div','forge-v3-progression');
+  note.setAttribute('aria-label','Vergangene Leistung und Gewichtsvorschlag');
+  grid.after(note);
+ }
+ const stamp=[p.id,focus.i,focus.j,name,info.last?.kg,info.last?.reps,info.suggested].join('|');
+ if(note.dataset.stamp===stamp)return;
+ note.dataset.stamp=stamp;
+ note.replaceChildren();
+ if(info.last){
+  note.append(create('span','forge-v3-last','Zuletzt: '+info.last.kg.toLocaleString('de-DE')+
+   ' kg × '+info.last.reps+' Wdh.'));
+ }
+ if(info.suggested!==null){
+  const prompt=create('div','forge-v3-hint');
+  const value=info.suggested.toLocaleString('de-DE');
+  prompt.append(create('span','','Vorschlag für diesen Satz: '+value+' kg'));
+  const action=create('button','forge-v3-use-weight','Übernehmen');
+  action.type='button';
+  action.setAttribute('aria-label','Vorgeschlagene '+value+' Kilogramm für diesen Satz übernehmen');
+  action.addEventListener('click',()=>{
+   // Only an explicit tap sets the current input. Existing input handler
+   // persists the exact value; other sets and workout history stay untouched.
+   if(state.activeWorkout?.planId!==p.id||typeof forge130CurrentFocus!=='function')return;
+   const now=forge130CurrentFocus(p);
+   if(!now||now.i!==focus.i||now.j!==focus.j)return;
+   const input=$('forge130QuickKg');
+   if(!input)return;
+   input.value=String(info.suggested);
+   input.dispatchEvent(new Event('input',{bubbles:true}));
+  });
+  prompt.append(action);note.append(prompt);
+ }
 }
 function style(){
  if($('forgeTrainingV3Style'))return;
@@ -126,6 +206,9 @@ function style(){
   '/* Clean reading order: session title, stopwatch, pause, current set, navigation, all exercises, finish. */',
   '#workout.forge-v3-ready .forge-v3-status,#workout.forge-v3-live .forge-v3-status{padding:5px 0 11px;border-bottom:1px solid #36564a;margin:4px 0 10px;display:grid;gap:4px}',
   '#workout .forge-v3-name{display:block;font-size:16px;line-height:1.35;color:#c4f498;font-weight:800}',
+  '#workout.forge-v3-live .forge-v3-status{gap:2px!important;padding-bottom:8px!important}',
+  '#workout.forge-v3-live .forge-v3-name{font-size:14px}',
+  '#workout.forge-v3-live .forge-v3-sub{font-variant-numeric:tabular-nums}',
   '#workout .forge-v3-sub{font-size:12px;color:#c5d9cb;line-height:1.5;overflow-wrap:anywhere}',
   '#workout .forge-v3-preview{margin:13px 0 2px;padding:12px 0;border-top:1px solid #334e42;background:transparent}',
   '#workout .forge-v3-preview[hidden]{display:none!important}',
@@ -142,6 +225,12 @@ function style(){
   '#workout .forge-v3-progress{padding:3px 0 8px}',
   '#workout .forge-v3-track{background:#274338;height:7px;border-radius:12px;overflow:hidden}',
   '#workout .forge-v3-fill{background:#a8f55d;height:100%;border-radius:12px;transition:width .18s}',
+  '#workout.forge-v3-live .forge130-suggestion{display:none!important}',
+  '#workout .forge-v3-progression{margin:0 0 4px;padding:8px 10px;background:#172f29;border-left:3px solid #72975e;border-radius:0 9px 9px 0;display:grid;gap:5px}',
+  '#workout .forge-v3-last{font-size:12px;color:#c7d6c8}',
+  '#workout .forge-v3-hint{display:flex;justify-content:space-between;align-items:center;gap:8px;min-width:0;font-size:12px;color:#d8f1ce;font-weight:700}',
+  '#workout .forge-v3-use-weight{min-height:39px;min-width:97px;padding:7px 10px;border-radius:9px;border:1px solid #78a361;color:#eaffdf;background:#254431;font-size:12px;font-weight:800}',
+  '#workout .forge-v3-use-weight:focus-visible{outline:2px solid #a8f55d;outline-offset:2px}',
   '#workout.forge-v3-live #forgeLiveNext{margin:6px 0 10px!important}',
   '#workout.forge-v3-live .forge-workout-all{display:block!important;margin:15px 0 10px!important;border-top:1px solid #38554a!important;padding:0!important}',
   '#workout.forge-v3-live .forge-workout-all>summary{display:flex!important;align-items:center;min-height:53px!important;font-size:17px!important;font-weight:800!important;padding:12px 7px!important;background:#172e27!important;border-left:4px solid #a8f55d!important;color:#def7ce!important}',

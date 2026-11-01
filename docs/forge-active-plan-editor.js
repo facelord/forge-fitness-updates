@@ -39,7 +39,7 @@ function hasFocusedEditorField(root,focused=document.activeElement){
  const tag=String(focused.tagName||'').toUpperCase();
  return tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||focused.isContentEditable===true;
 }
-window.ForgeActivePlanEdit=Object.freeze({selectValidId,normalizeHeading,updateSessionMeta,hasFocusedEditorField,isOpen:()=>opened,closeEditor,closeIfInactive,flattenExerciseRows});
+window.ForgeActivePlanEdit=Object.freeze({selectValidId,normalizeHeading,updateSessionMeta,hasFocusedEditorField,isOpen:()=>opened,closeEditor,closeIfInactive,flattenExerciseRows,openExercise});
 function settings(){
  const container=$('forgeActivePlanEditor');
  if(!container)return;
@@ -94,7 +94,24 @@ function openDay(id){
  $('forgeActivePlanEditor')?.scrollIntoView?.({behavior:'smooth',block:'start'});
 }
 window.forgeOpenActivePlanEditor=toggleEditor;
+function openExercise(id,index){
+ const p=planById(id),n=Number(index);
+ if(!p||!Number.isInteger(n)||n<0||n>=p.ex.length)return false;
+ // Do not enter edit mode while a workout is active: preserve the session.
+ if(state.activeWorkout)return false;
+ if(!opened)openEditor();
+ if(!opened)return false;
+ selectedId=String(id);
+ expandedExercise=n;
+ renderEditor();
+ settings();
+ const target=$('forgeActivePlanEditor')?.querySelector('.forge-editor-item[data-index="'+n+'"]');
+ if(target){target.open=true;target.scrollIntoView?.({block:'center',behavior:'smooth'});}
+ else $('forgeActivePlanEditor')?.scrollIntoView?.({block:'start',behavior:'smooth'});
+ return true;
+}
 window.forgeOpenActivePlanDay=openDay;
+window.forgeOpenActivePlanExercise=openExercise;
 window.forgeCloseActivePlanEditor=closeEditor;
 function flattenExerciseRows(source){
  if(!source)return 0;

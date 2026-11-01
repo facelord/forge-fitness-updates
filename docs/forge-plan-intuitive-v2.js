@@ -91,13 +91,22 @@ function refreshOverview(){
   // Show actual exercises, sets and reps without opening an edit panel or starting
   // a workout. Reuse live plan state so every permanent edit appears immediately.
   const exercises=E('ol','forge-plan-v2-exercises');
-  for(const ex of Array.isArray(p.ex)?p.ex:[]){
+  for(const [exerciseIndex,ex] of (Array.isArray(p.ex)?p.ex:[]).entries()){
    const item=E('li','forge-plan-v2-exercise');
    item.append(E('span','forge-plan-v2-exercise-name',String(ex.name||'Übung')));
    const number=Number(ex.sets),count=Number.isFinite(number)&&number>0?number+' × ':'';
    const reps=ex.reps==null?'':String(ex.reps);
-   item.append(E('span','forge-plan-v2-exercise-dose',count+reps+(ex.unit==='sec'?' Sek.':'')));
-   exercises.append(item);
+   const actions=E('span','forge-plan-v2-exercise-actions');
+   actions.append(E('span','forge-plan-v2-exercise-dose',count+reps+(ex.unit==='sec'?' Sek.':'')));
+   const change=button('✎',()=>{
+    // Open precisely this exercise in the permanent active-plan editor.
+    // Never edit today's workout or the saved training history.
+    if(window.forgeOpenActivePlanExercise?.(p.id,exerciseIndex)!==true)
+     window.forgeOpenActivePlanDay?.(p.id);
+   },'forge-plan-v2-exercise-edit');
+   change.setAttribute('aria-label',String(ex.name||'Übung')+' direkt im Plan bearbeiten');
+   change.title='Übung bearbeiten';actions.append(change);
+   item.append(actions);exercises.append(item);
   }
   row.append(exercises);
   units.append(row);
@@ -230,6 +239,9 @@ function styles(){
   '#plan .forge-plan-v2-exercise{display:flex;justify-content:space-between;align-items:baseline;gap:9px;padding:7px 0;border-top:1px solid #283f35;font-size:13px;line-height:1.45}',
   '#plan .forge-plan-v2-exercise-name{color:#e6f0e7;min-width:0;overflow-wrap:anywhere}',
   '#plan .forge-plan-v2-exercise-dose{color:#c0dbb6;white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums;font-weight:700}',
+  '#plan .forge-plan-v2-exercise-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:none}',
+  '#plan .forge-plan-v2-exercise-actions .forge-plan-v2-exercise-edit{width:37px;min-height:37px!important;padding:5px!important;border-radius:9px;background:transparent;color:#a8f55d;border:1px solid #587a60;font-size:19px;line-height:1}',
+  '#plan .forge-plan-v2-exercise-actions .forge-plan-v2-exercise-edit:focus-visible{outline:2px solid #a8f55d;outline-offset:2px}',
   '#plan .forge-plan-v2-unit-info{min-width:0;display:grid;gap:4px}',
   '#plan .forge-plan-v2-unit-info strong{font-size:14px;color:#f1f7ed;overflow-wrap:anywhere}',
   '#plan .forge-plan-v2-unit-info small{font-size:12px;color:#b9cbbc}',
