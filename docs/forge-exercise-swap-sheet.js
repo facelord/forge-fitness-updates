@@ -66,22 +66,33 @@ function catalog(){
  return [...new Set(f().filter(x=>typeof x==='string'&&x.trim()))].sort((a,b)=>a.localeCompare(b,'de'));
 }
 function livePlan(){
- const active=state?.activeWorkout,selected=$('workoutSelect')?.value;
+ // The active session is authoritative. workoutSelect may temporarily show a
+ // different value while core renderWorkout is rebuilding its options.
+ const active=typeof state!=='undefined'?state.activeWorkout:null;
  return active&&Array.isArray(state.plan)?
-  state.plan.find(p=>String(p.id)===String(active.planId)&&String(p.id)===String(selected)):null;
+  state.plan.find(p=>String(p.id)===String(active.planId))||null:null;
 }
 function availableFor(mode,plan,index){
  const all=catalog();
- const used=new Set(plan.ex.filter((_,i)=>i!==index).map(e=>{
-  return mode==='session'&&state.workoutDraft?.planId===plan.id?
-   state.workoutDraft.exercises?.[i]?.name||e.name:e.name;
- }));
+ const used=new Set(plan.ex.map((exercise,i)=>{
+  if(i===index)return null;
+  return mode==='session'&&String(state.workoutDraft?.planId)===String(plan.id)?
+   state.workoutDraft.exercises?.[i]?.name||exercise.name:exercise.name;
+ }).filter(Boolean));
+ // Ensure the selector still opens when the optional catalog UI is not ready.
+ if(!all.length){
+  for(const e of plan.ex)if(e?.name)all.push(e.name);
+  for(const name of (typeof window.forge130AlternativeOptions==='function'?
+   window.forge130AlternativeOptions(plan.ex[index]?.name,plan.ex[index]?.name):[])){
+   if(typeof name==='string'&&!all.includes(name))all.push(name);
+  }
+ }
  return all.filter(x=>!used.has(x));
 }
 function openForSession(index){
  const plan=livePlan(),i=Number(index);
  if(!plan||!Number.isInteger(i)||i<0||i>=plan.ex.length)return false;
- const currentName=state.workoutDraft?.planId===plan.id?
+ const currentName=String(state.workoutDraft?.planId)===String(plan.id)?
   state.workoutDraft.exercises?.[i]?.name||plan.ex[i].name:plan.ex[i].name;
  return open({
   mode:'session',planId:String(plan.id),index:i,original:currentName,
@@ -99,9 +110,12 @@ function openForPlan(draft,index,onChoose){
  });
 }
 function candidateList(x){
- const base=typeof window.forge130AlternativeOptions==='function'?
-  window.forge130AlternativeOptions(x.original,x.planBase):[];
- return matchingNames(x.original,x.all,base);
+ let base=[];
+ try{
+  if(typeof window.forge130AlternativeOptions==='function')
+   base=window.forge130AlternativeOptions(x.original,x.planBase);
+ }catch(error){console.warn('FORGE: Alternativen aus Kern nicht verfügbar',error);}
+ return matchingNames(x.original,x.all,Array.isArray(base)?base:[]);
 }
 function open(settings){
  if(current&&!close(false))return false;
@@ -275,7 +289,8 @@ function applySelection(){
   const done=x.onChoose;
   close(true);done();return;
  }
- const p=livePlan(),latest=state?.workoutDraft?.exercises?.[x.index]?.name||p?.ex?.[x.index]?.name;
+ const p=livePlan(),latest=String(state?.workoutDraft?.planId)===x.planId?
+  state.workoutDraft?.exercises?.[x.index]?.name||p?.ex?.[x.index]?.name:p?.ex?.[x.index]?.name;
  if(!p||String(p.id)!==x.planId||p.ex[x.index]?.name!==x.planBase||
   state.activeWorkout?.startedAt!==x.expectedSession||latest!==x.original){
   x.message='Die laufende Einheit hat sich verändert. Bitte die Übungsauswahl neu öffnen.';
@@ -286,8 +301,10 @@ function applySelection(){
  }
  x.busy=true;
  try{
-  // The core confirms completed-set replacements, preserves undo data,
-  // updates focus and persists via its unchanged save/restore handlers.
+  // The core still owns all data mutations and confirmations. Synchronize
+  // its selection only when a core-render race left it pointing elsewhere.
+  const select=$('workoutSelect');
+  if(select&&select.value!==String(p.id))select.value=String(p.id);
   invokeNativeSubstitution(x.index,x.selected);
  }catch(error){
   console.error('FORGE Ersatzübung fehlgeschlagen',error);

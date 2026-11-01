@@ -300,8 +300,11 @@ function openPlanSheet(){
  displayPlanSheet();return true;
 }
 function decorateSessionExercises(){
- const container=$('workoutExercises'),plan=planForSelection();
- if(!container||!plan||!state?.activeWorkout||state.activeWorkout.planId!==plan.id)return 0;
+ const container=$('workoutExercises');
+ const active=state?.activeWorkout;
+ const plan=active&&Array.isArray(state?.plan)?
+  state.plan.find(p=>String(p.id)===String(active.planId)):null;
+ if(!container||!plan)return 0;
  const order=typeof window.forge142Order==='function'?window.forge142Order(plan):plan.ex.map((_,i)=>i);
  let added=0;
  container.querySelectorAll('.forge-exercise[data-forge-ex]').forEach(exercise=>{
@@ -319,9 +322,14 @@ function decorateSessionExercises(){
    ['↑',()=>move(-1),position===0,'Übung nach oben schieben (nur heute)'],
    ['↓',()=>move(1),position===order.length-1,'Übung nach unten schieben (nur heute)'],
    ['⇄',()=>{
-     if(window.ForgeExerciseSwap?.openForSession?.(i))return;
-     alert('Die Übungsauswahl ist momentan nicht verfügbar.');
-    },!exercise.querySelector('.forge130-substitute'),'Übung tauschen (nur heute)']
+     try{
+      if(window.ForgeExerciseSwap?.openForSession?.(i))return;
+      alert('Übungsauswahl konnte nicht geöffnet werden. Bitte FORGE neu laden.');
+     }catch(error){
+      console.error('FORGE: Übungsauswahl öffnen',error);
+      alert('Die Übungsauswahl konnte nicht geöffnet werden. Deine Trainingsdaten bleiben erhalten.');
+     }
+    },false,'Übung tauschen (nur heute)']
   ];
   for(const [text,handler,disabled,label] of controls){
    const b=button(text,event=>{event.preventDefault();event.stopPropagation();handler();});
@@ -394,6 +402,27 @@ function install(){
    body.prepend(b);
   }
  }
+ // Also catch the historical "Ganze Übung ersetzen" action in detail cards
+ // before its inline onclick reaches the old dropdown handler.
+ document.addEventListener('click',e=>{
+  if(!page.classList.contains('forge-compact-live'))return;
+  const legacy=e.target?.closest?.('.forge130-substitute .forge132-swap-controls button');
+  if(!legacy||!page.contains(legacy))return;
+  e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+  const host=legacy.closest('.forge-exercise[data-forge-ex]');
+  let index=host?Number(host.dataset.forgeEx):null;
+  if(!Number.isInteger(index)&&typeof window.forge130CurrentFocus==='function'){
+   const active=state?.activeWorkout;
+   const plan=state?.plan?.find(p=>String(p.id)===String(active?.planId));
+   index=plan?window.forge130CurrentFocus(plan)?.i:null;
+  }
+  if(Number.isInteger(index)){
+   try{
+    if(window.ForgeExerciseSwap?.openForSession?.(index))return;
+   }catch(error){console.error('FORGE: alter Tauschknopf',error);}
+  }
+  alert('Die Übungsauswahl konnte nicht geöffnet werden.');
+ },true);
  document.addEventListener('keydown',e=>{
   if(e.key!=='Escape'||window.ForgeExerciseSwap?.isOpen?.())return;
   if(planSheet){if(closePlanSheet()){e.preventDefault();e.stopPropagation();}return;}
