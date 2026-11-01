@@ -3,5 +3,5 @@
   "versionName": "14.13.266",
   "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.266/FORGE-Fitness-14.13.266.apk",
   "sha256": "95bb9ee2c606e90a3bbf2a8e435615d025f7e72e398bc325c8e050a4d16e7cdc",
-  "notes": "FORGE Amazfit/Zepp, Bluetooth-Pulsmesser und manuelle Pulsfelder auf Web und Android vorerst unsichtbar; bestehende Integrationen und gespeicherte Cardio-Daten bleiben erhalten. Tagesform liegt weiterhin schlank unter Fortschritt > Statistiken."
+  "notes": "FORGE Premium Workout Variante B: Trainingsseite vollständig neu angeordnet. Branding/Fortschritt, gemeinsame Zeit- und Pausenanzeige, kompakte Übungskarte mit passendem Bewegungsbild und optionaler Muskelansicht sowie direkt anschließender Satzabschluss. Originale Satzfelder, Satznavigation, Alle Übungen, Timer und Speichern/Beenden bleiben erhalten. Automatische Bildschirm-Anpassung ohne vertikales Scrollen im Normalfall."
 }
