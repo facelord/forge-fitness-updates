@@ -1,7 +1,7 @@
 {
-  "versionCode": 10258,
-  "versionName": "14.13.258",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.258/FORGE-Fitness-14.13.258.apk",
-  "sha256": "9630f3d0abbc9ef255385ce129af11edd385f337483272031bb8b17772834aff",
-  "notes": "FORGE 14.13.258: Fehler beim Übungstausch behoben (nicht definierter Übungsindex). Der ⇄-Button und der frühere Ersetzen-Button öffnen zuverlässig die separate bebilderte Auswahl mit Passend, Alle Alternativen und einer Suche. Aktive Einheit bleibt maßgeblich, Trainingszeit und Speichern/Beenden unverändert."
+  "versionCode": 10261,
+  "versionName": "14.13.261",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.261/FORGE-Fitness-14.13.261.apk",
+  "sha256": "6886dc3e3c4d14921dc685af2f077dc72f3ff56694bd892eb3d019d9ce041c18",
+  "notes": "FORGE Amazfit/Zepp, Bluetooth-Pulsmesser und manuelle Pulsfelder auf Web und Android vorerst unsichtbar; bestehende Integrationen und gespeicherte Cardio-Daten bleiben erhalten. Tagesform liegt weiterhin schlank unter Fortschritt > Statistiken."
 }
