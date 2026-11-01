@@ -11,36 +11,60 @@ const create=(tag,cls,text)=>{
  if(text!==undefined)e.textContent=text;
  return e;
 };
+function setProgress(plan,draft){
+ const exercises=Array.isArray(plan?.ex)?plan.ex:[];
+ let total=0,done=0;
+ for(let i=0;i<exercises.length;i++){
+  const n=Math.max(0,Math.trunc(Number(exercises[i].sets)||0));
+  total+=n;
+  // Only explicitly confirmed, valid sets from THIS plan count.
+  const sets=draft?.planId===plan?.id?draft.exercises?.[i]?.sets:[];
+  for(let j=0;j<n;j++)if(sets?.[j]?.done===true&&Number(sets[j].reps)>0)done++;
+ }
+ return {total,done,percent:total?Math.round(done/total*100):0};
+}
 function model(plans,selected,active,draft){
  const p=(Array.isArray(plans)?plans:[]).find(x=>x.id===(active?.planId||selected))||null;
  const exercises=Array.isArray(p?.ex)?p.ex:[];
- let total=0,done=0;
- exercises.forEach((ex,i)=>{
-  const n=Math.max(0,Number(ex.sets)||0);total+=n;
-  const sets=draft?.planId===p?.id?draft.exercises?.[i]?.sets:[];
-  for(let j=0;j<n;j++)if(sets?.[j]?.done&&Number(sets[j].reps)>0)done++;
- });
+ const {total,done,percent}=setProgress(p,draft);
  return {id:p?.id||null,title:p?.title||'Noch kein Trainingsplan',location:p?.location==='home'?'Zuhause':'Fitnessstudio',
   exercises:exercises.map(ex=>({name:String(ex.name||'Übung'),sets:Math.max(0,Number(ex.sets)||0),reps:Number(ex.reps)||0,unit:ex.unit==='sec'?' Sek.':' Wdh.'})),
-  total,done,live:!!active};
+  total,done,percent,live:!!active};
 }
-function lastPerformance(history,name){
- if(!Array.isArray(history)||!name)return null;
+function lastPerformance(history,name,setIndex=0){
+ if(!Array.isArray(history)||!name||!Number.isInteger(setIndex)||setIndex<0)return null;
  for(let i=history.length-1;i>=0;i--){
   const w=history[i],entry=(Array.isArray(w?.entries)?w.entries:[]).find(e=>e.name===name);
-  const sets=Array.isArray(entry?.sets)?entry.sets:[];
-  const first=sets.find(x=>Number.isFinite(Number(x?.kg))&&Number(x.kg)>=0&&Number(x?.reps)>0);
-  if(first)return {kg:Number(first.kg),reps:Number(first.reps),date:w.date||null};
+  const set=entry?.sets?.[setIndex];
+  if(set&&Number.isFinite(Number(set.kg))&&Number(set.kg)>=0&&Number(set.reps)>0)
+   return {kg:Number(set.kg),reps:Number(set.reps),date:w.date||null};
  }
  return null;
 }
-function progressionFor(history,name,suggestion,setIndex){
- const last=lastPerformance(history,name);
- const raw=Number(suggestion?.weights?.[setIndex]);
- const suggested=Number.isFinite(raw)&&raw>0?raw:null;
- return {last,suggested};
+// Conservative double progression. Read existing workout history only;
+// no estimated recovery, profile or new persisted data model.
+function progressionFor(history,name,setIndex,targetSets,targetReps,increment=2.5){
+ const last=lastPerformance(history,name,setIndex);
+ const none={type:'none',last,suggested:null,reason:''};
+ if(!last||!Number.isFinite(last.kg)||last.kg<=0)return none;
+ const repeat={type:'repeat',last,suggested:last.kg,reason:'Letztes Gewicht wiederholen'};
+ const sets=Number(targetSets),reps=Number(targetReps),step=Number(increment);
+ if(!Number.isInteger(sets)||sets<1||!Number.isInteger(reps)||reps<1||
+    !Number.isInteger(setIndex)||setIndex<0||setIndex>=sets||!Number.isFinite(step)||step<=0)return repeat;
+ // At most the last two sessions with the matching exercise.
+ const recent=(Array.isArray(history)?history:[]).slice().reverse()
+  .map(w=>(Array.isArray(w?.entries)?w.entries:[]).find(e=>e.name===name))
+  .filter(Boolean).slice(0,2);
+ if(recent.length<2)return repeat;
+ const qualifies=e=>Array.isArray(e.sets)&&e.sets.length>=sets&&
+  e.sets.slice(0,sets).every(x=>Number.isFinite(Number(x.kg))&&Number(x.kg)>0&&Number(x.reps)>=reps);
+ if(!recent.every(qualifies))return repeat;
+ if(recent[0].sets.slice(0,sets).some((x,i)=>Number(x.kg)<Number(recent[1].sets[i].kg)))return repeat;
+ if(step/last.kg>0.05)return repeat;
+ const proposal=Math.round((last.kg+step)*100)/100;
+ return {type:'increase',last,suggested:proposal,reason:'Zweimal alle Zielwiederholungen erreicht'};
 }
-window.ForgeTrainingV3=Object.freeze({model,lastPerformance,progressionFor,isInstalled:()=>installed});
+window.ForgeTrainingV3=Object.freeze({model,setProgress,lastPerformance,progressionFor,isInstalled:()=>installed});
 let installed=false,signature='',lastProgress='',lastLive=null,visit=null;
 function placeStable(node,anchor){
  if(!node||!anchor||node.previousElementSibling===anchor)return;
@@ -88,7 +112,7 @@ function render(){
  const titleText=m.live?'● Training läuft':'Deine nächste Einheit';
  if(title&&title.textContent!==titleText)title.textContent=titleText;
  const summary=m.live
-  ?m.title+' · '+m.done+' von '+m.total+' Sätzen abgeschlossen'
+  ?m.title+' · '+(m.total&&m.done===m.total?'Alle '+m.total+' Sätze erledigt':m.done+' von '+m.total+' Sätzen erledigt')
   :m.title+' · '+m.exercises.length+' Übungen · '+m.location;
  if(sub&&sub.textContent!==summary)sub.textContent=summary;
  const preview=$('forgeTrainingV3Preview');
@@ -128,7 +152,8 @@ function render(){
    current.setAttribute('aria-valuemin','0');
    current.setAttribute('aria-valuemax',String(Math.max(1,m.total)));
    current.setAttribute('aria-valuenow',String(m.done));
-   $('forgeTrainingV3Fill').style.width=(m.total?Math.round(100*m.done/m.total):0)+'%';
+   current.setAttribute('aria-valuetext',m.done+' von '+m.total+' Sätzen abgeschlossen');
+   $('forgeTrainingV3Fill').style.width=m.percent+'%';
    lastProgress=sig;
   }
  }else{
@@ -160,9 +185,8 @@ function renderProgression(m){
   ?state.workoutDraft.exercises?.[focus.i]?.name||ex.name:ex.name;
  const timed=ex.unit==='sec'||(typeof forgeTimeIsExercise==='function'&&forgeTimeIsExercise(name,ex));
  if(timed){old?.remove();return;}
- const suggestion=typeof forge130LoadSuggestion==='function'
-  ?forge130LoadSuggestion(name,Number(ex.sets),Number(ex.reps)):null;
- const info=progressionFor(state.workouts,name,suggestion,focus.j);
+ const big=/Kniebeug|Beinpresse|Kreuzheben|Ausfallschritt|Wadenheben/.test(name);
+ const info=progressionFor(state.workouts,name,focus.j,Number(ex.sets),Number(ex.reps),big?5:2.5);
  if(!info.last&&info.suggested===null){old?.remove();return;}
  let note=old;
  if(!note){
@@ -170,33 +194,65 @@ function renderProgression(m){
   note.setAttribute('aria-label','Vergangene Leistung und Gewichtsvorschlag');
   grid.after(note);
  }
- const stamp=[p.id,focus.i,focus.j,name,info.last?.kg,info.last?.reps,info.suggested].join('|');
+ const stamp=[p.id,focus.i,focus.j,name,info.type,info.last?.kg,info.last?.reps,info.suggested].join('|');
  if(note.dataset.stamp===stamp)return;
  note.dataset.stamp=stamp;
  note.replaceChildren();
  if(info.last){
-  note.append(create('span','forge-v3-last','Zuletzt: '+info.last.kg.toLocaleString('de-DE')+
-   ' kg × '+info.last.reps+' Wdh.'));
+  const previous=info.last.kg>0?info.last.kg.toLocaleString('de-DE')+' kg':'Körpergewicht';
+  note.append(create('span','forge-v3-last','Zuletzt · Satz '+(focus.j+1)+': '+previous+' × '+info.last.reps+' Wdh.'));
  }
  if(info.suggested!==null){
   const prompt=create('div','forge-v3-hint');
   const value=info.suggested.toLocaleString('de-DE');
-  prompt.append(create('span','','Vorschlag für diesen Satz: '+value+' kg'));
+  prompt.append(create('span','',info.type==='increase'
+   ?'Vorsichtig steigern: '+value+' kg':'Gewicht wiederholen: '+value+' kg'));
   const action=create('button','forge-v3-use-weight','Übernehmen');
   action.type='button';
-  action.setAttribute('aria-label','Vorgeschlagene '+value+' Kilogramm für diesen Satz übernehmen');
+  action.setAttribute('aria-label','Vorgeschlagene '+value+' Kilogramm für Satz '+(focus.j+1)+' übernehmen');
+  const startedAt=state.activeWorkout?.startedAt;
   action.addEventListener('click',()=>{
-   // Only an explicit tap sets the current input. Existing input handler
-   // persists the exact value; other sets and workout history stay untouched.
-   if(state.activeWorkout?.planId!==p.id||typeof forge130CurrentFocus!=='function')return;
+   const active=state.activeWorkout;
+   if(!active||active.planId!==p.id||active.startedAt!==startedAt||
+      $('workoutSelect')?.value!==p.id||typeof forge130CurrentFocus!=='function')return;
    const now=forge130CurrentFocus(p);
    if(!now||now.i!==focus.i||now.j!==focus.j)return;
+   if(state.workoutDraft?.exercises?.[focus.i]?.sets?.[focus.j]?.done)return;
    const input=$('forge130QuickKg');
-   if(!input)return;
-   input.value=String(info.suggested);
-   input.dispatchEvent(new Event('input',{bubbles:true}));
+   if(!input||input.disabled||typeof KEY!=='string'||typeof localStorage==='undefined')return;
+   const beforeInput=input.value;
+   const beforeDraft=state.workoutDraft?structuredClone(state.workoutDraft):null;
+   const row=typeof workoutExercises!=='undefined'
+    ?workoutExercises.querySelector('[data-ex="'+focus.i+'"][data-set="'+focus.j+'"][data-field="kg"]'):null;
+   const beforeRow=row?.value;
+   let raw=null;
+   try{
+    raw=localStorage.getItem(KEY);
+    input.value=String(info.suggested);
+    // The current, unchanged FORGE input handler synchronizes the draft.
+    input.dispatchEvent(new Event('input',{bubbles:true}));
+    const currentSet=state.workoutDraft?.exercises?.[focus.i]?.sets?.[focus.j];
+    const saved=JSON.parse(localStorage.getItem(KEY)||'null');
+    const savedSet=saved?.workoutDraft?.exercises?.[focus.i]?.sets?.[focus.j];
+    const matches=x=>x&&Number(x.kg)===info.suggested;
+    if(!matches(currentSet)||!matches(savedSet)||
+       String(saved?.activeWorkout?.planId)!==String(p.id))
+     throw Error('Satzgewicht nicht zuverlässig gespeichert');
+    action.textContent='✓ Übernommen';action.disabled=true;
+    prompt.setAttribute('aria-label','Gewicht übernommen und gespeichert');
+    input.addEventListener('input',()=>{action.textContent='Übernehmen';action.disabled=false;},{once:true});
+   }catch(error){
+    console.error('FORGE Gewichtsvorschlag konnte nicht übernommen werden',error);
+    input.value=beforeInput;
+    if(row)row.value=beforeRow??'';
+    state.workoutDraft=beforeDraft;
+    try{if(raw===null)localStorage.removeItem(KEY);else localStorage.setItem(KEY,raw);}
+    catch(rollback){console.error('FORGE: Gewichtsvorschlag Rollback',rollback);}
+    alert('Gewicht konnte nicht bestätigt gespeichert werden. Dein bisheriger Satz bleibt erhalten.');
+   }
   });
   prompt.append(action);note.append(prompt);
+  note.append(create('span','forge-v3-last',info.reason+' · nur der aktuelle Satz'));
  }
 }
 function style(){
@@ -206,7 +262,7 @@ function style(){
   '/* Clean reading order: session title, stopwatch, pause, current set, navigation, all exercises, finish. */',
   '#workout.forge-v3-ready .forge-v3-status,#workout.forge-v3-live .forge-v3-status{padding:5px 0 11px;border-bottom:1px solid #36564a;margin:4px 0 10px;display:grid;gap:4px}',
   '#workout .forge-v3-name{display:block;font-size:16px;line-height:1.35;color:#c4f498;font-weight:800}',
-  '#workout.forge-v3-live .forge-v3-status{gap:2px!important;padding-bottom:8px!important}',
+  '#workout.forge-v3-live .forge-v3-status{gap:3px!important;padding:4px 0 10px!important;margin-bottom:8px!important;background:transparent!important;border-top:0!important}',
   '#workout.forge-v3-live .forge-v3-name{font-size:14px}',
   '#workout.forge-v3-live .forge-v3-sub{font-variant-numeric:tabular-nums}',
   '#workout .forge-v3-sub{font-size:12px;color:#c5d9cb;line-height:1.5;overflow-wrap:anywhere}',
@@ -223,7 +279,13 @@ function style(){
   '#workout.forge-v3-ready .forge-workout-all{margin-top:10px!important}',
   '#workout.forge-v3-live #forgeLiveControls>.forge-live-state{display:none!important}',
   '#workout .forge-v3-progress{padding:3px 0 8px}',
-  '#workout .forge-v3-track{background:#274338;height:7px;border-radius:12px;overflow:hidden}',
+  '#workout .forge-v3-track{background:#274338;height:6px;border-radius:12px;overflow:hidden}',
+  '/* A single reading path during training: clock -> current set -> list -> finish. */',
+  '#workout.forge-v3-live #forgeQuickWorkout .forge130-focus-card{gap:8px!important}',
+  '#workout.forge-v3-live #forgeQuickWorkout .forge130-focus-card-title{font-weight:800!important;line-height:1.25!important}',
+  '#workout.forge-v3-live #forgeQuickWorkout .forge130-focus-card-hint{font-size:12px!important;line-height:1.4!important}',
+  '#workout.forge-v3-live #forgeQuickWorkout .forge130-focus-card-grid{margin:8px 0 6px!important}',
+  '#workout.forge-v3-live #forgeLiveNext{background:transparent!important;box-shadow:none!important}',
   '#workout .forge-v3-fill{background:#a8f55d;height:100%;border-radius:12px;transition:width .18s}',
   '#workout.forge-v3-live .forge130-suggestion{display:none!important}',
   '#workout .forge-v3-progression{margin:0 0 4px;padding:8px 10px;background:#172f29;border-left:3px solid #72975e;border-radius:0 9px 9px 0;display:grid;gap:5px}',
