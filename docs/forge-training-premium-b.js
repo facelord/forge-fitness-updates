@@ -25,6 +25,46 @@ function move(node,parent){
  }
  if(node.parentElement!==parent)parent.append(node);
 }
+// Local offline visual fallback for the lunge if a user's older catalogue
+// doesn't contain the previously shown photography. Never substitute a
+// different exercise's movement image.
+const lungeSvg=String.raw`<svg viewBox="0 0 310 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Schematische Ausführung eines Ausfallschritts">
+<defs><linearGradient id="forgeLungeBg" x2="0" y2="1"><stop stop-color="#343a38"/><stop offset="1" stop-color="#101719"/></linearGradient></defs>
+<rect width="310" height="240" fill="url(#forgeLungeBg)"/>
+<g opacity=".27" stroke="#7c8880" stroke-width="6"><path d="M29 14v193m53-193v193m158-193v193m44-193v193"/><path d="M23 38h262M20 206h269"/></g>
+<path d="M0 226h310" stroke="#7f8980" stroke-width="3"/>
+<ellipse cx="155" cy="229" rx="114" ry="8" fill="#070c10" opacity=".75"/>
+<g stroke-linecap="round" stroke-linejoin="round">
+<path d="M155 125L188 165L229 167" fill="none" stroke="#202c32" stroke-width="30"/>
+<path d="M229 167L234 219" fill="none" stroke="#d09f7d" stroke-width="19"/>
+<path d="M151 126L105 170L68 212" fill="none" stroke="#242e34" stroke-width="28"/>
+<path d="M68 212L39 222" fill="none" stroke="#c68e70" stroke-width="17"/>
+<path d="M219 220h34m-220 3h37" stroke="#f4f6ec" stroke-width="11"/>
+<path d="M151 126L146 75" stroke="#232d32" stroke-width="48"/>
+<path d="M144 76L145 65" stroke="#d1a587" stroke-width="14"/>
+<circle cx="145" cy="49" r="18" fill="#cf9b78"/>
+<path d="M128 47q-1-23 18-22 22 2 17 23-7-12-17-11-10-1-18 10Z" fill="#222427"/>
+<path d="M126 88L112 133M168 89l17 45" fill="none" stroke="#cb987a" stroke-width="16"/>
+<path d="M112 131l-3 22m77-20 1 21" stroke="#2c3031" stroke-width="8"/>
+<path d="M105 148h11m65 1h12" stroke="#c6c9c6" stroke-width="5"/>
+<rect x="99" y="141" width="8" height="18" rx="2" fill="#14191e"/>
+<rect x="113" y="141" width="8" height="18" rx="2" fill="#14191e"/>
+<rect x="175" y="141" width="8" height="18" rx="2" fill="#14191e"/>
+<rect x="191" y="141" width="8" height="18" rx="2" fill="#14191e"/>
+</g></svg>`;
+const lungeMuscles=String.raw`<svg viewBox="0 0 120 155" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ausfallschritte: besonders beansprucht sind Quadrizeps und Gesäßmuskulatur">
+<g fill="#858c8c" stroke="#303a3a" stroke-width="1">
+<circle cx="60" cy="18" r="13"/><path d="M43 35q17-9 34 0l-3 54H46Z"/>
+<path d="M45 39 31 81l11 7 13-34M75 39l14 42-11 7-13-34"/>
+<path d="M47 87 73 87 79 101 41 101Z"/>
+<path d="M43 101 39 137l14 2 7-37M77 101l5 36-14 2-8-37"/>
+<path d="M40 137 38 151h16l-1-12M68 139l-1 12h16l-2-14"/>
+</g><g fill="#9EFF00" stroke="#80cd00" stroke-width="1">
+<path d="M42 99q7-10 18-5l-3 16-15 1Z"/>
+<path d="M78 99q-7-10-18-5l3 16 15 1Z"/>
+<path d="M42 111 57 111l-5 26-14-2Z"/>
+<path d="M63 111 78 111l4 24-14 2Z"/>
+</g></svg>`;
 function imageData(name){
  if(artCache.has(name))return artCache.get(name);
  const art={main:null,muscle:null};
@@ -58,6 +98,7 @@ function showHero(card,name,session){
  if(identity===lastHero&&card===lastCard)return false;
  const art=imageData(name),visual=create('div','forge-b-main-photo');
  if(art.main)visual.append(picture(art.main,name+' – Ausführung'));
+ else if(name==='Ausfallschritte')visual.innerHTML=lungeSvg;
  else visual.append(create('span','forge-b-fallback','Bild zur Übung noch nicht vorhanden'));
  const shade=create('div','forge-b-media-shade');
  hero.replaceChildren(visual,shade);
@@ -66,6 +107,10 @@ function showHero(card,name,session){
   anatomy.replaceChildren();
   anatomy.append(create('span','forge-b-anatomy-label','Hauptmuskeln'));
   if(art.muscle)anatomy.append(picture(art.muscle,name+' – beanspruchte Muskelgruppen'));
+  else if(name==='Ausfallschritte'){
+   const drawing=create('div');drawing.innerHTML=lungeMuscles;
+   anatomy.append(drawing.firstElementChild||drawing);
+  }
  }
  const title=$('forgeBExerciseName');if(title)title.textContent=name;
  lastHero=identity;lastCard=card;rendered++;
