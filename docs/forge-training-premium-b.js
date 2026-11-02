@@ -256,6 +256,42 @@ function sync(){
  const card=$('forgeQuickWorkout')?.querySelector(':scope > .forge130-focus-card');
  if(nameOfExercise&&card)showHero(card,nameOfExercise,String(state.activeWorkout.startedAt));
 }
+// Read-only measurements for visual QA on real Android and web viewports.
+// No DOM writes, no timers, no training data mutations.
+function measureLayout(){
+ if(!shell||typeof shell.getBoundingClientRect!=='function')return null;
+ const rect=el=>el?.getBoundingClientRect?.()||null;
+ const nav=rect($('nav')),viewport=rect(shell),page=rect($('workout'));
+ const regions=[
+  ['header',shell.querySelector('.forge-b-header')],
+  ['status',shell.querySelector('.forge-b-status')],
+  ['timer',shell.querySelector('.forge-b-hud')],
+  ['rest',shell.querySelector('.forge-b-rest')],
+  ['media',shell.querySelector('.forge-b-media')],
+  ['sets',shell.querySelector('.forge-b-set-panel')],
+  ['actions',shell.querySelector('.forge-b-footer')]
+ ];
+ const rows={};let lastBottom=viewport.top;
+ for(const [name,node] of regions){
+  const box=rect(node);
+  rows[name]=box?Math.round(box.height*10)/10:0;
+  if(box&&box.height>0)lastBottom=Math.max(lastBottom,box.bottom);
+ }
+ const footer=rect($('saveWorkout'));
+ const controls=rect($('forgeCompactDock'));
+ const safeBottom=nav?.top??page?.bottom??viewport.bottom;
+ return {
+  viewport:{width:Math.round(viewport.width),height:Math.round(viewport.height)},
+  regions:rows,
+  contentBottom:Math.round(lastBottom-viewport.top),
+  availableHeight:Math.round(viewport.height),
+  overflowPx:Math.max(0,Math.ceil(shell.scrollHeight-shell.clientHeight)),
+  actionCoveredPx:Math.max(0,Math.ceil(Math.max(footer?.bottom||0,controls?.bottom||0)-safeBottom)),
+  allVisible:!!(footer&&controls&&lastBottom<=viewport.bottom+1
+   &&footer.bottom<=safeBottom+1&&controls.bottom<=safeBottom+1),
+  keyboardOpen:document.body.classList.contains('forge-compact-typing')
+ };
+}
 function installStyles(){
  if($('forgePremiumWorkoutStyle'))return;
  const node=create('style');node.id='forgePremiumWorkoutStyle';node.textContent=CSS;
@@ -272,6 +308,6 @@ function boot(){
  start();
  setInterval(()=>{if(!installed)install();sync();},650);
 }
-window.ForgePremiumWorkoutB=Object.freeze({liveMode,imageData,showHero,mountLayout,restoreLayout,sync,isInstalled:()=>installed,renderCount:()=>rendered});
+window.ForgePremiumWorkoutB=Object.freeze({liveMode,imageData,showHero,mountLayout,restoreLayout,sync,measureLayout,isInstalled:()=>installed,renderCount:()=>rendered});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
