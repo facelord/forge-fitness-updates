@@ -1,7 +1,7 @@
 {
-  "versionCode": 10320,
-  "versionName": "14.13.320",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.320/FORGE-Fitness-14.13.320.apk",
-  "sha256": "ad1f9c400f260a37f85af65c4deb1dea76585c37727e5571113e974ba9dbb6ec",
+  "versionCode": 10335,
+  "versionName": "14.13.335",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.335/FORGE-Fitness-14.13.335.apk",
+  "sha256": "8f12d1c618f041f9e9c0616ec47df6f485d29c04117c240cce0e2e028ee2ae15",
   "notes": "FORGE Amazfit/Zepp, Bluetooth-Pulsmesser und manuelle Pulsfelder auf Web und Android vorerst unsichtbar; bestehende Integrationen und gespeicherte Cardio-Daten bleiben erhalten. Tagesform liegt weiterhin schlank unter Fortschritt > Statistiken."
 }
