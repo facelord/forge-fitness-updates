@@ -276,6 +276,18 @@ function fitViewport(){
  if(page.style.getPropertyValue('--forge-b-visible-height')!==value)
   page.style.setProperty('--forge-b-visible-height',value);
 }
+// The one-screen grid is the primary mode. If an exceptional exercise
+// (for example a long timed-set widget) exceeds its measured space, do not
+// silently clip the finish button behind the bottom navigation.
+function protectFinishAction(){
+ if(!shell||typeof shell.getBoundingClientRect!=='function')return;
+ const nav=$('nav'),save=$('saveWorkout');
+ if(!nav||!save||typeof nav.getBoundingClientRect!=='function'
+   ||typeof save.getBoundingClientRect!=='function')return;
+ const covered=save.getBoundingClientRect().bottom>nav.getBoundingClientRect().top-10;
+ const overflow=shell.scrollHeight>shell.clientHeight+2;
+ shell.classList.toggle('forge-b-overflow',covered||overflow);
+}
 function sync(){
  const page=$('workout');
  if(!installed||!page)return;
@@ -320,6 +332,7 @@ function sync(){
  const nameOfExercise=draft?.exercises?.[current.i]?.name||plan.ex?.[current.i]?.name;
  const card=$('forgeQuickWorkout')?.querySelector(':scope > .forge130-focus-card');
  if(nameOfExercise&&card)showHero(card,nameOfExercise,String(state.activeWorkout.startedAt));
+ protectFinishAction();
 }
 // Read-only measurements for visual QA on real Android and web viewports.
 // No DOM writes, no timers, no training data mutations.
