@@ -220,7 +220,7 @@ function fitViewport(){
    ||typeof page.getBoundingClientRect!=='function')return;
  const upper=page.getBoundingClientRect().top;
  const navTop=nav.getBoundingClientRect().top;
- const height=Math.max(0,Math.floor(navTop-upper-2));
+ const height=Math.max(0,Math.floor(navTop-upper-10));
  if(height<=0)return;
  const value=height+'px';
  if(page.style.getPropertyValue('--forge-b-visible-height')!==value)
