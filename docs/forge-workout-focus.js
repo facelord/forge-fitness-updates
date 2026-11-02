@@ -75,9 +75,16 @@ function ensureUi(){
  // Only move a node when its final position is actually wrong. The previous
  // ordering moved the focused quick-set input twice on every 350 ms tick,
  // dismissing Android's keyboard while entering kilograms/repetitions.
- // Final stable order: controls, rest, quick-entry card.
- if(rest.previousElementSibling!==controls)controls.after(rest);
- if(quick.previousElementSibling!==rest)rest.after(quick);
+ // Final stable order in the legacy layout: controls, rest, quick.
+ // Premium B uses a separate main region for rest and focused set entry.
+ // Moving these nodes on the 900ms timer fights Premium B's 700ms layout
+ // sync, making the entire training page visibly jump while the clock runs.
+ const workout=$('workout'),premiumShell=$('forgePremiumShell');
+ const premiumOwnsLayout=!!(premiumShell&&workout?.classList.contains('forge-premium-layout'));
+ if(!premiumOwnsLayout){
+  if(rest.previousElementSibling!==controls)controls.after(rest);
+  if(quick.previousElementSibling!==rest)rest.after(quick);
+ }
  if(!$('forgeLiveNext')){
   const next=make('div','forge-live-next');next.id='forgeLiveNext';
   quick.after(next);
