@@ -85,18 +85,24 @@ function navigateExercise(direction){
  // exercise without marking any set as done. Never directly mutate state.
  if(typeof state==='undefined'||!state?.activeWorkout)return;
  const plan=state.plan?.find(p=>String(p.id)===String(state.activeWorkout.planId));
- const actions=$('forgeQuickWorkout')?.querySelector('.forge130-actions');
- const button=actions?.querySelectorAll('button')?.[direction<0?0:1];
- if(!plan||!button||button.disabled)return;
- const current=typeof window.forge130CurrentFocus==='function'?window.forge130CurrentFocus(plan):null;
- const start=current?.i;
- if(!Number.isInteger(start)){button.click();return;}
+ if(!plan)return;
+ const current=window.forge130CurrentFocus?.(plan),start=current?.i;
+ const navigate=typeof window.forge130FocusNavigate==='function'
+  ?window.forge130FocusNavigate:null;
+ if(!navigate){
+  // Compatibility fallback: the original set navigation remains interactive.
+  $('forgeQuickWorkout')?.querySelector('.forge130-actions')
+   ?.querySelectorAll('button')?.[direction<0?0:1]?.click();
+  return;
+ }
+ if(!Number.isInteger(start)){navigate(direction);return;}
+ // Reuse the core's validated navigation and persistence. Each step changes
+ // focus without confirming/completing any set; stop at the next exercise.
  const limit=(plan.ex||[]).reduce((n,x)=>n+Math.max(1,Number(x.sets)||1),0);
  for(let attempt=0;attempt<limit;attempt++){
-  if(button.disabled)break;
-  button.click();
+  navigate(direction);
   const next=window.forge130CurrentFocus?.(plan);
-  if(next&&next.i!==start)break;
+  if(!next||next.i!==start)break;
  }
 }
 function mountLayout(){
@@ -114,7 +120,8 @@ function mountLayout(){
  menu.addEventListener('click',()=>$('forgeCompactMore')?.click());
  header.append(back,middle,menu);
  const statusCard=create('section','forge-b-status');statusCard.setAttribute('aria-label','Aktueller Trainingsfortschritt');
- const left=create('div','forge-b-status-left'),symbol=create('div','forge-b-status-icon','♧');
+ const left=create('div','forge-b-status-left'),symbol=create('div','forge-b-status-icon');
+ symbol.append(icon('<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9eff00" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 9v6M6 7v10M18 7v10M21 9v6M6 12h12"/></svg>'));
  symbol.setAttribute('aria-hidden','true');
  const descriptor=create('div'),planTitle=create('div','forge-b-status-title','Ganzkörper · Einheit A');
  planTitle.id='forgeBPlanTitle';
