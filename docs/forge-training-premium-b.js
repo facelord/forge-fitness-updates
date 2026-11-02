@@ -1,225 +1,160 @@
-/* FORGE · Training Variant B (Premium).
- * Visual-only. Preserve every original workout input, click handler, clock,
- * save button, workout draft, and session switching workflow.
+/* FORGE · Variante B Modern & Premium — integrated live workout UI.
+ * Existing core owns workout state, inputs, save, pause and set navigation.
+ * Visual structure is built from original DOM nodes so their handlers survive.
  */
 (function(){
 'use strict';
 const $=id=>document.getElementById(id);
-let installed=false;
-let lastIdentity='',lastCard=null,lastFit='',renderedCount=0;
-const homeMarkers=new Map();let shell=null;
-const cachedArt=new Map();
-const create=(tag,className,text)=>{
- const e=document.createElement(tag);
- if(className)e.className=className;
- if(text!==undefined)e.textContent=text;
- return e;
+const create=(tag,cls,txt)=>{
+ const el=document.createElement(tag);if(cls)el.className=cls;
+ if(txt!==undefined)el.textContent=txt;return el;
 };
-function liveMode(page,stateRef){
- return !!(page?.classList?.contains('forge-compact-live')&&stateRef?.activeWorkout);
+const CSS="\n#workout.forge-compact-live.forge-premium-layout.active{padding:0!important;background:#0d0d0d!important;overflow:hidden!important}\n#workout.forge-premium-layout #forgePremiumShell{box-sizing:border-box!important;width:100%!important;max-width:620px!important;height:100%!important;min-height:0!important;margin:0 auto!important;padding:10px 14px 18px!important;display:flex!important;flex-direction:column!important;gap:10px!important;overflow-y:auto!important;overscroll-behavior:contain!important;scrollbar-width:thin;background:radial-gradient(circle at 12% 18%,rgba(158,255,0,.055),transparent 32%),linear-gradient(180deg,#0d0d0d 0%,#141414 55%,#0d0d0d 100%)!important;color:#fff!important}\n#workout.forge-premium-layout #forgePremiumShell *{box-sizing:border-box}\n#workout.forge-premium-layout .forge-b-header{display:grid;grid-template-columns:42px minmax(0,1fr) 42px;align-items:center;gap:8px;flex:none;min-height:46px}\n#workout.forge-premium-layout .forge-b-header button{height:40px;width:40px;min-width:40px;padding:0;display:grid;place-items:center;border:1px solid rgba(255,255,255,.09);border-radius:50%;background:#202020;color:#f6f6f6;font-size:24px;line-height:1}\n#workout.forge-premium-layout .forge-b-logo{text-align:center;min-width:0;font-size:18px;line-height:1.05;font-weight:950;font-style:italic;letter-spacing:.13em;color:#9eff00;text-shadow:0 0 16px #9eff0038}\n#workout.forge-premium-layout .forge-b-page-title{font-size:13px;line-height:1.1;text-align:center;font-weight:700;color:#fff;margin:4px 0 0}\n#workout.forge-premium-layout .forge-b-status{flex:none;min-width:0;position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 10px;align-items:center;padding:12px 13px 10px;background:linear-gradient(140deg,#222,#161616);border:1px solid #ffffff1c;border-radius:19px;box-shadow:0 9px 26px #0005}\n#workout.forge-premium-layout .forge-b-status-left{display:flex;align-items:center;gap:10px;min-width:0}\n#workout.forge-premium-layout .forge-b-status-icon{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:12px;background:#9eff0018;border:1px solid #9eff0041;color:#9eff00;font-size:20px}\n#workout.forge-premium-layout .forge-b-status-title{font-size:14px;font-weight:800;line-height:1.2;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}\n#workout.forge-premium-layout .forge-b-running{font-size:11px;color:#dedede;margin-top:4px}\n#workout.forge-premium-layout .forge-b-running:before{content:\"\";width:7px;height:7px;border-radius:50%;display:inline-block;background:#9eff00;box-shadow:0 0 8px #9eff0066;margin-right:7px}\n#workout.forge-premium-layout .forge-b-count{text-align:right;white-space:nowrap;color:#fff;font-weight:800;font-size:13px}\n#workout.forge-premium-layout .forge-b-count small{display:block;font-size:9px;font-weight:700;color:#8f8f8f;letter-spacing:.07em;text-transform:uppercase;margin-bottom:3px}\n#workout.forge-premium-layout .forge-b-track{grid-column:1/-1;height:4px;border-radius:20px;background:#343434;overflow:hidden}\n#workout.forge-premium-layout #forgeBProgress{width:0;height:100%;background:#9eff00;border-radius:inherit;box-shadow:0 0 9px #9eff0077;transition:width .25s}\n#workout.forge-premium-layout .forge-b-hidden-status{display:none!important}\n#workout.forge-premium-layout .forge-b-hud{flex:none;display:flex;align-items:center;justify-content:space-between;gap:9px;min-height:44px}\n#workout.forge-premium-layout .forge-b-hud .forge-clock{display:flex!important;flex-direction:row!important;align-items:center!important;gap:6px!important;margin:0!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important;min-width:0}\n#workout.forge-premium-layout .forge-b-hud .forge-clock-label{font-size:9px!important;font-weight:750!important;color:#aaa!important;letter-spacing:.03em!important}\n#workout.forge-premium-layout .forge-b-hud .forge-clock-digits{font-size:clamp(18px,5vw,25px)!important;line-height:1!important;letter-spacing:.01em!important;font-weight:850!important;font-variant-numeric:tabular-nums!important;color:#9eff00!important;padding:0!important;margin:0!important}\n#workout.forge-premium-layout .forge-b-hud #forgeLiveControls{position:static!important;display:flex!important;flex:none!important;min-width:0!important;max-width:45%!important;width:auto!important;margin:0!important;padding:0!important;background:none!important;border:0!important;box-shadow:none!important}\n#workout.forge-premium-layout .forge-b-hud .forge-live-buttons{width:100%!important;display:flex!important;justify-content:flex-end!important}\n#workout.forge-premium-layout .forge-b-hud #forgeLivePause{display:flex!important;align-items:center!important;justify-content:center!important;max-width:100%!important;min-width:0!important;width:auto!important;min-height:35px!important;height:35px!important;padding:5px 9px!important;background:#272727!important;border:1px solid #ffffff27!important;border-radius:11px!important;color:#e6e6e6!important;font-size:10px!important;font-weight:750!important;white-space:normal!important;box-shadow:none!important}\n#workout.forge-premium-layout .forge-b-hud #forgeLivePause[aria-pressed=\"true\"]{border-color:#9eff00!important;color:#9eff00!important}\n#workout.forge-premium-layout #forgeLiveProgress,#workout.forge-premium-layout .forge-live-state,#workout.forge-premium-layout .forge-b-hud #workoutTimer{display:none!important}\n#workout.forge-premium-layout #forgeRestTimer:not(.forge-live-rest-running){display:none!important}\n#workout.forge-premium-layout #forgeRestTimer.forge-live-rest-running{display:block!important;flex:none!important;margin:0!important;padding:5px 8px!important;background:#292c1c!important;border:1px solid #9eff0050!important;border-radius:9px!important;color:#dfffaa!important;font-size:11px!important}\n#workout.forge-premium-layout .forge-b-media{position:relative;display:block;overflow:hidden;flex:none;width:100%;height:clamp(205px,29dvh,295px);border-radius:23px;border:1px solid #ffffff1e;background:#101010;box-shadow:0 15px 32px #0007}\n#workout.forge-premium-layout #forgePremiumHero{position:absolute;inset:0;display:block!important;width:100%!important;height:100%!important;border:0!important;margin:0!important;padding:0!important;background:linear-gradient(135deg,#272727,#111)!important;overflow:hidden!important}\n#workout.forge-premium-layout .forge-b-main-photo{position:absolute;inset:0;display:grid;place-items:center;overflow:hidden;background:linear-gradient(135deg,#262626,#121212)}\n#workout.forge-premium-layout .forge-b-main-photo>img,#workout.forge-premium-layout .forge-b-main-photo>svg{display:block;width:100%!important;height:100%!important;object-fit:cover!important;object-position:center!important}\n#workout.forge-premium-layout .forge-b-media-shade{position:absolute;inset:0;background:linear-gradient(180deg,#0002 0%,transparent 35%,#000d 100%);pointer-events:none}\n#workout.forge-premium-layout .forge-b-counter{position:absolute;top:12px;left:12px;padding:7px 10px;border-radius:30px;color:#f4f4f4;font-size:10px;font-weight:750;letter-spacing:.035em;background:#111c;border:1px solid #ffffff20;backdrop-filter:blur(9px)}\n#workout.forge-premium-layout .forge-b-anatomy{position:absolute;right:12px;top:12px;width:92px;height:119px;padding:6px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;overflow:hidden;border-radius:15px;border:1px solid #ffffff2a;background:#090909b3;backdrop-filter:blur(12px);box-shadow:0 8px 20px #0007}\n#workout.forge-premium-layout .forge-b-anatomy-label{font-size:9px;color:#c6d6aa;font-weight:800;white-space:nowrap}\n#workout.forge-premium-layout .forge-b-anatomy img,#workout.forge-premium-layout .forge-b-anatomy svg{display:block!important;height:88px!important;width:100%!important;object-fit:contain!important;max-width:100%!important}\n#workout.forge-premium-layout .forge-b-anatomy img{filter:hue-rotate(85deg) saturate(1.35)}\n#workout.forge-premium-layout .forge-b-fallback{padding:35px;color:#9eff00;text-align:center;font-size:12px}\n#workout.forge-premium-layout .forge-b-media-bottom{position:absolute;left:13px;right:13px;bottom:13px;display:flex;align-items:flex-end;justify-content:space-between;gap:6px;pointer-events:none}\n#workout.forge-premium-layout #forgeBExerciseName{min-width:0;max-width:70%;font-size:clamp(22px,6vw,29px);font-weight:900;letter-spacing:-.035em;line-height:1.08;color:#fff;text-shadow:0 3px 14px #000}\n#workout.forge-premium-layout .forge-b-media-arrows{display:flex;gap:8px;pointer-events:auto}\n#workout.forge-premium-layout .forge-b-media-arrows button{display:grid;place-items:center;width:38px;height:38px;min-width:38px;padding:0;background:#121212c9;border-radius:50%;border:1px solid #ffffff41;color:white;font-size:22px}\n#workout.forge-premium-layout .forge-b-set-panel{flex:none;display:block;min-width:0;border-radius:21px;border:1px solid #ffffff1c;padding:13px;background:linear-gradient(150deg,#202020,#151515);box-shadow:0 10px 22px #0005}\n#workout.forge-premium-layout .forge-b-set-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;color:white;font-size:14px;font-weight:800}\n#workout.forge-premium-layout .forge-b-dots{display:flex;align-items:center;gap:7px}\n#workout.forge-premium-layout .forge-b-dots span{width:8px;height:8px;border-radius:50%;background:#535353}\n#workout.forge-premium-layout .forge-b-dots span.current{background:#9eff00;box-shadow:0 0 11px #9eff0077}\n#workout.forge-premium-layout #forgeQuickWorkout{display:block!important;position:static!important;inset:auto!important;transform:none!important;overflow:visible!important;width:100%!important;min-width:0!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}\n#workout.forge-premium-layout #forgeQuickWorkout>.forge130-focus-card{display:flex!important;flex-direction:column!important;gap:8px!important;position:static!important;overflow:visible!important;width:100%!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}\n#workout.forge-premium-layout .forge130-focus-card-eyebrow,#workout.forge-premium-layout .forge130-focus-card-title,#workout.forge-premium-layout .forge130-focus-card-hint{display:none!important}\n#workout.forge-premium-layout #forgeQuickWorkout .forge130-focus-card-grid{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:10px!important;margin:0!important;padding:0!important}\n#workout.forge-premium-layout #forgeQuickWorkout .forge130-focus-card-grid label{display:grid!important;gap:6px!important;min-width:0!important;margin:0!important;padding:11px 12px 9px!important;border-radius:15px!important;border:1px solid #ffffff20!important;background:#111!important;color:#bdbdbd!important;font-size:11px!important;font-weight:720!important}\n#workout.forge-premium-layout #forgeQuickWorkout .forge130-focus-card-grid input{box-sizing:border-box!important;display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;height:38px!important;min-height:38px!important;margin:0!important;padding:0!important;border:0!important;outline:0!important;background:transparent!important;box-shadow:none!important;color:white!important;font-weight:850!important;font-size:26px!important;line-height:1.1!important}\n#workout.forge-premium-layout #forgeQuickWorkout .forge130-focus-card-grid input:focus{outline:2px solid #9eff00!important;outline-offset:3px!important;border-radius:3px}\n#workout.forge-premium-layout #forgeQuickWorkout .forge-v3-progression{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:6px 10px!important;justify-content:space-between!important;margin:0!important;padding:9px 0 2px!important;background:none!important;border:0!important;border-top:1px solid #ffffff15!important;border-radius:0!important}\n#workout.forge-premium-layout #forgeQuickWorkout .forge-v3-progression .forge-v3-last{font-size:11px!important;color:#a9a9a9!important;line-height:1.3!important}\n#workout.forge-premium-layout #forgeQuickWorkout .forge-v3-hint{display:contents!important}\n#workout.forge-premium-layout #forgeQuickWorkout .forge-v3-hint>span{display:none!important}\n#workout.forge-premium-layout #forgeQuickWorkout .forge-v3-use-weight{min-height:29px!important;height:29px!important;padding:4px 10px!important;margin:0!important;color:#9eff00!important;background:#9eff0018!important;border:1px solid #9eff0050!important;border-radius:20px!important;font-size:11px!important}\n#workout.forge-premium-layout #forgeQuickWorkout .forge-v3-progression>.forge-v3-last:last-child{display:none!important}\n#workout.forge-premium-layout #forgeQuickWorkout .forge-primary-action{position:static!important;inset:auto!important;z-index:auto!important;display:flex!important;align-items:center!important;justify-content:center!important;transform:none!important;width:100%!important;min-height:52px!important;height:52px!important;margin:7px 0 0!important;padding:10px!important;border:0!important;border-radius:15px!important;background:#9eff00!important;color:#101010!important;font-size:15px!important;font-weight:900!important;box-shadow:0 10px 22px #9eff0025!important}\n#workout.forge-premium-layout #forgeQuickWorkout .forge130-actions{position:static!important;inset:auto!important;z-index:auto!important;transform:none!important;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:8px!important;width:100%!important;margin:0!important;padding:0!important}\n#workout.forge-premium-layout #forgeQuickWorkout .forge130-actions button{display:flex!important;align-items:center!important;justify-content:center!important;min-width:0!important;width:100%!important;min-height:39px!important;height:39px!important;margin:0!important;padding:6px!important;background:#2a2a2a!important;border:1px solid #ffffff21!important;border-radius:12px!important;color:#ededed!important;font-size:11px!important;font-weight:700!important}\n#workout.forge-premium-layout #forgeQuickWorkout .forge130-suggestion,#workout.forge-premium-layout #forgeQuickWorkout .forge130-substitute,#workout.forge-premium-layout #forgeQuickWorkout .forge140-exercise-warmup,#workout.forge-premium-layout #forgeQuickWorkout .forge-slim-focus-tools:not([open]){display:none!important}\n#workout.forge-premium-layout .forge-b-footer{flex:none;display:flex;flex-direction:column;gap:8px;padding:0 0 6px}\n#workout.forge-premium-layout #forgeCompactDock{position:static!important;inset:auto!important;z-index:auto!important;transform:none!important;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:8px!important;width:100%!important;margin:0!important;padding:0!important}\n#workout.forge-premium-layout #forgeCompactDock>button{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;min-width:0!important;min-height:42px!important;height:42px!important;margin:0!important;padding:6px 3px!important;background:#222!important;border:1px solid #ffffff21!important;border-radius:12px!important;color:#ddd!important;font-size:11px!important;font-weight:750!important}\n#workout.forge-premium-layout #saveWorkout{position:static!important;inset:auto!important;z-index:auto!important;transform:none!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:9px!important;width:100%!important;min-height:38px!important;height:38px!important;margin:0!important;padding:5px!important;background:transparent!important;border:0!important;border-radius:12px!important;color:#999!important;font-size:11px!important;font-weight:650!important;box-shadow:none!important}\n#workout.forge-premium-layout #saveWorkout:before{content:\"\";width:13px;height:13px;flex:none;border:1.5px solid #777;border-radius:3px}\n#workout.forge-premium-layout #forgeSaveSessionHint{display:none!important}\nbody.forge-b-active #nav.forge-simple-nav{background:#0e0e0e!important;border-top:1px solid #ffffff14!important;box-shadow:0 -8px 22px #0006!important}\nbody.forge-b-active #nav.forge-simple-nav button.active{background:#9eff000e!important;color:#9eff00!important;position:relative}\nbody.forge-b-active #nav.forge-simple-nav button.active:before{position:absolute;content:\"\";height:3px;width:45%;border-radius:9px;top:0;background:#9eff00;box-shadow:0 0 9px #9eff0070}\n#workout.forge-premium-layout #forgePremiumShell button:focus-visible{outline:2px solid #9eff00!important;outline-offset:2px}\nbody.forge-compact-typing #workout.forge-premium-layout #forgePremiumShell{overflow-y:auto!important}\nbody.forge-compact-typing #workout.forge-premium-layout #forgePremiumHero{display:block!important}\n@media(max-height:760px){#workout.forge-premium-layout #forgePremiumShell{gap:7px!important;padding-top:7px!important}#workout.forge-premium-layout .forge-b-media{height:clamp(174px,24dvh,225px)}#workout.forge-premium-layout .forge-b-set-panel{padding:10px!important}#workout.forge-premium-layout #forgeQuickWorkout .forge130-focus-card-grid label{padding:7px 10px!important}#workout.forge-premium-layout #forgeQuickWorkout .forge130-focus-card-grid input{height:29px!important;min-height:29px!important;font-size:23px!important}}\n@media(max-width:360px){#workout.forge-premium-layout .forge-b-anatomy{width:76px;height:105px}#workout.forge-premium-layout .forge-b-anatomy img,#workout.forge-premium-layout .forge-b-anatomy svg{height:75px!important}#workout.forge-premium-layout #forgeBExerciseName{font-size:21px}#workout.forge-premium-layout .forge-b-media-arrows button{width:34px;min-width:34px;height:34px}}\n@media(prefers-reduced-motion:reduce){#workout.forge-premium-layout *{transition:none!important;scroll-behavior:auto!important}}\n";
+
+let installed=false,shell=null,rendered=0,lastHero='',lastCard=null,lastFocus='';
+const origins=new Map(),artCache=new Map();
+const icon=markup=>{const span=create('span');span.innerHTML=markup;span.setAttribute('aria-hidden','true');return span};
+function liveMode(page,appState){
+ return !!(page?.classList.contains('forge-compact-live')&&appState?.activeWorkout);
+}
+function move(node,parent){
+ if(!node||!parent)return;
+ if(!origins.has(node)){
+  const mark=document.createComment('FORGE original location');
+  node.before(mark);origins.set(node,mark);
+ }
+ if(node.parentElement!==parent)parent.append(node);
 }
 function imageData(name){
- if(cachedArt.has(name))return cachedArt.get(name);
- const result={main:null,muscle:null};
+ if(artCache.has(name))return artCache.get(name);
+ const art={main:null,muscle:null};
  try{
-  const call=fn=>typeof fn==='function'?fn(name):'';
-  const html=call(window.forgeExerciseIllustrations)||call(window.forgePublicExercisePictures);
-  if(html){
-   const host=create('div');
-   host.innerHTML=html;
-   const items=[...host.querySelectorAll('img,svg')];
-   if(items.length){
-    result.main=(items[1]||items[0]).cloneNode(true);
-    if(items.length>=3)result.muscle=items[2].cloneNode(true);
-   }
+  const source=typeof window.forgeExerciseIllustrations==='function'
+   ?window.forgeExerciseIllustrations(name):typeof window.forgePublicExercisePictures==='function'
+   ?window.forgePublicExercisePictures(name):'';
+  if(source){
+   const holder=create('div');holder.innerHTML=source;
+   const nodes=Array.from(holder.querySelectorAll('img,svg'));
+   if(nodes.length){art.main=(nodes[1]||nodes[0]).cloneNode(true);
+    if(nodes.length>=3)art.muscle=nodes[2].cloneNode(true);}
   }
- }catch(e){console.warn('FORGE: Trainingsbild nicht verfügbar',name,e);}
- cachedArt.set(name,result);
- return result;
+ }catch(err){console.warn('FORGE premium image unavailable',name,err);}
+ artCache.set(name,art);return art;
 }
-function picture(node,label){
+function picture(node,text){
  if(!node)return null;
- const n=node.cloneNode(true);
- if(n.tagName?.toLowerCase()==='img'){
-  n.loading='lazy';n.decoding='async';
-  n.alt=label;
- }else{
-  n.setAttribute('role','img');
-  n.setAttribute('aria-label',label);
-  n.removeAttribute('tabindex');
- }
- return n;
+ const copy=node.cloneNode(true),isImg=copy.tagName?.toLowerCase()==='img';
+ if(isImg){copy.loading='eager';copy.decoding='async';copy.alt=text;}
+ else{copy.setAttribute('role','img');copy.setAttribute('aria-label',text);copy.removeAttribute('tabindex');}
+ return copy;
 }
-function showHero(card,exerciseName,sessionId){
- // Never replace card, inputs, clock, completion button, or their listeners.
- // Only add/update a single decorative image container when the exercise changes.
- const identity=sessionId+'|'+exerciseName;
- let hero=card.querySelector(':scope > #forgePremiumHero');
- if(hero&&lastCard===card&&lastIdentity===identity)return false;
- if(!hero){
-  hero=create('div','forge-premium-hero');
-  hero.id='forgePremiumHero';
-  hero.setAttribute('aria-label','Bild zur aktuellen Übung');
-  const position=card.querySelector('.forge130-focus-card-title');
-  if(position)position.before(hero);else card.prepend(hero);
+function showHero(card,name,session){
+ const hero=$('forgePremiumHero');
+ if(!hero)return false;
+ const identity=session+'|'+name;
+ if(identity===lastHero&&card===lastCard)return false;
+ const art=imageData(name),visual=create('div','forge-b-main-photo');
+ if(art.main)visual.append(picture(art.main,name+' – Ausführung'));
+ else visual.append(create('span','forge-b-fallback','Bild zur Übung noch nicht vorhanden'));
+ const shade=create('div','forge-b-media-shade');
+ hero.replaceChildren(visual,shade);
+ const anatomy=$('forgeBAnatomy');
+ if(anatomy){
+  anatomy.replaceChildren();
+  anatomy.append(create('span','forge-b-anatomy-label','Hauptmuskeln'));
+  if(art.muscle)anatomy.append(picture(art.muscle,name+' – beanspruchte Muskelgruppen'));
  }
- hero.replaceChildren();
- const visual=create('div','forge-premium-hero-image');
- const anatomy=create('div','forge-premium-hero-anatomy');
- const art=imageData(exerciseName);
- if(art.main)visual.append(picture(art.main,exerciseName+' – Übungsausführung'));
- else {
-  const fallback=create('div','forge-premium-no-photo');
-  fallback.append(create('span','forge-premium-no-photo-icon','◉'));
-  fallback.append(create('span','','Übungsbild im Katalog noch nicht vorhanden'));
-  visual.append(fallback);
- }
- if(art.muscle){
-  anatomy.append(picture(art.muscle,exerciseName+' – beanspruchte Muskeln'));
-  anatomy.append(create('span','forge-premium-muscle-label','Muskelgruppen'));
-  hero.append(visual,anatomy);
- }else hero.append(visual);
- lastCard=card;lastIdentity=identity;renderedCount++;
+ const title=$('forgeBExerciseName');if(title)title.textContent=name;
+ lastHero=identity;lastCard=card;rendered++;
  return true;
 }
-function installStyles(){
- if($('forgePremiumWorkoutStyle'))return;
- const node=create('style');node.id='forgePremiumWorkoutStyle';
- node.textContent="\n#workout.forge-compact-live.forge-premium-layout.active{padding:0!important;overflow:hidden!important;background:#09151b!important}\n#workout.forge-premium-layout #forgePremiumShell{box-sizing:border-box;display:grid;width:100%;max-width:630px;height:100%;min-height:0;margin:0 auto;padding:max(42px,env(safe-area-inset-top,0px)) 14px 9px;grid-template-rows:auto auto minmax(0,1fr) auto;gap:8px;background:linear-gradient(155deg,#0a161b,#09131b)}\n#workout.forge-premium-layout .forge-premium-head{display:grid;gap:7px;min-width:0}\n#workout.forge-premium-layout #forgePremiumBrand{display:flex!important;align-items:center;justify-content:space-between;height:26px;margin:0!important;color:#a8f55d;font-size:19px;font-style:italic;font-weight:950;letter-spacing:.13em}\n#workout.forge-premium-layout .forge-premium-context{font-size:9px;color:#b7d2b8;font-style:normal;font-weight:800;letter-spacing:.1em}\n#workout.forge-premium-layout #forgeTrainingV3Status{display:grid!important;gap:4px!important;margin:0!important;padding:10px 12px!important;border:1px solid #3d624c!important;border-radius:13px!important;background:linear-gradient(120deg,#18372c,#10222a)!important;box-shadow:0 5px 15px #0003!important}\n#workout.forge-premium-layout #forgeTrainingV3Status .forge-v3-name{font-size:12px!important;color:#b4f47d!important;font-weight:850!important}\n#workout.forge-premium-layout #forgeTrainingV3Status .forge-v3-sub{font-size:11px!important;color:#d4e6d4!important;line-height:1.2!important}\n#workout.forge-premium-layout #forgeTrainingV3Bar{padding:3px 0 0!important}\n#workout.forge-premium-layout #forgeTrainingV3Fill{background:#a8f55d!important}\n#workout.forge-premium-layout .forge-premium-timer{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:9px;align-items:center;min-height:69px;box-sizing:border-box;padding:9px 11px;border:1px solid #456b55;border-radius:13px;background:linear-gradient(125deg,#17392e,#10242c)}\n#workout.forge-premium-layout .forge-premium-timer .forge-clock{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;gap:4px!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}\n#workout.forge-premium-layout .forge-premium-timer .forge-clock-label{font-size:9px!important;font-weight:800!important;color:#c1d7c6!important}\n#workout.forge-premium-layout .forge-premium-timer .forge-clock-digits{margin:0!important;padding:0!important;font-size:clamp(24px,7vw,34px)!important;line-height:1.05!important;font-weight:900!important;letter-spacing:.02em!important;color:#a8f55d!important;font-variant-numeric:tabular-nums!important}\n#workout.forge-premium-layout .forge-premium-timer #forgeLiveControls{display:flex!important;position:static!important;height:auto!important;min-height:0!important;width:100%!important;align-items:center!important;justify-content:stretch!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;pointer-events:auto!important}\n#workout.forge-premium-layout .forge-premium-timer .forge-live-buttons{display:flex!important;width:100%!important}\n#workout.forge-premium-layout .forge-premium-timer #forgeLivePause{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;max-width:none!important;min-width:0!important;flex:1!important;min-height:43px!important;height:auto!important;margin:0!important;padding:7px 4px!important;border:1px solid #64936b!important;border-radius:10px!important;background:#2a503b!important;color:#edffe8!important;white-space:normal!important;font-size:11px!important;font-weight:800!important;pointer-events:auto!important}\n#workout.forge-premium-layout #forgeLivePause[aria-pressed=\"true\"]{background:#66502d!important;color:#fff4ca!important;border-color:#d0b370!important}\n#workout.forge-premium-layout #forgeLiveProgress,#workout.forge-premium-layout .forge-live-state{display:none!important}\n#workout.forge-premium-layout .forge-premium-main{display:flex;flex-direction:column;justify-content:center;gap:6px;min-width:0;min-height:0;box-sizing:border-box;overflow:hidden}\n#workout.forge-premium-layout .forge-premium-main #forgeRestTimer.forge-live-rest-running{display:block!important;flex:none!important;margin:0!important;padding:5px 8px!important;font-size:11px!important;background:#203d2a!important;border:0!important;border-radius:9px!important}\n#workout.forge-premium-layout .forge-premium-main #forgeRestTimer:not(.forge-live-rest-running){display:none!important}\n#workout.forge-premium-layout #forgeQuickWorkout{display:block!important;min-width:0!important;width:100%!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;overflow:visible!important}\n#workout.forge-premium-layout #forgeQuickWorkout>.forge130-focus-card{box-sizing:border-box;display:flex!important;flex-direction:column!important;gap:6px!important;width:100%!important;min-width:0!important;min-height:0!important;max-height:none!important;margin:0!important;padding:10px 11px!important;border:1px solid #3e654f!important;border-radius:15px!important;background:linear-gradient(140deg,#163227,#0d1e25)!important;box-shadow:0 8px 20px #0003!important;overflow:visible!important}\n#workout.forge-premium-layout #forgePremiumHero{box-sizing:border-box;display:flex!important;gap:5px;width:100%;height:clamp(135px,21dvh,200px);flex:none;min-height:0;margin:0 0 2px!important;border:1px solid #4e695a;border-radius:11px;overflow:hidden;background:#13242a}\n#workout.forge-premium-layout .forge-premium-hero-image{display:flex;flex:1;min-width:0;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(100deg,#1d392d,#0f1b24)}\n#workout.forge-premium-layout .forge-premium-hero-image>img,#workout.forge-premium-layout .forge-premium-hero-image>svg{display:block;width:100%;height:100%;object-fit:contain;object-position:center}\n#workout.forge-premium-layout .forge-premium-hero-anatomy{display:flex;flex:none;position:relative;width:26%;max-width:116px;align-items:center;justify-content:center;overflow:hidden;background:#172d28;border-left:1px solid #43634e}\n#workout.forge-premium-layout .forge-premium-hero-anatomy>img,#workout.forge-premium-layout .forge-premium-hero-anatomy>svg{display:block;width:100%;height:100%;object-fit:contain}\n#workout.forge-premium-layout .forge-premium-muscle-label{position:absolute;bottom:0;left:0;right:0;padding:4px 2px;background:#0b1b1bdd;color:#e3f7d8;text-align:center;font-size:9px}\n#workout.forge-premium-layout .forge-premium-no-photo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:100%;height:100%;text-align:center;color:#b8d0bd;font-size:10px}\n#workout.forge-premium-layout .forge-premium-no-photo-icon{font-size:26px;color:#a8f55d}\n#workout.forge-premium-layout .forge130-focus-card-eyebrow{display:none!important}\n#workout.forge-premium-layout .forge130-focus-card-title{font-size:clamp(21px,5.8vw,26px)!important;line-height:1.12!important;font-weight:850!important;color:#f4fff2!important;margin:2px 0 0!important}\n#workout.forge-premium-layout .forge130-focus-card-hint{font-size:11px!important;color:#c2d5c5!important;line-height:1.3!important;margin:0!important}\n#workout.forge-premium-layout .forge130-focus-card-grid{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:9px!important;margin:5px 0 2px!important}\n#workout.forge-premium-layout .forge130-focus-card-grid label{display:grid!important;gap:5px!important;min-width:0!important;font-size:11px!important;font-weight:750!important;color:#cadfcd!important}\n#workout.forge-premium-layout .forge130-focus-card-grid input{box-sizing:border-box!important;width:100%!important;min-height:49px!important;height:49px!important;margin:0!important;padding:7px 12px!important;background:#12262e!important;color:#fff!important;border:1px solid #638775!important;border-radius:11px!important;font-size:22px!important;font-weight:820!important}\n#workout.forge-premium-layout .forge130-focus-card-grid input:focus-visible{outline:2px solid #a8f55d!important;outline-offset:1px!important}\n#workout.forge-premium-layout .forge-v3-progression{display:grid!important;gap:3px!important;margin:3px 0 1px!important;padding:7px 9px!important;background:#243f31!important;border:0!important;border-radius:10px!important}\n#workout.forge-premium-layout .forge-v3-progression .forge-v3-last,#workout.forge-premium-layout .forge-v3-progression .forge-v3-hint{font-size:11px!important;line-height:1.3!important;color:#dbecda!important}\n#workout.forge-premium-layout .forge-v3-progression .forge-v3-use-weight{min-height:33px!important;margin:0!important;padding:5px 9px!important;font-size:11px!important;border:1px solid #85c576!important;border-radius:9px!important;color:#f4ffe8!important;background:#31593b!important}\n#workout.forge-premium-layout .forge-v3-progression>.forge-v3-last:last-child{display:none!important}\n#workout.forge-premium-layout #forgeQuickWorkout .forge-primary-action{position:static!important;inset:auto!important;z-index:auto!important;display:flex!important;justify-content:center!important;align-items:center!important;width:100%!important;box-sizing:border-box!important;min-height:49px!important;height:49px!important;margin:6px 0 0!important;padding:7px!important;border:0!important;border-radius:11px!important;background:#a8f55d!important;color:#132519!important;font-size:15px!important;font-weight:850!important}\n#workout.forge-premium-layout #forgeQuickWorkout .forge130-actions{position:static!important;inset:auto!important;z-index:auto!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;width:100%!important;margin:0!important;padding:0!important}\n#workout.forge-premium-layout #forgeQuickWorkout .forge130-actions button{min-height:41px!important;height:41px!important;padding:6px!important;border:1px solid #42616a!important;border-radius:10px!important;background:#293e48!important;color:#edf7ec!important;font-size:12px!important;font-weight:720!important}\n#workout.forge-premium-layout .forge-premium-footer{display:grid;gap:7px;min-height:0;padding-top:2px}\n#workout.forge-premium-layout #forgeCompactDock{position:static!important;inset:auto!important;z-index:auto!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;width:100%!important;margin:0!important;padding:0!important}\n#workout.forge-premium-layout #forgeCompactDock>button{min-height:42px!important;height:42px!important;padding:6px 5px!important;border:1px solid #4c7755!important;border-radius:10px!important;background:#1c392c!important;color:#e8f4e0!important;font-size:12px!important;font-weight:750!important}\n#workout.forge-premium-layout #saveWorkout{position:static!important;inset:auto!important;z-index:auto!important;display:flex!important;justify-content:center!important;align-items:center!important;box-sizing:border-box!important;width:100%!important;min-height:41px!important;height:41px!important;margin:0!important;padding:7px!important;border:1px solid #537a6c!important;border-radius:10px!important;background:#193335!important;color:#e2f4e3!important;font-size:12px!important;font-weight:750!important}\n#workout.forge-premium-layout #forgeQuickWorkout .forge-slim-focus-tools:not([open]),#workout.forge-premium-layout #forgeQuickWorkout .forge130-substitute,#workout.forge-premium-layout #forgeQuickWorkout .forge130-suggestion,#workout.forge-premium-layout #forgeQuickWorkout .forge140-exercise-warmup,#workout.forge-premium-layout #forgeLiveNext{display:none!important}\n#workout.forge-premium-layout .forge150-workout-lead .forge-fold-body>.card>label:first-child,#workout.forge-premium-layout .forge150-workout-lead #workoutSelect{display:none!important}\n#workout.forge-premium-layout .forge-premium-main.forge-premium-tight #forgePremiumHero{height:65px}\n#workout.forge-premium-layout .forge-premium-main.forge-premium-tight #forgeQuickWorkout>.forge130-focus-card{padding:7px 9px!important;gap:4px!important}\n#workout.forge-premium-layout .forge-premium-main.forge-premium-photo-hidden #forgePremiumHero{display:none!important}\n#workout.forge-premium-layout .forge-premium-main.forge-premium-extreme{overflow-y:auto!important;overscroll-behavior:contain}\n@media(max-height:790px){#workout.forge-premium-layout #forgePremiumShell{padding-top:max(31px,env(safe-area-inset-top,0px));gap:6px}#workout.forge-premium-layout #forgePremiumHero{height:120px}#workout.forge-premium-layout .forge-premium-timer{min-height:61px;padding:7px 9px}#workout.forge-premium-layout #forgePremiumBrand{height:21px}#workout.forge-premium-layout #forgeTrainingV3Status{padding:7px 10px!important}#workout.forge-premium-layout #forgeQuickWorkout>.forge130-focus-card{padding:8px 9px!important;gap:5px!important}}\n@media(max-height:690px){#workout.forge-premium-layout #forgePremiumShell{padding-top:max(24px,env(safe-area-inset-top,0px));gap:5px}#workout.forge-premium-layout #forgePremiumBrand{height:19px;font-size:16px}#workout.forge-premium-layout #forgePremiumHero{height:84px}#workout.forge-premium-layout #forgeQuickWorkout .forge-primary-action{height:44px!important;min-height:44px!important}#workout.forge-premium-layout #forgeQuickWorkout .forge130-actions button{height:37px!important;min-height:37px!important}#workout.forge-premium-layout #forgeCompactDock>button{height:38px!important;min-height:38px!important}#workout.forge-premium-layout #saveWorkout{height:38px!important;min-height:38px!important}}\n@media(max-height:590px){#workout.forge-premium-layout #forgePremiumBrand{display:none!important}#workout.forge-premium-layout #forgePremiumHero{display:none!important}}\n@media(max-width:360px){#workout.forge-premium-layout .forge-clock-digits{font-size:23px!important}#workout.forge-premium-layout .forge130-focus-card-title{font-size:20px!important}#workout.forge-premium-layout .forge-premium-hero-anatomy{width:23%}}\nbody.forge-compact-typing #workout.forge-premium-layout .forge-premium-footer{display:none!important}\nbody.forge-compact-typing #workout.forge-premium-layout .forge-premium-main{overflow-y:auto!important;justify-content:flex-start!important}\nbody.forge-compact-typing #workout.forge-premium-layout #forgePremiumHero{display:none!important}\n@media(prefers-reduced-motion:reduce){#workout.forge-premium-layout *{scroll-behavior:auto!important;transition:none!important}}\n";
-
- // Override legacy compact-mode position:fixed rules with a more specific
- // premium-only viewport layout. Original inputs and click handlers are intact.
- node.textContent += `
-#workout.forge-compact-live.forge-premium-layout.active #forgePremiumShell{
- box-sizing:border-box!important;display:grid!important;
- grid-template-rows:auto auto minmax(0,1fr) auto!important;
- height:100%!important;min-height:0!important;max-height:100%!important;
- gap:6px!important;padding:max(12px,env(safe-area-inset-top,0px)) 12px 9px!important;
-}
-#workout.forge-compact-live.forge-premium-layout.active #forgePremiumMain{
- min-width:0!important;min-height:0!important;justify-content:flex-start!important;
-}
-#workout.forge-compact-live.forge-premium-layout.active #forgePremiumShell #forgePremiumHero{
- width:100%!important;max-width:100%!important;flex:none!important;
-}
-#workout.forge-compact-live.forge-premium-layout.active #forgePremiumShell .forge-premium-hero-image{
- flex:1 1 0%!important;min-width:0!important;width:100%!important;
-}
-#workout.forge-compact-live.forge-premium-layout.active #forgePremiumShell .forge-premium-hero-image>img,
-#workout.forge-compact-live.forge-premium-layout.active #forgePremiumShell .forge-premium-hero-image>svg{
- display:block!important;width:100%!important;height:100%!important;object-fit:contain!important;
-}
-#workout.forge-compact-live.forge-premium-layout.active #forgePremiumShell #forgeQuickWorkout{
- position:static!important;inset:auto!important;width:100%!important;
- margin:0!important;padding:0!important;transform:none!important;
-}
-#workout.forge-compact-live.forge-premium-layout.active #forgePremiumShell #forgeQuickWorkout>.forge130-focus-card{
- display:flex!important;flex-direction:column!important;gap:6px!important;
- margin:0!important;min-height:0!important;max-height:none!important;
-}
-#workout.forge-compact-live.forge-premium-layout.active #forgePremiumShell #forgeQuickWorkout .forge-primary-action,
-#workout.forge-compact-live.forge-premium-layout.active #forgePremiumShell #forgeQuickWorkout .forge130-actions,
-#workout.forge-compact-live.forge-premium-layout.active #forgePremiumShell #forgeCompactDock,
-#workout.forge-compact-live.forge-premium-layout.active #forgePremiumShell #saveWorkout{
- position:static!important;inset:auto!important;left:auto!important;right:auto!important;
- top:auto!important;bottom:auto!important;z-index:auto!important;transform:none!important;
- width:100%!important;max-width:none!important;margin:0!important;
-}
-#workout.forge-compact-live.forge-premium-layout.active #forgePremiumShell #forgeQuickWorkout .forge-primary-action{
- display:flex!important;align-items:center!important;justify-content:center!important;
- flex:none!important;min-height:48px!important;height:48px!important;margin-top:4px!important;
-}
-#workout.forge-compact-live.forge-premium-layout.active #forgePremiumShell #forgeQuickWorkout .forge130-actions,
-#workout.forge-compact-live.forge-premium-layout.active #forgePremiumShell #forgeCompactDock{
- display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:8px!important;
-}
-#workout.forge-compact-live.forge-premium-layout.active #forgePremiumShell #forgeCompactDock>button,
-#workout.forge-compact-live.forge-premium-layout.active #forgePremiumShell #forgeQuickWorkout .forge130-actions button{
- min-width:0!important;min-height:42px!important;height:42px!important;
-}
-#workout.forge-compact-live.forge-premium-layout.active #forgePremiumShell .forge-premium-footer{
- position:static!important;align-self:end!important;display:flex!important;
- flex-direction:column!important;gap:7px!important;min-height:0!important;
-}
-#workout.forge-compact-live.forge-premium-layout.active #forgePremiumShell #saveWorkout{
- display:flex!important;align-items:center!important;justify-content:center!important;
- flex:none!important;min-height:42px!important;height:42px!important;
-}
-@media(max-height:690px){
- #workout.forge-compact-live.forge-premium-layout.active #forgePremiumShell{
-  padding-top:max(8px,env(safe-area-inset-top,0px))!important;gap:4px!important;
+function setProgress(plan,focus,draft){
+ const entries=Array.isArray(plan?.ex)?plan.ex:[];
+ let total=0,done=0;
+ for(let i=0;i<entries.length;i++){
+  const count=Math.max(0,Math.trunc(Number(entries[i].sets)||0));
+  total+=count;
+  const sets=draft?.planId===plan.id?draft.exercises?.[i]?.sets:[];
+  for(let j=0;j<count;j++)if(sets?.[j]?.done)done++;
  }
+ return {total,done,exercise:Math.max(0,focus?.i||0)+1,totalExercises:entries.length,set:Math.max(0,focus?.j||0)+1,setCount:Math.max(0,Number(entries[focus?.i]?.sets)||0)};
 }
-`;
- document.head.append(node);
-}
-function movePreservingNode(node,destination){
- if(!node||!destination)return false;
- if(!homeMarkers.has(node)){
-  const marker=document.createComment('FORGE premium original position');
-  node.before(marker);
-  homeMarkers.set(node,marker);
+function navigateExercise(direction){
+ // The existing navigation owns focus and input synchronization.
+ // A repeated press on the original set control moves through a multi-set
+ // exercise without marking any set as done. Never directly mutate state.
+ if(typeof state==='undefined'||!state?.activeWorkout)return;
+ const plan=state.plan?.find(p=>String(p.id)===String(state.activeWorkout.planId));
+ const actions=$('forgeQuickWorkout')?.querySelector('.forge130-actions');
+ const button=actions?.querySelectorAll('button')?.[direction<0?0:1];
+ if(!plan||!button||button.disabled)return;
+ const current=typeof window.forge130CurrentFocus==='function'?window.forge130CurrentFocus(plan):null;
+ const start=current?.i;
+ if(!Number.isInteger(start)){button.click();return;}
+ const limit=(plan.ex||[]).reduce((n,x)=>n+Math.max(1,Number(x.sets)||1),0);
+ for(let attempt=0;attempt<limit;attempt++){
+  if(button.disabled)break;
+  button.click();
+  const next=window.forge130CurrentFocus?.(plan);
+  if(next&&next.i!==start)break;
  }
- if(node.parentElement!==destination)destination.append(node);
- return true;
-}
-function restoreLayout(){
- if(!shell)return;
- // This restores the original DOM elements, with values and listeners intact.
- for(const [node,marker] of homeMarkers){
-  if(marker.parentNode){marker.after(node);marker.remove();}
- }
- homeMarkers.clear();
- shell.remove();shell=null;
- $('workout')?.classList.remove('forge-premium-layout');
- lastCard=null;lastFit='';lastIdentity='';
 }
 function mountLayout(){
  if(shell)return true;
  const page=$('workout'),status=$('forgeTrainingV3Status');
- const clock=$('workoutDigitalClock')?.closest('.forge-clock');
- const controls=$('forgeLiveControls'),rest=$('forgeRestTimer');
- const quick=$('forgeQuickWorkout'),dock=$('forgeCompactDock'),save=$('saveWorkout');
- if(!page||!status||!clock||!controls||!quick||!dock||!save||!rest)return false;
- shell=create('div','forge-premium-shell');shell.id='forgePremiumShell';
- const head=create('div','forge-premium-head');
- const brand=create('div','');brand.id='forgePremiumBrand';
- brand.append(create('span','','FORGE'),create('span','forge-premium-context','DEIN TRAINING'));
- head.append(brand);
- const timer=create('div','forge-premium-timer');
- const main=create('div','forge-premium-main');main.id='forgePremiumMain';
- const footer=create('div','forge-premium-footer');
- shell.append(head,timer,main,footer);
- page.prepend(shell);
- // Add the scope *before* moving save: the legacy UI must not put it back.
- page.classList.add('forge-premium-layout');
- movePreservingNode(status,head);
- movePreservingNode(clock,timer);
- movePreservingNode(controls,timer);
- movePreservingNode(rest,main);
- movePreservingNode(quick,main);
- movePreservingNode(dock,footer);
- movePreservingNode(save,footer);
+ const clock=$('workoutDigitalClock')?.closest('.forge-clock'),controls=$('forgeLiveControls');
+ const quick=$('forgeQuickWorkout'),rest=$('forgeRestTimer'),dock=$('forgeCompactDock'),save=$('saveWorkout');
+ if(!page||!status||!clock||!controls||!quick||!rest||!dock||!save)return false;
+ shell=create('div','forge-b-shell');shell.id='forgePremiumShell';
+ const header=create('header','forge-b-header');
+ const back=create('button','','‹');back.type='button';back.setAttribute('aria-label','Zum Plan zurück');
+ back.addEventListener('click',()=>{if(typeof window.go==='function')window.go('plan');});
+ const middle=create('div');middle.append(create('div','forge-b-logo','FORGE'),create('h2','forge-b-page-title','Training'));
+ const menu=create('button','','⋯');menu.type='button';menu.setAttribute('aria-label','Trainingsoptionen öffnen');
+ menu.addEventListener('click',()=>$('forgeCompactMore')?.click());
+ header.append(back,middle,menu);
+ const statusCard=create('section','forge-b-status');statusCard.setAttribute('aria-label','Aktueller Trainingsfortschritt');
+ const left=create('div','forge-b-status-left'),symbol=create('div','forge-b-status-icon','♧');
+ symbol.setAttribute('aria-hidden','true');
+ const descriptor=create('div'),planTitle=create('div','forge-b-status-title','Ganzkörper · Einheit A');
+ planTitle.id='forgeBPlanTitle';
+ descriptor.append(planTitle,create('div','forge-b-running','Training läuft'));left.append(symbol,descriptor);
+ const right=create('div','forge-b-count');right.id='forgeBCount';
+ right.append(create('small','','Fortschritt'),create('span','','0 / 18 Sätze'));
+ const track=create('div','forge-b-track'),fill=create('div');fill.id='forgeBProgress';
+ track.append(fill);statusCard.append(left,right,track);
+ const hidden=create('div','forge-b-hidden-status');hidden.setAttribute('aria-hidden','true');statusCard.append(hidden);
+ const hud=create('div','forge-b-hud');
+ const media=create('section','forge-b-media');media.setAttribute('aria-label','Aktuelle Übung');
+ const photo=create('div','');photo.id='forgePremiumHero';
+ const count=create('div','forge-b-counter','Übung 1 / 6');count.id='forgeBExerciseCount';
+ const anatomy=create('aside','forge-b-anatomy');anatomy.id='forgeBAnatomy';
+ const lower=create('div','forge-b-media-bottom'),title=create('strong');title.id='forgeBExerciseName';
+ const arrows=create('div','forge-b-media-arrows');
+ for(const [label,glyph,dir] of [['Vorherige Übung','‹',-1],['Nächste Übung','›',1]]){
+  const btn=create('button','',glyph);btn.type='button';btn.setAttribute('aria-label',label);
+  btn.addEventListener('click',()=>navigateExercise(dir));arrows.append(btn);
+ }
+ lower.append(title,arrows);media.append(photo,count,anatomy,lower);
+ const panel=create('section','forge-b-set-panel');panel.setAttribute('aria-label','Aktuellen Satz erfassen');
+ const setHeading=create('div','forge-b-set-heading');
+ const setLabel=create('span','','Satz 1 / 3');setLabel.id='forgeBSetLabel';
+ const dots=create('div','forge-b-dots');dots.id='forgeBSetDots';
+ setHeading.append(setLabel,dots);panel.append(setHeading);
+ const footer=create('footer','forge-b-footer');
+ shell.append(header,statusCard,hud,media,panel,footer);
+ page.prepend(shell);page.classList.add('forge-premium-layout');document.body.classList.add('forge-b-active');
+ move(status,hidden);move(clock,hud);move(controls,hud);move(rest,hud);move(quick,panel);move(dock,footer);move(save,footer);
  return true;
 }
-function fitToScreen(card){
- const main=$('forgePremiumMain'),hero=card?.querySelector(':scope > #forgePremiumHero');
- if(!main||!card||!hero)return;
- main.classList.remove('forge-premium-tight','forge-premium-photo-hidden','forge-premium-extreme');
- hero.style.removeProperty('height');hero.style.removeProperty('display');
- const available=main.clientHeight;
- if(!available)return;
- const needed=card.getBoundingClientRect().height+
-  ($('forgeRestTimer')?.classList.contains('forge-live-rest-running')?48:0);
- if(needed<=available-8)return;
- const shortage=needed-available+10,originalHeight=hero.getBoundingClientRect().height;
- if(originalHeight-shortage>=64)hero.style.height=(originalHeight-shortage)+'px';
- else main.classList.add('forge-premium-tight');
- // After changing layout, measure once more before hiding optional media.
- if(card.getBoundingClientRect().height>available-8)main.classList.add('forge-premium-photo-hidden');
- // Extremely short landscape screens: allow internal main scrolling, never
- // obscure buttons or clip inputs. Normal portrait stays strictly no-scroll.
- if(card.getBoundingClientRect().height>available-5)main.classList.add('forge-premium-extreme');
+function restoreLayout(){
+ if(!shell)return;
+ for(const [node,mark] of origins){
+  if(mark.parentNode){mark.after(node);mark.remove();}
+ }
+ origins.clear();shell.remove();shell=null;
+ $('workout')?.classList.remove('forge-premium-layout');document.body.classList.remove('forge-b-active');
+ lastHero='';lastCard=null;lastFocus='';
 }
 function sync(){
  const page=$('workout');
@@ -227,51 +162,60 @@ function sync(){
  const active=liveMode(page,typeof state==='undefined'?null:state);
  if(!active){restoreLayout();return;}
  if(!mountLayout())return;
- // Other legacy modules may reattach controls when completing a set.
- // Keep their original nodes and handlers, never clone them.
- const head=shell.querySelector('.forge-premium-head');
- const timer=shell.querySelector('.forge-premium-timer');
- const main=$('forgePremiumMain'),footer=shell.querySelector('.forge-premium-footer');
+ // Keep original inputs and callbacks; only restore a node if a legacy
+ // renderer actually moved it out of the premium layout.
+ const hud=shell.querySelector('.forge-b-hud'),panel=shell.querySelector('.forge-b-set-panel'),
+  footer=shell.querySelector('.forge-b-footer'),hidden=shell.querySelector('.forge-b-hidden-status');
  const clock=$('workoutDigitalClock')?.closest('.forge-clock');
- for(const [node,target] of [
-  [$('forgeTrainingV3Status'),head],[clock,timer],[$('forgeLiveControls'),timer],
-  [$('forgeRestTimer'),main],[$('forgeQuickWorkout'),main],
+ for(const [node,destination] of [
+  [$('forgeTrainingV3Status'),hidden],[clock,hud],[$('forgeLiveControls'),hud],
+  [$('forgeRestTimer'),hud],[$('forgeQuickWorkout'),panel],
   [$('forgeCompactDock'),footer],[$('saveWorkout'),footer]
- ]){
-  if(node&&target&&node.parentElement!==target)target.append(node);
- }
+ ])if(node&&destination&&node.parentElement!==destination)destination.append(node);
  const plan=state.plan?.find(p=>String(p.id)===String(state.activeWorkout.planId));
- const focus=plan&&typeof window.forge130CurrentFocus==='function'?window.forge130CurrentFocus(plan):null;
- if(!plan||!focus)return;
- const name=state.workoutDraft?.exercises?.[focus.i]?.name||plan.ex?.[focus.i]?.name;
- if(!name)return;
- const card=$('forgeQuickWorkout')?.querySelector(':scope > .forge130-focus-card');
- if(!card)return;
- const id=String(state.activeWorkout.planId)+':'+String(state.activeWorkout.startedAt);
- const changed=showHero(card,name,id);
- // Geometry is re-evaluated only on meaningful changes, not every clock tick.
- const geometry=id+'|'+name+'|'+window.innerWidth+'x'+window.innerHeight+
-  '|'+(document.body.classList.contains('forge-compact-typing')?'keyboard':'normal')+
-  '|'+($('forgeRestTimer')?.classList.contains('forge-live-rest-running')?'rest':'ready')+
-  '|'+(!!card.querySelector('.forge-v3-progression')?'hint':'no-hint');
- if(changed||lastFit!==geometry){
-  fitToScreen(card);
-  lastFit=geometry;
+ if(!plan)return;
+ const current=typeof window.forge130CurrentFocus==='function'?window.forge130CurrentFocus(plan):null;
+ if(!current)return;
+ const draft=state.workoutDraft,progress=setProgress(plan,current,draft);
+ const title=$('forgeBPlanTitle'),name=plan.title||'Ganzkörper · Einheit A';
+ if(title&&title.textContent!==name)title.textContent=name;
+ const counter=$('forgeBCount')?.querySelector('span');
+ const progressText=progress.done+' / '+progress.total+' Sätze';
+ if(counter&&counter.textContent!==progressText)counter.textContent=progressText;
+ const fill=$('forgeBProgress');
+ if(fill)fill.style.width=(progress.total?Math.round(100*progress.done/progress.total):0)+'%';
+ const exCount=$('forgeBExerciseCount'),setLabel=$('forgeBSetLabel');
+ if(exCount)exCount.textContent='Übung '+progress.exercise+' / '+progress.totalExercises;
+ if(setLabel)setLabel.textContent='Satz '+progress.set+' / '+progress.setCount;
+ const dotRoot=$('forgeBSetDots'),focusId=progress.exercise+'|'+progress.set+'|'+progress.setCount;
+ if(dotRoot&&lastFocus!==focusId){
+  dotRoot.replaceChildren();
+  for(let j=0;j<Math.min(progress.setCount,10);j++){
+   const dot=create('span',j===progress.set-1?'current':'');
+   dot.setAttribute('aria-hidden','true');dotRoot.append(dot);
+  }
+  lastFocus=focusId;
  }
+ const nameOfExercise=draft?.exercises?.[current.i]?.name||plan.ex?.[current.i]?.name;
+ const card=$('forgeQuickWorkout')?.querySelector(':scope > .forge130-focus-card');
+ if(nameOfExercise&&card)showHero(card,nameOfExercise,String(state.activeWorkout.startedAt));
+}
+function installStyles(){
+ if($('forgePremiumWorkoutStyle'))return;
+ const node=create('style');node.id='forgePremiumWorkoutStyle';node.textContent=CSS;
+ document.head.append(node);
 }
 function install(){
  if(installed)return true;
  if(!$('workout')||!$('forgeQuickWorkout')||!$('workoutDigitalClock')||!$('forgeLiveControls'))return false;
- installStyles();
- installed=true;sync();return true;
+ installStyles();installed=true;sync();return true;
 }
 function boot(){
  let attempts=0;
  const start=()=>{if(install())return;if(++attempts<75)setTimeout(start,120);};
  start();
- setInterval(()=>{if(!installed)install();sync();},700);
- window.addEventListener('resize',()=>{lastFit='';sync();},{passive:true});
+ setInterval(()=>{if(!installed)install();sync();},650);
 }
-window.ForgePremiumWorkoutB=Object.freeze({liveMode,imageData,showHero,fitToScreen,mountLayout,restoreLayout,isInstalled:()=>installed,renderCount:()=>renderedCount});
+window.ForgePremiumWorkoutB=Object.freeze({liveMode,imageData,showHero,mountLayout,restoreLayout,sync,isInstalled:()=>installed,renderCount:()=>rendered});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
