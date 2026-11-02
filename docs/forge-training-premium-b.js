@@ -65,6 +65,37 @@ const lungeMuscles=String.raw`<svg viewBox="0 0 120 155" xmlns="http://www.w3.or
 <path d="M42 111 57 111l-5 26-14-2Z"/>
 <path d="M63 111 78 111l4 24-14 2Z"/>
 </g></svg>`;
+const muscleGroups={
+ 'Bankdrücken':['chest','triceps','shoulders'],
+ 'Latziehen':['lats','biceps'],
+ 'Seitheben':['shoulders'],
+ 'Plank':['abs','core'],
+ 'Ausfallschritte':['quads','glutes']
+};
+function anatomyFallback(name){
+ const groups=muscleGroups[name];if(!groups)return null;
+ const col=k=>groups.includes(k)?'#9EFF00':'#697571';
+ const out=create('div','forge-b-muscle-fallback');
+ out.innerHTML=[
+ '<svg viewBox="0 0 106 156" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="'+name+' – vereinfachte Muskelansicht">',
+ '<g stroke="#36403d" stroke-width="1.5" stroke-linejoin="round">',
+ '<circle cx="53" cy="14" r="10" fill="#7a8582"/>',
+ '<path d="M37 29Q53 23 69 29L65 80H41Z" fill="#626e6a"/>',
+ '<path d="M36 31 23 75l9 4 14-34M70 31l13 44-9 4-14-34" fill="#78827c"/>',
+ '<path d="M42 80h22l5 14H37Z" fill="#65706d"/>',
+ '<path d="M40 95 35 132l13 2 8-35M66 95l5 37-13 2-5-35" fill="#79847d"/>',
+ '<path d="M35 132 34 148h15l-1-14M71 132l1 16H57l1-14" fill="#87918d"/>',
+ '<path d="M40 37l13 4 13-4-5 19H45Z" fill="'+col('chest')+'"/>',
+ '<path d="M45 58h16l-2 19H47Z" fill="'+col('abs')+'"/>',
+ '<path d="M38 30 29 50l8 4 8-19M68 30l9 20-8 4-8-19" fill="'+col('shoulders')+'"/>',
+ '<path d="M27 50l-6 22 9 3 7-21M79 50l6 22-9 3-7-21" fill="'+(groups.includes('triceps')||groups.includes('biceps')?'#9EFF00':'#6d7874')+'"/>',
+ '<path d="M39 97 53 98l-4 30-13-2ZM67 97 53 98l4 30 13-2Z" fill="'+col('quads')+'"/>',
+ '<path d="M40 81q14-9 26 0l3 14H37Z" fill="'+col('glutes')+'"/>',
+ '<path d="M45 31l-6 39 5 8 4-37M61 31l6 39-5 8-4-37" fill="'+col('lats')+'"/>',
+ '</g></svg>'
+ ].join('');
+ return out;
+}
 function imageData(name){
  if(artCache.has(name))return artCache.get(name);
  const art={main:null,muscle:null};
@@ -78,7 +109,8 @@ function imageData(name){
   if(source){
    const holder=create('div');holder.innerHTML=source;
    const nodes=Array.from(holder.querySelectorAll('img,svg'));
-   if(nodes.length){art.main=(nodes[1]||nodes[0]).cloneNode(true);
+   const stage=(name==='Bankdrücken'||name==='Latziehen')?0:1;
+   if(nodes.length){art.main=(nodes[stage]||nodes[0]).cloneNode(true);
     if(nodes.length>=3)art.muscle=nodes[2].cloneNode(true);}
   }
  }catch(err){console.warn('FORGE premium image unavailable',name,err);}
@@ -97,6 +129,7 @@ function showHero(card,name,session){
  const identity=session+'|'+name;
  if(identity===lastHero&&card===lastCard)return false;
  const art=imageData(name),visual=create('div','forge-b-main-photo');
+ visual.dataset.exercise=name;
  if(art.main)visual.append(picture(art.main,name+' – Ausführung'));
  else if(name==='Ausfallschritte')visual.innerHTML=lungeSvg;
  else visual.append(create('span','forge-b-fallback','Bild zur Übung noch nicht vorhanden'));
@@ -107,10 +140,12 @@ function showHero(card,name,session){
   anatomy.replaceChildren();
   anatomy.append(create('span','forge-b-anatomy-label','Hauptmuskeln'));
   if(art.muscle)anatomy.append(picture(art.muscle,name+' – beanspruchte Muskelgruppen'));
-  else if(name==='Ausfallschritte'){
-   const drawing=create('div');drawing.innerHTML=lungeMuscles;
-   anatomy.append(drawing.firstElementChild||drawing);
+  else {
+   const fallback=anatomyFallback(name);
+   if(fallback)anatomy.append(fallback);
+   else anatomy.hidden=true;
   }
+  if(art.muscle||muscleGroups[name])anatomy.hidden=false;
  }
  const title=$('forgeBExerciseName');if(title)title.textContent=name;
  lastHero=identity;lastCard=card;rendered++;
@@ -195,7 +230,9 @@ function mountLayout(){
  const setHeading=create('div','forge-b-set-heading');
  const setLabel=create('span','','Satz 1 / 3');setLabel.id='forgeBSetLabel';
  const dots=create('div','forge-b-dots');dots.id='forgeBSetDots';
- setHeading.append(setLabel,dots);panel.append(setHeading);
+ setHeading.append(setLabel,dots);
+ const titleStack=create('div','forge-b-title-stack');
+ titleStack.append(title,setHeading);lower.replaceChildren(titleStack,arrows);
  const restSlot=create('div','forge-b-rest');restSlot.id='forgeBRestSlot';
  const footer=create('footer','forge-b-footer');
  shell.append(header,statusCard,hud,restSlot,media,panel,footer);
