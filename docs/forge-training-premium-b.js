@@ -74,6 +74,25 @@ const muscleGroups={
 };
 function anatomyFallback(name){
  const groups=muscleGroups[name];if(!groups)return null;
+ // Latissimus is posterior: a front-facing silhouette would be misleading.
+ if(groups.includes('lats')){
+  const out=create('div','forge-b-muscle-fallback');
+  out.innerHTML=[
+   '<svg viewBox="0 0 106 156" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Latziehen – schematische Rückansicht, Latissimus hervorgehoben">',
+   '<g stroke="#36403d" stroke-width="1.5" stroke-linejoin="round">',
+   '<circle cx="53" cy="14" r="10" fill="#7a8582"/>',
+   '<path d="M38 29Q53 22 68 29L67 84H39Z" fill="#63716b"/>',
+   '<path d="M37 32 24 74 33 78 46 43M69 32 82 74 73 78 60 43" fill="#737f79"/>',
+   '<path d="M43 83h20l7 12H36Z" fill="#65716c"/>',
+   '<path d="M40 96 35 134l14 2 7-36M66 96l5 38-14 2-6-36" fill="#737e78"/>',
+   '<path d="M35 134 33 151h16v-15M71 134l2 17H57v-15" fill="#7c8983"/>',
+   '<path d="M38 37 52 48 46 81 39 79Z" fill="#9EFF00"/>',
+   '<path d="M68 37 54 48 60 81 67 79Z" fill="#9EFF00"/>',
+   '<path d="M53 38v42" stroke="#33413c" stroke-width="2"/>',
+   '</g></svg>'
+  ].join('');
+  return out;
+ }
  const col=k=>groups.includes(k)?'#9EFF00':'#697571';
  const out=create('div','forge-b-muscle-fallback');
  out.innerHTML=[
