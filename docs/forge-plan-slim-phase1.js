@@ -51,6 +51,15 @@ function style(){
  s.textContent=[
   '/* Direct, flat weekly schedule: no enclosing calendar card, no nested boxes. */',
   '#plan.forge-slim-phase1 .forge-slim-week{margin:16px 0 6px;padding:0;background:transparent;border:0;box-shadow:none}',
+
+  '#plan.forge-slim-phase1 .forge-slim-week-fold{margin:0;padding:0;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:linear-gradient(140deg,#212121,#151515);box-shadow:0 5px 18px #0004;overflow:hidden}',
+  '#plan.forge-slim-phase1 .forge-slim-week-trigger{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none;min-height:48px;padding:10px 14px;color:#fff;font-weight:800;font-size:16px}',
+  '#plan.forge-slim-phase1 .forge-slim-week-trigger::-webkit-details-marker{display:none}',
+  '#plan.forge-slim-phase1 .forge-slim-week-trigger:focus-visible{outline:2px solid #9eff00;outline-offset:-3px}',
+  '#plan.forge-slim-phase1 .forge-slim-week-chevron{font-size:22px;color:#9eff00;line-height:1;transition:transform .15s}',
+  '#plan.forge-slim-phase1 .forge-slim-week-fold[open] .forge-slim-week-chevron{transform:rotate(180deg)}',
+  '#plan.forge-slim-phase1 .forge-slim-week-content{padding:0 12px 12px}',
+  '#plan.forge-slim-phase1 .forge-slim-week-content>p{font-size:11px;color:#b5b5b5;margin:0 0 10px}',
   '#plan.forge-slim-phase1 .forge-slim-week>h2{margin:0 0 8px;font-size:19px;color:#f0f6ef}',
   '#plan.forge-slim-phase1 .forge-slim-week>p{margin:0 0 9px;font-size:12px;color:#abbeb4}',
   '#plan.forge-slim-phase1 #forgeSlimWeek .forge-polish-week-meta{margin:0 0 4px;justify-content:flex-end;color:#a9c0b4}',
@@ -122,12 +131,22 @@ function install(){
  if(!$('forgeSlimWeek')){
   const section=element('section','forge-slim-week');section.id='forgeSlimWeek';
   section.setAttribute('aria-label','Deine Trainingswoche');
-  section.append(element('h2','','Deine Woche'),element('p','','Trainingstag antippen, um Übungen und Sätze anzusehen.'));
-  // Keep the direct active-plan editor directly below its action button.
+  // Collapsible outer week is independent of each day's native details.
+  // Preserve the existing week DOM, plan editing and click handlers.
+  const fold=element('details','forge-slim-week-fold');
+  fold.id='forgeSlimWeekFold';
+  const trigger=element('summary','forge-slim-week-trigger');
+  trigger.setAttribute('aria-label','Wochenplan ein- oder ausklappen');
+  trigger.append(element('span','forge-slim-week-title','Wochenplan'));
+  const chevron=element('span','forge-slim-week-chevron','⌄');
+  chevron.setAttribute('aria-hidden','true');trigger.append(chevron);
+  const contents=element('div','forge-slim-week-content');
+  contents.append(element('p','','Trainingstag antippen, um Übungen und Sätze anzusehen.'));
+  contents.append(week);
+  fold.append(trigger,contents);section.append(fold);
+  // Deliberately closed on first installation; expand only on user tap.
   const editor=$('forgeActivePlanEditor');
   (editor||actions).after(section);
-  // Move only the compact calendar. Legacy editor and weekly-move controls are untouched.
-  section.append(week);
  }
  if(!$('forgeSlimTools')){
   const details=element('details','forge-slim-tools');details.id='forgeSlimTools';
