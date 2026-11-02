@@ -96,12 +96,20 @@ function anatomyFallback(name){
  ].join('');
  return out;
 }
+// V5: explicit movement-stage policy. A third phase is NOT automatically
+// an anatomy image (some exercises have Y/T/W movement series).
+const MEDIA_RULES=Object.freeze({
+ 'Bankdrücken':Object.freeze({stage:0,composite:'legacy-paired',fit:'cover',position:'left center'}),
+ 'Latziehen':Object.freeze({stage:1,fit:'contain',position:'center center'}),
+ 'Seitheben':Object.freeze({stage:1,fit:'contain',position:'center center'}),
+ 'Ausfallschritte':Object.freeze({stage:1,fit:'contain',position:'center center'}),
+ 'Plank':Object.freeze({stage:0,fit:'contain',position:'center center'})
+});
 function imageData(name){
  if(artCache.has(name))return artCache.get(name);
- const art={main:null,muscle:null};
+ const rule=MEDIA_RULES[name]||{stage:1,fit:'contain',position:'center'};
+ const art={main:null,muscle:null,rule,assetCount:0,composite:false};
  try{
-  // The technique-atlas covers only a subset of exercises; the original
-  // catalogue contains additional photos (including Ausfallschritte).
   const primary=typeof window.forgeExerciseIllustrations==='function'
    ?window.forgeExerciseIllustrations(name):'';
   const source=primary||(typeof window.forgePublicExercisePictures==='function'
@@ -109,13 +117,29 @@ function imageData(name){
   if(source){
    const holder=create('div');holder.innerHTML=source;
    const nodes=Array.from(holder.querySelectorAll('img,svg'));
-   const stage=(name==='Bankdrücken'||name==='Latziehen')?0:1;
-   if(nodes.length){art.main=(nodes[stage]||nodes[0]).cloneNode(true);
-    if(nodes.length>=3)art.muscle=nodes[2].cloneNode(true);}
+   const label=node=>String(
+    node.getAttribute?.('alt')||node.getAttribute?.('aria-label')||
+    node.closest?.('figure')?.querySelector?.('figcaption')?.textContent||''
+   ).toLocaleLowerCase('de');
+   const isAnatomy=(node,index)=>/hauptmuskel|beanspruchte muskel|muskelgruppe|anatom/i.test(label(node))||
+    node.classList?.contains('forge-anatomy-v2-image');
+   const movement=nodes.filter((node,i)=>!isAnatomy(node,i));
+   const chosen=movement[Math.min(rule.stage,Math.max(0,movement.length-1))]||movement[0];
+   art.assetCount=movement.length;
+   art.main=chosen?.cloneNode(true)||null;
+   // Legacy Bankdrücken explicitly stores composite motion pictures.
+   // Do not infer a crop from a generic image aspect ratio.
+   art.composite=!!(rule.composite&&chosen&&(
+    chosen.closest?.('.forge-offline-pair,.forge-photo-pair')||
+    /start.*endposition|zwei position/i.test(label(chosen))
+   ));
+   const anatomies=nodes.filter((node,i)=>isAnatomy(node,i));
+   art.muscle=anatomies.length?anatomies[0].cloneNode(true):null;
   }
- }catch(err){console.warn('FORGE premium image unavailable',name,err);}
+ }catch(error){console.warn('FORGE: movement image unavailable',name,error);}
  artCache.set(name,art);return art;
 }
+
 function picture(node,text){
  if(!node)return null;
  const copy=node.cloneNode(true),isImg=copy.tagName?.toLowerCase()==='img';
@@ -132,15 +156,11 @@ function showHero(card,name,session){
  visual.dataset.exercise=name;
  if(art.main){
   const mainPhoto=picture(art.main,name+' – Ausführung');
-  if(name==='Bankdrücken'&&mainPhoto.tagName==='IMG'){
-   // Crop a legacy double-frame photo to one movement position.
-   // Do not crop ordinary single-frame assets.
-   const markComposite=()=>{
-    if(mainPhoto.naturalHeight>0&&mainPhoto.naturalWidth/mainPhoto.naturalHeight>1.55)
-     mainPhoto.classList.add('forge-b-split-photo');
-   };
-   mainPhoto.addEventListener('load',markComposite,{once:true});
-   if(mainPhoto.complete)markComposite();
+  if(mainPhoto.tagName==='IMG'){
+   mainPhoto.classList.add('forge-b-photo');
+   mainPhoto.style.objectFit=art.rule.fit;
+   mainPhoto.style.objectPosition=art.rule.position;
+   if(art.composite)mainPhoto.classList.add('forge-b-split-photo');
   }
   visual.append(mainPhoto);
  }
