@@ -96,16 +96,22 @@ function styles(){
 function refreshNavbar(){
  const bar=$('nav');if(!bar)return false;
  const pages={
-  plan:['▦','Plan'],workout:['🏋','Training'],
-  nutrition:['◈','Essen'],progress:['↗','Fortschritt']
+  plan:['<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/>','Plan'],
+  workout:['<path d="M3 9v6M6 7v10M18 7v10M21 9v6M6 12h12"/>','Training'],
+  nutrition:['<path d="M12 7c-2-3-7-2-8 2-2 5 1 12 6 12l2-1 2 1c5 0 8-7 6-12-1-4-6-5-8-2zM12 7c0-3 2-5 5-5"/>','Essen'],
+  progress:['<path d="M4 20h16M7 17v-5M12 17V5M17 17V9"/>','Fortschritt']
  };
  const home=bar.querySelector('button[data-page="dashboard"]');
  if(home)home.remove();
  for(const id of PAGES){
   const button=bar.querySelector('button[data-page="'+id+'"]');
   if(!button)continue;
-  if(button.textContent.trim()!==pages[id][0]+pages[id][1]){
-   button.replaceChildren(node('span','ico',pages[id][0]),document.createTextNode(pages[id][1]));
+  // Install once; avoid unnecessary nav replacements and keep click handlers.
+  if(button.dataset.forgeNavIcon!=='premium-b-v1'){
+   const glyph=node('span','ico');glyph.setAttribute('aria-hidden','true');
+   glyph.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true">'+pages[id][0]+'</svg>';
+   button.replaceChildren(glyph,document.createTextNode(pages[id][1]));
+   button.dataset.forgeNavIcon='premium-b-v1';
   }
   button.setAttribute('aria-label',pages[id][1]);
   bar.append(button);
