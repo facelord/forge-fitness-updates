@@ -136,7 +136,7 @@ function showHero(card,name,session){
    // Crop a legacy double-frame photo to one movement position.
    // Do not crop ordinary single-frame assets.
    const markComposite=()=>{
-    if(mainPhoto.naturalHeight>0&&mainPhoto.naturalWidth/mainPhoto.naturalHeight>1.75)
+    if(mainPhoto.naturalHeight>0&&mainPhoto.naturalWidth/mainPhoto.naturalHeight>1.55)
      mainPhoto.classList.add('forge-b-split-photo');
    };
    mainPhoto.addEventListener('load',markComposite,{once:true});
