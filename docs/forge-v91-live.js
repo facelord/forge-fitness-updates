@@ -20,7 +20,7 @@ const css=[
  '#workout.forge-premium-layout #forgeBExerciseName{font-size:clamp(20px,5.6vw,27px)!important;line-height:1.13!important;font-weight:850!important;overflow-wrap:anywhere}',
  '#workout.forge-premium-layout #forgeBSetLabel{font-size:clamp(15px,4.1vw,19px)!important;font-weight:830!important;line-height:1.3!important}',
  '#workout.forge-premium-layout .forge-b-set-heading{min-height:25px!important;align-items:center!important}',
- '#workout.forge-premium-layout #forgePremiumShell.forge-v8-instruments.forge-b-timed{grid-template-rows:36px 57px 37px auto minmax(clamp(180px,24dvh,224px),1fr) max-content 47px!important;overflow-y:auto!important}',
+ '#workout.forge-premium-layout #forgePremiumShell.forge-v8-instruments.forge-b-timed{grid-template-rows:36px 57px 37px auto minmax(clamp(228px,30dvh,275px),1fr) max-content 47px!important;overflow-y:auto!important}',
  '#workout.forge-premium-layout #forgePremiumShell.forge-v8-instruments:has(#forgeRestTimer.forge-live-rest-running){grid-template-rows:36px 57px 37px max-content minmax(180px,1fr) max-content 47px!important;align-content:start!important;overflow-y:auto!important;overscroll-behavior:contain!important}',
  '#workout.forge-premium-layout #forgePremiumShell.forge-v8-instruments.forge-b-timed .forge-b-set-panel{height:max-content!important;min-height:max-content!important;align-self:start!important;overflow:visible!important}',
  '#workout.forge-premium-layout #forgePremiumHero .forge-b-main-photo[data-exercise="Plank"]{background:#111611!important;-webkit-mask-image:none!important;mask-image:none!important}',

@@ -1953,11 +1953,21 @@ function forgeTimeMatching(p,focus){
  const t=state.forgeTimeSession;
  return t&&p&&focus&&t.planId===p.id&&t.i===focus.i&&t.j===focus.j?t:null;
 }
+function forgeTimeUsesStopwatch(p,focus){
+ if(!p||!focus)return false;
+ const name=state.workoutDraft?.planId===p.id
+  ?(state.workoutDraft.exercises?.[focus.i]?.name||p.ex?.[focus.i]?.name)
+  :p.ex?.[focus.i]?.name;
+ return /\bplank\b|unterarmst[uü]tz/i.test(String(name||''));
+}
 function forgeTimeElapsedMs(t,now=Date.now()){
  if(!t)return 0;
  if(state.activeWorkout?.forgePausedAt)now=Math.min(now,state.activeWorkout.forgePausedAt);
- const elapsed=Math.max(0,Number(t.elapsedMs)||0)+(t.running?Math.max(0,now-(Number(t.startedAt)||now)):0);
- return Math.min(Math.max(1000,(Number(t.targetSecs)||0)*1000),elapsed);
+ const elapsed=Math.max(0,Number(t.elapsedMs)||0)+(t.running?
+  Math.max(0,now-(Number(t.startedAt)||now)):0);
+ // Stopwatch never stops at the target; maximum matches the existing field.
+ return t.stopwatch?Math.min(3600000,elapsed):
+  Math.min(Math.max(1000,(Number(t.targetSecs)||0)*1000),elapsed);
 }
 function forgeTimeClock(ms){const secs=Math.max(0,Math.ceil(ms/1000));return String(Math.floor(secs/60)).padStart(2,'0')+':'+String(secs%60).padStart(2,'0')}
 function forgeTimeGetTarget(p,focus){
@@ -1970,7 +1980,8 @@ function forgeTimeTick(){
  const t=state.forgeTimeSession;
  if(!t||!state.activeWorkout||state.activeWorkout.planId!==t.planId)return;
  let justEnded=false;
- if(t.running&&forgeTimeElapsedMs(t)>=t.targetSecs*1000){
+ // Other time-based exercises still count down and end at their target.
+ if(t.running&&!t.stopwatch&&forgeTimeElapsedMs(t)>=t.targetSecs*1000){
   t.elapsedMs=t.targetSecs*1000;t.running=false;t.startedAt=null;t.finished=true;
   save();justEnded=true;
   try{if(document.visibilityState==='visible'&&navigator.vibrate)navigator.vibrate([130,60,130])}catch(e){}
@@ -1978,35 +1989,63 @@ function forgeTimeTick(){
  const root=document.getElementById('forgeTimeTimerArea');if(!root||!root.isConnected)return;
  const p=forgeTimePlan(),focus=p?forge130CurrentFocus(p):null;
  if(!forgeTimeMatching(p,focus))return;
- if(justEnded){forgeTimeRender();return}
- const elapsed=forgeTimeElapsedMs(t),remain=t.targetSecs*1000-elapsed;
+ if(justEnded){forgeTimeRender();return;}
+ const elapsed=forgeTimeElapsedMs(t),displayMs=t.stopwatch?
+  Math.floor(elapsed/1000)*1000:Math.max(0,t.targetSecs*1000-elapsed);
  const digits=document.getElementById('forgeTimeDigits'),meta=document.getElementById('forgeTimeMeta');
- if(digits)digits.textContent=forgeTimeClock(remain);
- if(meta)meta.textContent='Ziel '+forgeTimeClock(t.targetSecs*1000)+' · Tatsächlich '+forgeTimeClock(Math.floor(elapsed/1000)*1000)+(t.finished?' · Zeit abgelaufen':'');
+ if(digits)digits.textContent=forgeTimeClock(displayMs);
+ if(meta)meta.textContent=t.stopwatch?
+  'Gehalten '+forgeTimeClock(Math.floor(elapsed/1000)*1000)+' · Richtwert '+forgeTimeClock(t.targetSecs*1000):
+  'Ziel '+forgeTimeClock(t.targetSecs*1000)+' · Tatsächlich '+forgeTimeClock(Math.floor(elapsed/1000)*1000)+(t.finished?' · Zeit abgelaufen':'');
 }
 function forgeTimeRender(){
  const root=document.getElementById('forgeTimeTimerArea');if(!root)return;
- const p=forgeTimePlan(),focus=p?forge130CurrentFocus(p):null;if(!focus){root.innerHTML='';return}
+ const p=forgeTimePlan(),focus=p?forge130CurrentFocus(p):null;
+ if(!focus){root.innerHTML='';return;}
  const t=forgeTimeMatching(p,focus),target=t?.targetSecs||forgeTimeGetTarget(p,focus)||60;
- const elapsed=t?forgeTimeElapsedMs(t):0,remaining=Math.max(0,target*1000-elapsed);
+ const stopwatch=t?.stopwatch??forgeTimeUsesStopwatch(p,focus);
+ const elapsed=t?forgeTimeElapsedMs(t):0;
+ const displayMs=stopwatch?Math.floor(elapsed/1000)*1000:Math.max(0,target*1000-elapsed);
  const running=!!t?.running,finished=!!t?.finished;
- root.innerHTML=`<div class="forge-time-panel"><div class="forge-time-title">⏱ Übungs-Countdown · Arbeitssatz ${focus.j+1}</div><div id="forgeTimeDigits" class="forge-time-digits ${finished?'finished':t&&!running?'paused':''}" role="timer">${forgeTimeClock(remaining)}</div><div id="forgeTimeMeta" class="forge-time-sub">Ziel ${forgeTimeClock(target*1000)} · Tatsächlich ${forgeTimeClock(Math.floor(elapsed/1000)*1000)}${finished?' · Zeit abgelaufen':''}</div><div class="forge-time-controls">${running?'<button type="button" class="btn alt" onclick="forgeTimePause()">⏸ Pausieren</button>':t&&!finished?'<button type="button" class="btn" onclick="forgeTimeResume()">▶ Fortsetzen</button>':!t?'<button type="button" class="btn" onclick="forgeTimeStart()">▶ Zeit starten</button>':''}<button type="button" class="btn alt" onclick="forgeTimeReset()">↶ Zurücksetzen</button></div><p class="forge-time-hint">Beendest du früher, wird <strong>die wirklich gestoppte Zeit</strong> übernommen. Beispiel: Ziel 2:00 Min., Stopp bei 1:12 Min. → gespeichert: 72 Sekunden. Die eingestellte Dauer wird nur für diesen Satz verwendet. Beim Verlassen des Trainings bleibt der Zeitstand gespeichert.</p></div>`;
+ const title=stopwatch?'Stoppuhr':'Übungs-Countdown';
+ const meta=stopwatch?
+  'Gehalten '+forgeTimeClock(Math.floor(elapsed/1000)*1000)+' · Richtwert '+forgeTimeClock(target*1000):
+  'Ziel '+forgeTimeClock(target*1000)+' · Tatsächlich '+forgeTimeClock(Math.floor(elapsed/1000)*1000)+(finished?' · Zeit abgelaufen':'');
+ const hint=stopwatch?
+  'Zählt ab 00:00 hoch – ohne Stopp beim Richtwert. Gespeichert wird die tatsächlich gehaltene Zeit.':
+  'Zählt bis zum Ziel herunter. Beim vorzeitigen Beenden wird die tatsächlich gemessene Zeit gespeichert.';
+ const startLabel=stopwatch?'▶ Stoppuhr starten':'▶ Zeit starten';
+ const controls=running?'<button type="button" class="btn alt" onclick="forgeTimePause()">⏸ Pausieren</button>':
+  t&&!finished?'<button type="button" class="btn" onclick="forgeTimeResume()">▶ Fortsetzen</button>':
+  !t?'<button type="button" class="btn" onclick="forgeTimeStart()">'+startLabel+'</button>':'';
+ root.innerHTML='<div class="forge-time-panel">'+
+  '<div class="forge-time-title">⏱ '+title+' · Arbeitssatz '+(focus.j+1)+'</div>'+
+  '<div id="forgeTimeDigits" class="forge-time-digits '+(finished?'finished':t&&!running?'paused':'')+'" role="timer" aria-label="'+title+'">'+forgeTimeClock(displayMs)+'</div>'+
+  '<div id="forgeTimeMeta" class="forge-time-sub">'+meta+'</div>'+
+  '<div class="forge-time-controls">'+controls+
+  '<button type="button" class="btn alt" onclick="forgeTimeReset()">↶ Zurücksetzen</button></div>'+
+  '<p class="forge-time-hint">'+hint+'</p></div>';
 }
 function forgeTimeStart(){
  if(state.activeWorkout?.forgePausedAt)return alert('Das Workout ist pausiert. Bitte zuerst fortsetzen.');
  const p=forgeTimePlan(),focus=p?forge130CurrentFocus(p):null;
  if(!p||!focus||!state.activeWorkout)return;
  const target=forgeTimeGetTarget(p,focus);
- if(!target)return alert('Bitte eine Dauer zwischen 1 und 3600 Sekunden einstellen.');
+ if(!target)return alert('Bitte einen Richtwert zwischen 1 und 3600 Sekunden einstellen.');
  forge130SyncQuickDraft();
  if(state.forgeTimeSession?.running&&!forgeTimeMatching(p,focus))return alert('Bitte zuerst den vorherigen Timer anhalten.');
- state.forgeTimeSession={planId:p.id,i:focus.i,j:focus.j,targetSecs:target,elapsedMs:0,startedAt:Date.now(),running:true,finished:false};
+ state.forgeTimeSession={
+  planId:p.id,i:focus.i,j:focus.j,targetSecs:target,
+  stopwatch:forgeTimeUsesStopwatch(p,focus),
+  elapsedMs:0,startedAt:Date.now(),running:true,finished:false
+ };
  state.forgeRest=null;save();forge130RenderRest();forgeTimeRender();
 }
 function forgeTimePause(){
  const p=forgeTimePlan(),focus=p?forge130CurrentFocus(p):null,t=forgeTimeMatching(p,focus);
  if(!t||!t.running)return;
- t.elapsedMs=forgeTimeElapsedMs(t);t.startedAt=null;t.running=false;t.finished=t.elapsedMs>=t.targetSecs*1000;
+ t.elapsedMs=forgeTimeElapsedMs(t);t.startedAt=null;t.running=false;
+ t.finished=!t.stopwatch&&t.elapsedMs>=t.targetSecs*1000;
  save();forgeTimeRender();
 }
 function forgeTimeResume(){
@@ -2024,8 +2063,10 @@ function forgeTimeFinish(){
  const p=forgeTimePlan(),focus=p?forge130CurrentFocus(p):null;
  if(!p||!focus)return;
  const t=forgeTimeMatching(p,focus);
- if(!t)return alert('Starte zuerst den Countdown. Wenn du die Zeit ohne Timer erfassen möchtest, nutze den Arbeitssatz unten bei „Alle Übungen“ und trage die tatsächlichen Sekunden ein.');
- const elapsed=Math.min(t.targetSecs,Math.round(forgeTimeElapsedMs(t)/1000));
+ if(!t)return alert('Starte zuerst die Zeitmessung. Du kannst die Sekunden alternativ im Satzformular eintragen.');
+ const elapsed=t.stopwatch?
+  Math.min(3600,Math.floor(forgeTimeElapsedMs(t)/1000)):
+  Math.min(t.targetSecs,Math.round(forgeTimeElapsedMs(t)/1000));
  if(elapsed<1)return alert('Bitte mindestens eine Sekunde absolvieren.');
  forge130FinishQuickSet(elapsed);
 }
@@ -2033,7 +2074,7 @@ function forgeTimeNavigateTo(i,j){
  const p=forgeTimePlan();if(!p||!p.ex?.[i]||j<0||j>=p.ex[i].sets)return;
  if(!state.activeWorkout||state.activeWorkout.planId!==p.id)startWorkout(p.id);
  const previous=p?forge130CurrentFocus(p):null;
- if(state.forgeTimeSession?.running){const t=state.forgeTimeSession;t.elapsedMs=forgeTimeElapsedMs(t);t.startedAt=null;t.running=false;t.finished=t.elapsedMs>=t.targetSecs*1000;save();}
+ if(state.forgeTimeSession?.running){const t=state.forgeTimeSession;t.elapsedMs=forgeTimeElapsedMs(t);t.startedAt=null;t.running=false;t.finished=!t.stopwatch&&t.elapsedMs>=t.targetSecs*1000;save();}
  forge130SyncQuickDraft();state.activeWorkout.focus={i,j};save();forge130RenderFocus();
  document.getElementById('forgeQuickWorkout')?.scrollIntoView({behavior:'smooth',block:'center'});
 }
@@ -2050,7 +2091,7 @@ function forge130RenderFocus(){
  const isTimed=forgeTimeIsExercise(name,e),timedRunning=!!(isTimed&&forgeTimeMatching(p,cur)?.running);
  const sugg=forge130LoadSuggestion(name,e.sets,Number(e.reps));
  const forge140WasOpen=!!root.querySelector('details.forge140-exercise-warmup[open]');
- root.innerHTML=`<div class="forge130-focus-card"><div class="forge130-focus-card-eyebrow">⚡ TRAINING LÄUFT · ${complete}/${total} SÄTZE</div><div class="forge130-focus-card-title">${forge132SwapLabel(e.name,name)}</div>${forge132SwapHint(e.name,name,e.sets)}<div class="forge130-focus-card-hint">Übung ${forge142Order(p).indexOf(cur.i)+1}/${p.ex.length} · Satz ${cur.j+1}/${e.sets}</div>${sugg?`<div class="forge130-suggestion"><span>📈 Zwei Trainingseinheiten mit allen Soll-Wiederholungen geschafft. Du könntest um ${sugg.step} kg steigern.</span><button class="btn alt small" onclick="forge130ApplySuggestion(${cur.i})">Vorschlag übernehmen</button></div>`:''}<div class="forge130-focus-card-grid"><label>Gewicht (kg)<input id="forge130QuickKg" type="number" min="0" step="0.5" value="${esc(String(ss.kg??''))}" placeholder="0"></label><label>${isTimed?'Dauer (Sek.)':'Wdh. / Sek.'}<input id="forge130QuickReps" type="number" min="1" max="${isTimed?3600:999}" ${timedRunning?'disabled title="Während des Countdowns gesperrt"':''} value="${esc(String(ss.reps??e.reps))}"></label></div>${isTimed?'<div id="forgeTimeTimerArea"></div>':''}${forge140ExerciseWarmupHtml(p,cur.i,name)}<button class="btn forge-primary-action" onclick="${isTimed?'forgeTimeFinish()':'forge130FinishQuickSet()'}">${isTimed?'■ Satz beenden · gemessene Zeit übernehmen':'✓ Arbeitssatz erledigt · weiter'}</button><div class="forge130-actions"><button class="btn alt small" onclick="forge130FocusNavigate(-1)">← Vorheriger Satz</button><button class="btn alt small" onclick="forge130FocusNavigate(1)">Nächster Satz →</button></div>${forge130AlternativeHtml(p,cur.i,name)}</div>`;
+ root.innerHTML=`<div class="forge130-focus-card"><div class="forge130-focus-card-eyebrow">⚡ TRAINING LÄUFT · ${complete}/${total} SÄTZE</div><div class="forge130-focus-card-title">${forge132SwapLabel(e.name,name)}</div>${forge132SwapHint(e.name,name,e.sets)}<div class="forge130-focus-card-hint">Übung ${forge142Order(p).indexOf(cur.i)+1}/${p.ex.length} · Satz ${cur.j+1}/${e.sets}</div>${sugg?`<div class="forge130-suggestion"><span>📈 Zwei Trainingseinheiten mit allen Soll-Wiederholungen geschafft. Du könntest um ${sugg.step} kg steigern.</span><button class="btn alt small" onclick="forge130ApplySuggestion(${cur.i})">Vorschlag übernehmen</button></div>`:''}<div class="forge130-focus-card-grid"><label>Gewicht (kg)<input id="forge130QuickKg" type="number" min="0" step="0.5" value="${esc(String(ss.kg??''))}" placeholder="0"></label><label>${isTimed?(forgeTimeUsesStopwatch(p,cur)?'Richtwert (Sek.)':'Dauer (Sek.)'):'Wdh. / Sek.'}<input id="forge130QuickReps" type="number" min="1" max="${isTimed?3600:999}" ${timedRunning?'disabled title="Während des Countdowns gesperrt"':''} value="${esc(String(ss.reps??e.reps))}"></label></div>${isTimed?'<div id="forgeTimeTimerArea"></div>':''}${forge140ExerciseWarmupHtml(p,cur.i,name)}<button class="btn forge-primary-action" onclick="${isTimed?'forgeTimeFinish()':'forge130FinishQuickSet()'}">${isTimed?'■ Satz beenden · gemessene Zeit übernehmen':'✓ Arbeitssatz erledigt · weiter'}</button><div class="forge130-actions"><button class="btn alt small" onclick="forge130FocusNavigate(-1)">← Vorheriger Satz</button><button class="btn alt small" onclick="forge130FocusNavigate(1)">Nächster Satz →</button></div>${forge130AlternativeHtml(p,cur.i,name)}</div>`;
  if(forge140WasOpen)root.querySelector('details.forge140-exercise-warmup')?.setAttribute('open','');
  if(isTimed)forgeTimeRender();
 }
