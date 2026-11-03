@@ -234,14 +234,27 @@ function showHero(card,name,session){
 }
 function setProgress(plan,focus,draft){
  const entries=Array.isArray(plan?.ex)?plan.ex:[];
+ const warmups=draft?.planId===plan.id?draft.warmup?.exercises||{}:{};
+ const getWarmup=i=>{
+  const entry=warmups[i];
+  return entry?.mode==='sets'&&Array.isArray(entry.sets)?entry.sets:[];
+ };
  let total=0,done=0;
  for(let i=0;i<entries.length;i++){
   const count=Math.max(0,Math.trunc(Number(entries[i].sets)||0));
   total+=count;
   const sets=draft?.planId===plan.id?draft.exercises?.[i]?.sets:[];
   for(let j=0;j<count;j++)if(sets?.[j]?.done)done++;
+  // The live counter includes warmups; permanent strength statistics do not.
+  const warm=getWarmup(i);
+  total+=warm.length;done+=warm.filter(set=>set?.done).length;
  }
- return {total,done,exercise:Math.max(0,focus?.i||0)+1,totalExercises:entries.length,set:Math.max(0,focus?.j||0)+1,setCount:Math.max(0,Number(entries[focus?.i]?.sets)||0)};
+ const focusIndex=Math.max(0,focus?.i||0);
+ const warm=getWarmup(focusIndex),pending=warm.findIndex(set=>!set.done);
+ const workSetCount=Math.max(0,Number(entries[focusIndex]?.sets)||0);
+ return {total,done,exercise:focusIndex+1,totalExercises:entries.length,
+  set:pending>=0?pending+1:warm.length+Math.max(0,focus?.j||0)+1,
+  setCount:warm.length+workSetCount,warmupPending:pending>=0};
 }
 function navigateExercise(direction){
  // The existing navigation owns focus and input synchronization.
@@ -387,7 +400,7 @@ function sync(){
  if(fill)fill.style.width=(progress.total?Math.round(100*progress.done/progress.total):0)+'%';
  const exCount=$('forgeBExerciseCount'),setLabel=$('forgeBSetLabel');
  if(exCount)exCount.textContent='Übung '+progress.exercise+' / '+progress.totalExercises;
- if(setLabel)setLabel.textContent='Satz '+progress.set+' / '+progress.setCount;
+ if(setLabel)setLabel.textContent=(progress.warmupPending?'Aufwärmsatz ':'Satz ')+progress.set+' / '+progress.setCount;
  const dotRoot=$('forgeBSetDots'),focusId=progress.exercise+'|'+progress.set+'|'+progress.setCount;
  if(dotRoot&&lastFocus!==focusId){
   dotRoot.replaceChildren();
