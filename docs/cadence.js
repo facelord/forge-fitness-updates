@@ -217,8 +217,18 @@ var originalGenerate=window.generatePlan;
 window.generatePlan=function(){
  if(mode==='interval'&&validForm()===false)return;
  var prev=state.activePlanId;
- if(mode==='interval')selectedTrainingDays=null;
- originalGenerate.apply(this,arguments);
+ // The original weekly generator only knows day-count patterns 2–6.
+ // Explicitly supply valid slots for 1–4 rolling units so "1 Einheit"
+ // really produces A only (rather than silently falling back to 3).
+ var rolling=mode==='interval';
+ if(rolling){
+  var units=Number($('forgePlanV2NewUnitCount')?.value||$('days')?.value||3);
+  var pattern={1:[0],2:[1,4],3:[0,2,4],4:[0,1,3,4]}[units];
+  if(!pattern){alert('Bitte 1–4 verschiedene Trainingseinheiten auswählen.');return;}
+  selectedTrainingDays=pattern.slice();
+ }
+ try{originalGenerate.apply(this,arguments);}
+ finally{if(rolling)selectedTrainingDays=null;}
  if(state.activePlanId!==prev&&state.plan.length){setCadence(prev);render();}
 };
 var originalManual=window.manualSavePlan;
