@@ -11,16 +11,19 @@ const E=(tag,cls,content)=>{
  return n;
 };
 function usableDays(count){return Number.isInteger(Number(count))&&Number(count)>=1&&Number(count)<=6;}
+function usableIntervalUnits(count){return Number.isInteger(Number(count))&&Number(count)>=1&&Number(count)<=4;}
 function planSummary(plan=[],settings={}){
- const count=Array.isArray(plan)?plan.length:0;
- const exerciseCount=(Array.isArray(plan)?plan:[]).reduce((sum,p)=>sum+(Array.isArray(p.ex)?p.ex.length:0),0);
  const cadence=settings?.cadence;
+ const order=cadence?.mode==='interval'&&Array.isArray(cadence.planOrder)?cadence.planOrder:null;
+ const shown=order?(Array.isArray(plan)?plan:[]).filter(p=>order.some(id=>String(id)===String(p.id))):(Array.isArray(plan)?plan:[]);
+ const count=order?order.length:shown.length;
+ const exerciseCount=shown.reduce((sum,p)=>sum+(Array.isArray(p.ex)?p.ex.length:0),0);
  const schedule=cadence?.mode==='interval'?
-  'Alle '+cadence.every+' '+(Number(cadence.every)===1?'Tag':'Tage'):
+  'Alle '+cadence.every+' '+(Number(cadence.every)===1?'Tag':'Tage')+' · '+count+' '+(count===1?'Einheit':'Einheiten')+' im Wechsel':
   count+' '+(count===1?'Einheit':'Einheiten')+' pro Woche';
  return {count,exerciseCount,schedule};
 }
-window.ForgePlanIntuitive=Object.freeze({usableDays,planSummary,isInstalled:()=>installed});
+window.ForgePlanIntuitive=Object.freeze({usableDays,usableIntervalUnits,planSummary,isInstalled:()=>installed});
 let installed=false,tabHandler=false,autoMode=null,dayObserver=null,wasEditing=false;
 function field(title,id,help){
  const original=$(id);
@@ -51,10 +54,20 @@ function refreshCadence(){
  const isInterval=cadenceMode()==='interval';
  const weekdayPick=$('forgePlanV2WeekdayPick');
  if(weekdayPick)weekdayPick.hidden=isInterval;
+ const days=$('days'),cycle=$('forgePlanV2NewUnitCount');
+ const original=$('forgePlanV2OriginalDays'),cycleField=$('forgePlanV2NewUnits');
+ if(original)original.hidden=isInterval;
+ if(cycleField)cycleField.hidden=!isInterval;
+ if(isInterval&&days&&cycle){
+  const selected=usableIntervalUnits(days.value)?Number(days.value):4;
+  if(Number(days.value)!==selected)days.value=String(selected);
+  cycle.value=String(selected);
+ }
  const dayCount=$('forgePlanV2WeekCount');
- if(dayCount)dayCount.textContent=String($('#days')?.value||3)+(isInterval?' verschiedene Einheiten im Wechsel':' Trainingstage pro Woche');
+ const number=String(days?.value||3);
+ if(dayCount)dayCount.textContent=number+(isInterval?' verschiedene Einheiten im Wechsel':' Trainingstage pro Woche');
  const rhythm=$('forgePlanV2Rhythm');
- if(rhythm)rhythm.textContent=isInterval?'Flexible Termine nach deinem Abstand.':'Wähle deine festen Tage oder lasse FORGE verteilen.';
+ if(rhythm)rhythm.textContent=isInterval?'Die Einheiten A–D wechseln sich im gewählten Tagesabstand ab.':'Wähle deine festen Tage oder lasse FORGE verteilen.';
 }
 
 /* A small in-place editor for the live rolling schedule. Saved workouts and
@@ -65,20 +78,24 @@ function readableDate(value){
  return Number.isNaN(date.getTime())?'–':date.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
 }
 function cadencePreview(){
- const preview=$('forgePlanV2CadencePreview'),date=$('forgePlanV2CadenceDate'),interval=$('forgePlanV2CadenceEvery');
- if(!preview||!date||!interval)return;
+ const preview=$('forgePlanV2CadencePreview'),date=$('forgePlanV2CadenceDate'),interval=$('forgePlanV2CadenceEvery'),units=$('forgePlanV2CadenceUnits');
+ if(!preview||!date||!interval||!units)return;
  const current=window.ForgeCadenceSchedule?.getActive();
  const C=window.ForgeCadenceCore;
  if(!current||!C){preview.textContent='';return;}
  try{
-  const candidate={...current,anchor:date.value,every:Number(interval.value)};
+  const cycle=window.ForgeCadenceSchedule?.previewUnitCount(Number(units.value));
+  if(!cycle?.ok)throw Error(cycle?.error||'Ungültige Einheitenauswahl');
+  const order=cycle.order.slice();
+  for(let i=0;i<cycle.newUnits;i++)order.push('forge-new-preview-'+i);
+  const candidate={...current,anchor:date.value,every:Number(interval.value),planOrder:order};
   C.validate(candidate);
   const today=C.localToday(new Date());
-  const upcoming=C.upcoming(candidate,today,3);
-  preview.textContent='Nächste Termine: '+upcoming.map(v=>{
-   const unit=state.plan.find(p=>p.id===v.planId);
-   return readableDate(v.date)+' ('+(unit?.title||'Training')+')';
-  }).join(' · ');
+  const upcoming=C.upcoming(candidate,today,4);
+  preview.textContent='Vorschau: '+upcoming.map(v=>{
+   const position=order.indexOf(v.planId);
+   return readableDate(v.date)+' · Einheit '+String.fromCharCode(65+position)+(String(v.planId).startsWith('forge-new-preview-')?' (neu)':'');
+  }).join(' → ');
  }catch(error){preview.textContent='Bitte ein gültiges Startdatum wählen.';}
 }
 function refreshActiveCadence(){
@@ -91,7 +108,8 @@ function refreshActiveCadence(){
   return;
  }
  const label=$('forgePlanV2CadenceCurrent');
- const text='Start: '+readableDate(current.anchor)+' · Alle '+current.every+' '+(current.every===1?'Tag':'Tage');
+ const length=Array.isArray(current.planOrder)?current.planOrder.length:state.plan.length;
+ const text='Start: '+readableDate(current.anchor)+' · Alle '+current.every+' '+(current.every===1?'Tag':'Tage')+' · '+length+' '+(length===1?'Einheit':'Einheiten');
  if(label&&label.textContent!==text)label.textContent=text;
 }
 function mountActiveCadence(surface){
@@ -107,6 +125,7 @@ function mountActiveCadence(surface){
   if(!editor.hidden){editor.hidden=true;return;}
   $('forgePlanV2CadenceDate').value=active.anchor;
   $('forgePlanV2CadenceEvery').value=String(active.every);
+  $('forgePlanV2CadenceUnits').value=String(Math.max(1,Math.min(4,active.planOrder?.length||state.plan.length)));
   $('forgePlanV2CadenceFeedback').textContent='';
   editor.hidden=false;
   cadencePreview();
@@ -125,16 +144,24 @@ function mountActiveCadence(surface){
   const option=E('option','',n+' '+(n===1?'Tag':'Tage'));option.value=String(n);every.append(option);
  }
  every.addEventListener('change',cadencePreview);intervalField.append(every);
- fields.append(dateField,intervalField);editor.append(fields);
- editor.append(E('p','forge-plan-v2-cadence-help','Der neue Starttag richtet den Rhythmus neu aus, beginnend mit Einheit A. Bisherige Trainings bleiben gespeichert.'));
+ fields.append(dateField,intervalField);
+ const unitField=E('label','forge-plan-v2-cadence-unit-field','Verschiedene Trainingseinheiten');
+ const units=E('select');units.id='forgePlanV2CadenceUnits';units.setAttribute('aria-label','Anzahl unterschiedlicher Trainingseinheiten im Wechsel');
+ for(let n=1;n<=4;n++){const option=E('option','',n+' '+(n===1?'Einheit':'Einheiten'));option.value=String(n);units.append(option);}
+ units.addEventListener('change',cadencePreview);unitField.append(units);fields.append(unitField);
+ editor.append(fields);
+ editor.append(E('p','forge-plan-v2-cadence-help','Der Starttag legt Einheit A neu fest. Zusätzliche Einheiten beginnen als bearbeitbare Kopie; weniger Einheiten pausieren nur die übrigen. Abgeschlossene Trainings bleiben erhalten.'));
  const preview=E('p','forge-plan-v2-cadence-preview','');preview.id='forgePlanV2CadencePreview';editor.append(preview);
  const actions=E('div','forge-plan-v2-cadence-actions');
  const cancel=button('Abbrechen',()=>{editor.hidden=true;feedback.textContent='';},'forge-plan-v2-cadence-cancel');
  const saveButton=button('Rhythmus speichern',()=>{
-  const updated=window.ForgeCadenceSchedule?.updateActiveInterval({anchor:date.value,every:Number(every.value)});
+  const updated=window.ForgeCadenceSchedule?.updateActiveInterval({anchor:date.value,every:Number(every.value),unitCount:Number(units.value)});
   if(!updated?.ok){feedback.textContent=updated?.error||'Rhythmus konnte nicht gespeichert werden.';return;}
   editor.hidden=true;
-  feedback.textContent=updated.changed?'Trainingsrhythmus aktualisiert.':'Trainingsrhythmus unverändert.';
+  feedback.textContent=!updated.changed?'Trainingsrhythmus unverändert.':
+   updated.created?'Rhythmus gespeichert. '+updated.created+' neue Einheit(en) als bearbeitbare Kopie ergänzt.':
+   updated.paused?'Rhythmus gespeichert. Nicht benötigte Einheiten bleiben erhalten und können wieder aktiviert werden.':
+   'Trainingsrhythmus aktualisiert.';
   refreshActiveCadence();
  },'forge-plan-v2-cadence-save');
  actions.append(cancel,saveButton);editor.append(actions);
@@ -157,11 +184,13 @@ function refreshOverview(){
  refreshActiveCadence();
  const units=$('forgePlanV2Units');
  if(!units)return;
- const signature=(state.plan||[]).map(p=>[p.id,p.title,p.location,p.ex?.length,p.ex?.map(e=>e.name+':'+e.sets+':'+e.reps).join(',')].join('|')).join('||');
+ const rotation=state.settings?.cadence?.mode==='interval'?state.settings.cadence.planOrder:null;
+ const shown=rotation?(state.plan||[]).filter(p=>rotation.some(id=>String(id)===String(p.id))):(state.plan||[]);
+ const signature=String(rotation?.join(',')||'')+'||'+shown.map(p=>[p.id,p.title,p.location,p.ex?.length,p.ex?.map(e=>e.name+':'+e.sets+':'+e.reps).join(',')].join('|')).join('||');
  if(units.dataset.signature===signature)return;
  units.dataset.signature=signature;
  units.replaceChildren();
- (state.plan||[]).forEach((p,i)=>{
+ shown.forEach((p,i)=>{
   const row=E('div','forge-plan-v2-unit');
   const text=E('div','forge-plan-v2-unit-info');
   text.append(E('strong','',p.title||'Einheit '+(i+1)),
@@ -249,7 +278,19 @@ function mountCreator(page){
  const schedule=E('div','forge-plan-v2-days');schedule.id='forgePlanV2Days';
  const weekCount=E('div','forge-plan-v2-week-count');weekCount.id='forgePlanV2WeekCount';
  schedule.append(weekCount);
- moveField(schedule,'Wie viele Trainingstage?','days');
+ const normalDays=moveField(schedule,'Wie viele Trainingstage?','days');
+ if(normalDays)normalDays.id='forgePlanV2OriginalDays';
+ const unitField=E('label','forge-plan-v2-new-units','Wie viele verschiedene Trainingseinheiten?');
+ unitField.id='forgePlanV2NewUnits';
+ const unitCount=E('select');unitCount.id='forgePlanV2NewUnitCount';
+ unitCount.setAttribute('aria-label','Anzahl verschiedener Trainingseinheiten im Wechsel');
+ for(let i=1;i<=4;i++){const option=E('option','',i+' '+(i===1?'Einheit':'Einheiten'));option.value=String(i);unitCount.append(option);}
+ unitCount.value=String(Math.max(1,Math.min(4,Number($('#days')?.value)||3)));
+ unitCount.addEventListener('change',()=>{
+  const days=$('days');if(days){days.value=unitCount.value;days.dispatchEvent(new Event('change',{bubbles:true}));}
+  refreshCadence();
+ });
+ unitField.append(unitCount);schedule.append(unitField);
  const pick=E('div','forge-plan-v2-weekday-pick');pick.id='forgePlanV2WeekdayPick';
  const choices=$('weekDayChoices');choices.classList.add('forge-plan-v2-daychoices');pick.append(choices);
  const hint=$('weekDayHint');if(hint){hint.classList.add('forge-plan-v2-help');pick.append(hint);}
@@ -324,6 +365,9 @@ function styles(){
   '#plan .forge-plan-v2-daychoices{display:flex;flex-wrap:wrap;gap:7px;margin:6px 0!important}',
   '#plan .forge-plan-v2-daychoices button{min-width:42px;min-height:44px;font-size:12px}',
   '#plan .forge-plan-v2-days>button{min-height:43px;margin:5px 0 0}',
+  '#plan #forgePlanV2OriginalDays[hidden],#plan #forgePlanV2NewUnits[hidden]{display:none!important}',
+  '#plan .forge-plan-v2-new-units{display:grid;gap:7px;margin:8px 0 12px;color:#d7e6d2;font-size:13px;font-weight:750}',
+  '#plan .forge-plan-v2-new-units select{min-height:50px;width:100%;background:#121c16;color:#f1ffec;border:1px solid rgba(158,255,0,.4);border-radius:11px;padding:9px 12px}',
   '#plan .forge-plan-v2-submit{width:100%;min-height:55px;border-radius:12px;background:#a8f55d!important;color:#11221a!important;font-size:16px!important;font-weight:850!important;margin:9px 0 3px}',
   '#plan .forge-plan-v2-active{margin:12px 0 10px;padding:14px 0 4px;border-top:1px solid #436754;border-bottom:1px solid #36554b}',
   '#plan .forge-plan-v2-active[hidden]{display:none!important}',
