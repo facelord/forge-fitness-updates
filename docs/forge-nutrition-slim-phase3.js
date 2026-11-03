@@ -30,7 +30,8 @@ function openPart(key,root=$('forge-nutrition-master')){
 // never as user-controlled accordions; preserve all inner editing accordions.
 let nutritionObserver=null;
 function ensureVisible(){
- const master=$('forge-nutrition-master');
+ const master=typeof document.getElementById==='function'?
+  $('forge-nutrition-master'):null;
  if(!master)return false;
  const wrapper=master.querySelector(':scope > details.forge-fold-details');
  if(wrapper&&!wrapper.open)wrapper.open=true;
