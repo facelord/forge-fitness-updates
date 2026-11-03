@@ -21,32 +21,81 @@ function syncFromActive(){
  mode=c?'interval':'weekdays';
  if(c){every=c.every;anchor=c.anchor;}
 }
-/* Change the CURRENT rolling schedule, never regenerate units or touch workout history.
- * Keeping planOrder means the A/B/C cycle remains attached to the same units.
- */
+/* A rolling plan uses planOrder as its exercise-unit rotation. Pausing an
+ * existing unit removes it from the rotation but NEVER deletes its exercises
+ * or completed training records. New units start as editable copies. */
+function planUnitById(id){return state.plan.find(p=>String(p.id)===String(id));}
+function cycleUnits(count){
+ var active=cadence();
+ if(!active||!Number.isInteger(count)||count<1||count>4)
+  throw Error('Bitte 1–4 verschiedene Trainingseinheiten auswählen.');
+ if(!Array.isArray(active.planOrder)||!active.planOrder.length)
+  throw Error('Der aktuelle Trainingsplan hat keine Einheiten.');
+ var order=active.planOrder.slice();
+ if(order.some(id=>!planUnitById(id)))throw Error('Eine gespeicherte Trainingseinheit fehlt.');
+ var unused=state.plan.filter(p=>!order.some(id=>String(id)===String(p.id)));
+ for(var unit of unused){
+  if(order.length>=count)break;
+  order.push(unit.id);
+ }
+ return {order:order.slice(0,count),newUnits:Math.max(0,count-order.length)};
+}
+function copyUnitForCycle(position){
+ var existing=state.plan[0];
+ if(!existing||!Array.isArray(existing.ex)||!existing.ex.length)throw Error('Keine Vorlage für die neue Einheit gefunden.');
+ var clone=JSON.parse(JSON.stringify(existing));
+ clone.id='forge-cycle-'+Date.now().toString(36)+'-'+position+'-'+Math.random().toString(36).slice(2,9);
+ var title=String(existing.title||'Training').replace(/\s*·\s*Einheit\s+[A-Z]\s*$/i,'').trim();
+ clone.title=title+' · Einheit '+String.fromCharCode(65+position);
+ var occupied=new Set(state.plan.map(p=>Number(p.weekday)));
+ clone.weekday=Array.from({length:7},(_,i)=>i).find(i=>!occupied.has(i))??(position%7);
+ return clone;
+}
 function updateActiveInterval(input){
  var active=cadence();
  if(!active)return {ok:false,error:'Aktiver Plan mit „Alle X Tage“ fehlt.'};
  if(state.activeWorkout)return {ok:false,error:'Bitte zuerst das laufende Training beenden.'};
- var proposed={...active,every:Number(input&&input.every),anchor:String(input&&input.anchor||'')};
- try{C.validate(proposed);}
- catch(error){return {ok:false,error:'Bitte ein gültiges Startdatum und einen Abstand von 1–14 Tagen wählen.'};}
- if(proposed.every===active.every&&proposed.anchor===active.anchor)return {ok:true,changed:false};
- var oldSettings=state.settings;
- state.settings={...oldSettings,cadence:proposed};
- try{save();}
- catch(error){
-  state.settings=oldSettings;
+ var count=input&&input.unitCount===undefined?active.planOrder.length:Number(input&&input.unitCount);
+ var cycle;
+ try{cycle=cycleUnits(count);}
+ catch(error){return {ok:false,error:error.message};}
+ var proposed={...active,every:Number(input&&input.every),anchor:String(input&&input.anchor||''),planOrder:cycle.order.slice()};
+ try{
+  for(var i=0;i<cycle.newUnits;i++)proposed.planOrder.push('__new_unit_'+i);
+  C.validate(proposed);
+ }catch(error){return {ok:false,error:'Bitte ein gültiges Startdatum, 1–14 Tage Abstand und 1–4 Einheiten wählen.'};}
+ if(proposed.every===active.every&&proposed.anchor===active.anchor&&
+    proposed.planOrder.length===active.planOrder.length&&
+    proposed.planOrder.every((id,i)=>String(id)===String(active.planOrder[i])))
+  return {ok:true,changed:false,created:0,paused:0};
+ var oldSettings=state.settings,oldPlan=state.plan.slice();
+ var created=0;
+ try{
+  for(var k=0;k<cycle.newUnits;k++){
+   var newUnit=copyUnitForCycle(proposed.planOrder.length-cycle.newUnits+k);
+   state.plan.push(newUnit);
+   proposed.planOrder[cycle.order.length+k]=newUnit.id;
+   created++;
+  }
+  C.validate(proposed);
+  state.settings={...oldSettings,cadence:proposed};
+  save();
+ }catch(error){
+  state.settings=oldSettings;state.plan=oldPlan;
   console.error('FORGE: Trainingsrhythmus konnte nicht gespeichert werden',error);
-  return {ok:false,error:'Speichern fehlgeschlagen. Der ursprüngliche Rhythmus bleibt erhalten.'};
+  return {ok:false,error:'Speichern fehlgeschlagen. Der bisherige Plan bleibt erhalten.'};
  }
  mode='interval';every=proposed.every;anchor=proposed.anchor;dirty=false;
  try{render();}catch(error){console.error('FORGE: Rhythmus-Anzeige aktualisieren',error);}
  applyMode();
- return {ok:true,changed:true};
+ return {ok:true,changed:true,created,paused:Math.max(0,active.planOrder.length-count)};
 }
 window.ForgeCadenceSchedule=Object.freeze({
  getActive:()=>cadence(),
+ previewUnitCount:count=>{
+  try{return {ok:true,...cycleUnits(Number(count))};}
+  catch(error){return {ok:false,error:error.message};}
+ },
  updateActiveInterval
 });
 function labelOptions(){return ['Feste Wochentage','Alle X Tage'];}
