@@ -56,6 +56,93 @@ function refreshCadence(){
  const rhythm=$('forgePlanV2Rhythm');
  if(rhythm)rhythm.textContent=isInterval?'Flexible Termine nach deinem Abstand.':'Wähle deine festen Tage oder lasse FORGE verteilen.';
 }
+
+/* A small in-place editor for the live rolling schedule. Saved workouts and
+ * exercise selection are deliberately managed by the existing engines. */
+function readableDate(value){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(String(value||'')))return '–';
+ const date=new Date(value+'T12:00:00');
+ return Number.isNaN(date.getTime())?'–':date.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+function cadencePreview(){
+ const preview=$('forgePlanV2CadencePreview'),date=$('forgePlanV2CadenceDate'),interval=$('forgePlanV2CadenceEvery');
+ if(!preview||!date||!interval)return;
+ const current=window.ForgeCadenceSchedule?.getActive();
+ const C=window.ForgeCadenceCore;
+ if(!current||!C){preview.textContent='';return;}
+ try{
+  const candidate={...current,anchor:date.value,every:Number(interval.value)};
+  C.validate(candidate);
+  const today=C.localToday(new Date());
+  const upcoming=C.upcoming(candidate,today,3);
+  preview.textContent='Nächste Termine: '+upcoming.map(v=>{
+   const unit=state.plan.find(p=>p.id===v.planId);
+   return readableDate(v.date)+' ('+(unit?.title||'Training')+')';
+  }).join(' · ');
+ }catch(error){preview.textContent='Bitte ein gültiges Startdatum wählen.';}
+}
+function refreshActiveCadence(){
+ const bar=$('forgePlanV2Cadence');
+ if(!bar||typeof state==='undefined')return;
+ const current=window.ForgeCadenceSchedule?.getActive();
+ bar.hidden=!current;
+ if(!current){
+  const editor=$('forgePlanV2CadenceEditor');if(editor)editor.hidden=true;
+  return;
+ }
+ const label=$('forgePlanV2CadenceCurrent');
+ const text='Start: '+readableDate(current.anchor)+' · Alle '+current.every+' '+(current.every===1?'Tag':'Tage');
+ if(label&&label.textContent!==text)label.textContent=text;
+}
+function mountActiveCadence(surface){
+ const box=E('div','forge-plan-v2-cadence');box.id='forgePlanV2Cadence';
+ const row=E('div','forge-plan-v2-cadence-row');
+ const label=E('div','forge-plan-v2-cadence-info');
+ label.append(E('strong','','Trainingsrhythmus'));
+ const current=E('span','', '');current.id='forgePlanV2CadenceCurrent';label.append(current);
+ const change=button('Ändern',()=>{
+  const editor=$('forgePlanV2CadenceEditor');
+  const active=window.ForgeCadenceSchedule?.getActive();
+  if(!editor||!active)return;
+  if(!editor.hidden){editor.hidden=true;return;}
+  $('forgePlanV2CadenceDate').value=active.anchor;
+  $('forgePlanV2CadenceEvery').value=String(active.every);
+  $('forgePlanV2CadenceFeedback').textContent='';
+  editor.hidden=false;
+  cadencePreview();
+  $('forgePlanV2CadenceDate')?.focus();
+ },'forge-plan-v2-cadence-change');
+ change.setAttribute('aria-controls','forgePlanV2CadenceEditor');
+ row.append(label,change);box.append(row);
+ const editor=E('div','forge-plan-v2-cadence-editor');editor.id='forgePlanV2CadenceEditor';editor.hidden=true;
+ const fields=E('div','forge-plan-v2-cadence-fields');
+ const dateField=E('label','', 'Erster Trainingstag');
+ const date=E('input');date.id='forgePlanV2CadenceDate';date.type='date';date.setAttribute('aria-label','Startdatum des aktiven Trainingsplans');
+ date.addEventListener('change',cadencePreview);dateField.append(date);
+ const intervalField=E('label','', 'Abstand zwischen Trainings');
+ const every=E('select');every.id='forgePlanV2CadenceEvery';every.setAttribute('aria-label','Trainingsabstand in Tagen');
+ for(let n=1;n<=14;n++){
+  const option=E('option','',n+' '+(n===1?'Tag':'Tage'));option.value=String(n);every.append(option);
+ }
+ every.addEventListener('change',cadencePreview);intervalField.append(every);
+ fields.append(dateField,intervalField);editor.append(fields);
+ editor.append(E('p','forge-plan-v2-cadence-help','Der neue Starttag richtet den Rhythmus neu aus, beginnend mit Einheit A. Bisherige Trainings bleiben gespeichert.'));
+ const preview=E('p','forge-plan-v2-cadence-preview','');preview.id='forgePlanV2CadencePreview';editor.append(preview);
+ const actions=E('div','forge-plan-v2-cadence-actions');
+ const cancel=button('Abbrechen',()=>{editor.hidden=true;feedback.textContent='';},'forge-plan-v2-cadence-cancel');
+ const saveButton=button('Rhythmus speichern',()=>{
+  const updated=window.ForgeCadenceSchedule?.updateActiveInterval({anchor:date.value,every:Number(every.value)});
+  if(!updated?.ok){feedback.textContent=updated?.error||'Rhythmus konnte nicht gespeichert werden.';return;}
+  editor.hidden=true;
+  feedback.textContent=updated.changed?'Trainingsrhythmus aktualisiert.':'Trainingsrhythmus unverändert.';
+  refreshActiveCadence();
+ },'forge-plan-v2-cadence-save');
+ actions.append(cancel,saveButton);editor.append(actions);
+ const feedback=E('p','forge-plan-v2-cadence-feedback','');feedback.id='forgePlanV2CadenceFeedback';
+ feedback.setAttribute('role','status');feedback.setAttribute('aria-live','polite');
+ box.append(editor,feedback);surface.append(box);refreshActiveCadence();
+}
+
 function refreshOverview(){
  const root=$('forgePlanV2Active');
  if(!root||typeof state==='undefined')return;
@@ -67,6 +154,7 @@ function refreshOverview(){
  if(heading&&heading.textContent!==name)heading.textContent=name;
  const info=data.schedule+' · '+data.exerciseCount+' Übungen';
  if(line&&line.textContent!==info)line.textContent=info;
+ refreshActiveCadence();
  const units=$('forgePlanV2Units');
  if(!units)return;
  const signature=(state.plan||[]).map(p=>[p.id,p.title,p.location,p.ex?.length,p.ex?.map(e=>e.name+':'+e.sets+':'+e.reps).join(',')].join('|')).join('||');
@@ -120,14 +208,23 @@ function mountActive(page){
  const heading=E('h2','', 'Dein aktiver Plan');heading.id='forgePlanV2ActiveName';
  const info=E('p','', '');info.id='forgePlanV2ActiveInfo';
  const units=E('div','forge-plan-v2-units');units.id='forgePlanV2Units';
- surface.append(kicker,heading,info,units);
+ const fold=E('details','forge-plan-v2-fold');fold.id='forgePlanV2Fold';
+ const trigger=E('summary','forge-plan-v2-fold-trigger');
+ trigger.setAttribute('aria-label','Aktiven Trainingsplan ein- oder ausklappen');
+ const headingWrap=E('div','forge-plan-v2-fold-heading');
+ headingWrap.append(kicker,heading,info);
+ const chevron=E('span','forge-plan-v2-fold-chevron','⌄');chevron.setAttribute('aria-hidden','true');
+ trigger.append(headingWrap,chevron);
+ const contents=E('div','forge-plan-v2-fold-body');contents.append(units);
  const create=button('＋ Anderen Plan erstellen',()=>{
   const opener=$('forgeSlimTools')?.querySelector('[data-slim-open="create"]');
   if(opener?.getAttribute('aria-pressed')!=='true')opener?.click();
   $('forge150PlanHub')?.scrollIntoView?.({block:'start',behavior:'smooth'});
  },'btn alt small forge-plan-v2-new');
  create.setAttribute('aria-label','Neuen Plan erstellen; der aktuelle bleibt bis zur Aktivierung erhalten');
- surface.append(create);
+ contents.append(create);
+ fold.append(trigger,contents);surface.append(fold);
+ mountActiveCadence(surface);
  hero.after(surface);refreshOverview();
 }
 function mountCreator(page){
@@ -230,6 +327,34 @@ function styles(){
   '#plan .forge-plan-v2-submit{width:100%;min-height:55px;border-radius:12px;background:#a8f55d!important;color:#11221a!important;font-size:16px!important;font-weight:850!important;margin:9px 0 3px}',
   '#plan .forge-plan-v2-active{margin:12px 0 10px;padding:14px 0 4px;border-top:1px solid #436754;border-bottom:1px solid #36554b}',
   '#plan .forge-plan-v2-active[hidden]{display:none!important}',
+
+  '#plan .forge-plan-v2-fold>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none;min-height:66px}',
+  '#plan .forge-plan-v2-fold>summary::-webkit-details-marker{display:none}',
+  '#plan .forge-plan-v2-fold>summary:focus-visible{outline:2px solid #9eff00;outline-offset:3px;border-radius:8px}',
+  '#plan .forge-plan-v2-fold-heading{flex:1;min-width:0}',
+  '#plan .forge-plan-v2-fold-chevron{color:#9eff00;font-size:26px;line-height:1;transition:transform .18s;flex:none}',
+  '#plan .forge-plan-v2-fold[open] .forge-plan-v2-fold-chevron{transform:rotate(180deg)}',
+  '#plan .forge-plan-v2-fold-body{padding-top:7px}',
+  '#plan .forge-plan-v2-cadence{margin:13px 0 0;border-top:1px solid rgba(168,218,157,.2);padding-top:13px}',
+  '#plan .forge-plan-v2-cadence[hidden],#plan .forge-plan-v2-cadence-editor[hidden]{display:none!important}',
+  '#plan .forge-plan-v2-cadence-row{display:flex;align-items:center;justify-content:space-between;gap:9px}',
+  '#plan .forge-plan-v2-cadence-info{display:grid;gap:4px;min-width:0}',
+  '#plan .forge-plan-v2-cadence-info strong{font-size:13px;color:#edf5eb}',
+  '#plan .forge-plan-v2-cadence-info span{font-size:12px;color:#b6c9b6}',
+  '#plan .forge-plan-v2-cadence-change{background:transparent;border:1px solid rgba(158,255,0,.4);border-radius:10px;color:#d5ffc0;padding:9px 13px;min-height:41px;flex:none;font-size:12px;font-weight:750}',
+  '#plan .forge-plan-v2-cadence-editor{padding:15px 0 4px}',
+  '#plan .forge-plan-v2-cadence-fields{display:grid;grid-template-columns:1fr 1fr;gap:11px}',
+  '#plan .forge-plan-v2-cadence-fields label{display:grid;gap:6px;color:#cbdcc6;font-size:12px;font-weight:750;min-width:0}',
+  '#plan .forge-plan-v2-cadence-fields :is(input,select){width:100%;min-width:0;min-height:46px;color-scheme:dark;padding:7px 9px;box-sizing:border-box}',
+  '#plan .forge-plan-v2-cadence-help,#plan .forge-plan-v2-cadence-preview{font-size:11px;line-height:1.55;color:#aebfaf;margin:10px 0 0}',
+  '#plan .forge-plan-v2-cadence-preview{color:#b1f28f}',
+  '#plan .forge-plan-v2-cadence-actions{display:flex;justify-content:flex-end;gap:8px;margin:13px 0 0}',
+  '#plan .forge-plan-v2-cadence-actions button{min-height:43px;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:750}',
+  '#plan .forge-plan-v2-cadence-cancel{background:transparent;border:1px solid rgba(180,213,173,.24);color:#e6f0e4}',
+  '#plan .forge-plan-v2-cadence-save{background:#9eff00;border:1px solid #9eff00;color:#111b0b}',
+  '#plan .forge-plan-v2-cadence-feedback{font-size:12px;color:#b7f29a;margin:9px 0 0}',
+  '#plan .forge-plan-v2-cadence-feedback:empty{display:none}',
+  '@media(max-width:380px){#plan .forge-plan-v2-cadence-fields{grid-template-columns:1fr}}',
   '#plan .forge-plan-v2-kicker{font-size:11px;color:#a8f55d;font-weight:850;letter-spacing:.08em}',
   '#plan .forge-plan-v2-active h2{font-size:20px;margin:6px 0 4px;color:#f4fff0}',
   '#plan .forge-plan-v2-active>p{font-size:13px;color:#c2d7c6;margin:0 0 10px}',
