@@ -19,11 +19,38 @@ function findPart(key,root=$('forge-nutrition-master')){
 function openPart(key,root=$('forge-nutrition-master')){
  const section=findPart(key,root);
  if(!section)return false;
+ ensureVisible();
  section.open=true;
  section.scrollIntoView?.({behavior:'smooth',block:'nearest'});
  return true;
 }
-window.ForgeNutritionSlim=Object.freeze({findPart,openPart,isInstalled:()=>installed});
+// The legacy nutrition card contains a top-level <details> wrapper. Premium V9
+// hides its summary, so a closed wrapper makes the entire page look empty.
+// Treat this single outer wrapper and today's summary as permanent layout,
+// never as user-controlled accordions; preserve all inner editing accordions.
+let nutritionObserver=null;
+function ensureVisible(){
+ const master=$('forge-nutrition-master');
+ if(!master)return false;
+ const wrapper=master.querySelector(':scope > details.forge-fold-details');
+ if(wrapper&&!wrapper.open)wrapper.open=true;
+ const today=findPart('today',master);
+ if(today&&!today.open)today.open=true;
+ return !!wrapper;
+}
+function guardVisibility(){
+ const master=$('forge-nutrition-master');
+ if(!master)return;
+ ensureVisible();
+ if(nutritionObserver)return;
+ if(typeof MutationObserver==='function'){
+  nutritionObserver=new MutationObserver(()=>{ensureVisible();});
+  nutritionObserver.observe(master,{subtree:true,childList:true,attributes:true,attributeFilter:['open']});
+ }
+ document.addEventListener('visibilitychange',ensureVisible);
+ window.addEventListener?.('pageshow',ensureVisible);
+}
+window.ForgeNutritionSlim=Object.freeze({findPart,openPart,ensureVisible,isInstalled:()=>installed});
 function button(label,kind,handler){
  const b=node('button',kind?'btn alt':'btn',label);
  b.type='button';b.addEventListener('click',handler);return b;
@@ -112,13 +139,14 @@ function install(){
  const today=findPart('today',master),compose=findPart('compose',master);
  const meals=$('foodList'),totals=$('nutriTotals'),detailed=$('dailyDetailed');
  if(!page||!master||!search||!today||!compose||!meals||!totals||!detailed)return false;
- if(installed)return true;
+ if(installed){ensureVisible();return true;}
  style();
  page.classList.add('forge-slim-phase3');
  const dayTitle=node('div');dayTitle.id='forgeSlimNutriToday';
  dayTitle.append(node('h2','','Heute auf einen Blick'),node('p','','Kalorien und Makros aus deinen gespeicherten Mahlzeiten.'));
  master.prepend(dayTitle);
  today.open=true;
+ guardVisibility();
  // Original calculation and DOM IDs stay in place. Fold only detailed nutrients.
  if(!$('forgeSlimNutriDetail')){
   const details=node('details');details.id='forgeSlimNutriDetail';
