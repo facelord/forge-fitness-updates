@@ -99,8 +99,10 @@ function addWarmup(){
  editedSet=i;persist(c);sync();
 }
 function selectFirst(){
+ // Cycle through EVERY warmup, including completed ones, for individual edits.
  const c=context();if(!c)return;const w=warmFor(c,false);
- if(!w?.sets?.length)return;editedSet=0;sync();
+ if(!w?.sets?.length)return;
+ editedSet=(currentEditor(c)+1)%w.sets.length;sync();
 }
 function removeWarmup(){
  const c=context();if(!c)return;const w=warmFor(c,false),i=currentEditor(c);
@@ -158,7 +160,8 @@ function sync(){
  const form=$('forgeV91WarmForm'),caption=$('forgeV91WarmCaption');
  root.hidden=false;form.hidden=!active;
  shell.classList.toggle('forge-v91-warming',active);
- $('forgeV91WarmEdit').hidden=!sets.length||active;
+ $('forgeV91WarmEdit').hidden=!sets.length;
+ $('forgeV91WarmEdit').textContent=active?'↻ Satz wechseln':'Bearbeiten';
  $('forgeV91WarmAdd').disabled=sets.length>=8;
  caption.textContent=active?'🔥 Aufwärmsatz '+(i+1)+' / '+sets.length:sets.length?'✓ '+sets.filter(s=>s.done).length+' / '+sets.length+' Aufwärmsätze':'Optional · vor dem ersten Arbeitssatz';
  if(active){

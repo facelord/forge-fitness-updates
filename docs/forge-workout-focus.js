@@ -121,6 +121,12 @@ function progressFor(p){
   const count=Math.max(0,Number(p.ex[i].sets)||0);
   total+=count;
   for(let j=0;j<count;j++)if(draft?.exercises?.[i]?.sets?.[j]?.done)done++;
+  // Training HUD mirrors Premium V9.1; statistical work sets stay separate.
+  const w=draft?.warmup?.exercises?.[i];
+  if(w?.mode==='sets'&&Array.isArray(w.sets)){
+   total+=w.sets.length;
+   done+=w.sets.filter(set=>set?.done).length;
+  }
  }
  return {total,done};
 }
