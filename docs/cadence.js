@@ -21,6 +21,34 @@ function syncFromActive(){
  mode=c?'interval':'weekdays';
  if(c){every=c.every;anchor=c.anchor;}
 }
+/* Change the CURRENT rolling schedule, never regenerate units or touch workout history.
+ * Keeping planOrder means the A/B/C cycle remains attached to the same units.
+ */
+function updateActiveInterval(input){
+ var active=cadence();
+ if(!active)return {ok:false,error:'Aktiver Plan mit „Alle X Tage“ fehlt.'};
+ if(state.activeWorkout)return {ok:false,error:'Bitte zuerst das laufende Training beenden.'};
+ var proposed={...active,every:Number(input&&input.every),anchor:String(input&&input.anchor||'')};
+ try{C.validate(proposed);}
+ catch(error){return {ok:false,error:'Bitte ein gültiges Startdatum und einen Abstand von 1–14 Tagen wählen.'};}
+ if(proposed.every===active.every&&proposed.anchor===active.anchor)return {ok:true,changed:false};
+ var oldSettings=state.settings;
+ state.settings={...oldSettings,cadence:proposed};
+ try{save();}
+ catch(error){
+  state.settings=oldSettings;
+  console.error('FORGE: Trainingsrhythmus konnte nicht gespeichert werden',error);
+  return {ok:false,error:'Speichern fehlgeschlagen. Der ursprüngliche Rhythmus bleibt erhalten.'};
+ }
+ mode='interval';every=proposed.every;anchor=proposed.anchor;dirty=false;
+ try{render();}catch(error){console.error('FORGE: Rhythmus-Anzeige aktualisieren',error);}
+ applyMode();
+ return {ok:true,changed:true};
+}
+window.ForgeCadenceSchedule=Object.freeze({
+ getActive:()=>cadence(),
+ updateActiveInterval
+});
 function labelOptions(){return ['Feste Wochentage','Alle X Tage'];}
 function applyMode(){
  document.querySelectorAll('[data-forge-cadence-mode]').forEach(n=>{n.value=mode;});
