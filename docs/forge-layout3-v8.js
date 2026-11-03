@@ -196,6 +196,46 @@
  line-height:1.2!important;text-align:center!important;white-space:normal!important;
 }
 #workout.forge-compact-live.forge-premium-layout .forge-b-footer #forgeSaveSessionHint{display:none!important}
+
+/* V8.1 · floating instrumentation: remove BOTH gauge card backgrounds and the
+   surrounding set-panel card. Keep native input/buttons in their own hit areas.
+   Dark canvas continues seamlessly from the frameless movement photo. */
+#workout.forge-compact-live.forge-premium-layout #forgePremiumShell.forge-v8-instruments .forge-b-set-panel{
+ border:0!important;border-radius:0!important;
+ padding:3px 0 1px!important;
+ background:transparent!important;
+ box-shadow:none!important;outline:0!important;
+}
+#workout.forge-compact-live.forge-premium-layout #forgePremiumShell.forge-v8-instruments #forgeQuickWorkout .forge130-focus-card-grid>label.forge-v8-dial{
+ border:0!important;border-radius:0!important;
+ outline:0!important;
+ background:transparent!important;
+ box-shadow:none!important;
+ overflow:visible!important;
+ padding:6px 2px 4px!important;
+}
+#workout.forge-compact-live.forge-premium-layout #forgePremiumShell.forge-v8-instruments #forgeQuickWorkout .forge-v8-dial::before{
+ content:"";position:absolute;pointer-events:none;
+ left:15%;right:15%;bottom:9px;height:40px;
+ background:radial-gradient(ellipse at 50% 100%,rgba(133,228,33,.09),transparent 75%);
+}
+#workout.forge-compact-live.forge-premium-layout #forgePremiumShell.forge-v8-instruments #forgeQuickWorkout .forge-v8-label{
+ color:#b9cdb1!important;
+}
+#workout.forge-compact-live.forge-premium-layout #forgePremiumShell.forge-v8-instruments #forgeQuickWorkout .forge-v8-minus,
+#workout.forge-compact-live.forge-premium-layout #forgePremiumShell.forge-v8-instruments #forgeQuickWorkout .forge-v8-plus{
+ background:rgba(27,37,29,.65)!important;
+ border:1px solid rgba(183,223,167,.26)!important;
+}
+#workout.forge-compact-live.forge-premium-layout #forgePremiumShell.forge-v8-instruments #forgeQuickWorkout .forge-v3-progression{
+ border-top:1px solid rgba(191,235,167,.10)!important;
+ margin-top:0!important;padding-top:6px!important;
+}
+/* Keep the photo-to-instruments transition truly unboxed. */
+#workout.forge-compact-live.forge-premium-layout #forgePremiumShell.forge-v8-instruments .forge-b-media{
+ margin-bottom:0!important;
+}
+
 @media(max-height:760px){
  #workout.forge-compact-live.forge-premium-layout #forgePremiumShell.forge-v8-instruments{
   grid-template-rows:34px 53px 35px auto minmax(118px,1fr) auto 46px!important;
