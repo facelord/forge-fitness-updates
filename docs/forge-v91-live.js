@@ -14,6 +14,8 @@ const css=[
  '#workout.forge-premium-layout #forgeBExerciseName{font-size:clamp(20px,5.6vw,27px)!important;line-height:1.13!important;font-weight:850!important;overflow-wrap:anywhere}',
  '#workout.forge-premium-layout #forgeBSetLabel{font-size:clamp(15px,4.1vw,19px)!important;font-weight:830!important;line-height:1.3!important}',
  '#workout.forge-premium-layout .forge-b-set-heading{min-height:25px!important;align-items:center!important}',
+ '#workout.forge-premium-layout #forgePremiumShell.forge-v8-instruments.forge-b-timed{grid-template-rows:36px 57px 37px auto minmax(180px,1fr) max-content 47px!important;overflow-y:auto!important}',
+ '#workout.forge-premium-layout #forgePremiumShell.forge-v8-instruments.forge-b-timed .forge-b-set-panel{height:max-content!important;min-height:max-content!important;align-self:start!important;overflow:visible!important}',
  '#workout.forge-premium-layout #forgeTimeTimerArea{grid-column:1/-1!important;min-width:0!important;max-width:100%!important;overflow:visible!important}',
  '#workout.forge-premium-layout #forgeTimeTimerArea .forge-time-panel{box-sizing:border-box!important;width:100%!important;min-width:0!important;padding:7px 8px!important;margin:0!important;display:grid!important;justify-items:center!important;gap:4px!important}',
  '#workout.forge-premium-layout #forgeTimeTimerArea .forge-time-digits{font-size:clamp(29px,9vw,43px)!important;font-variant-numeric:tabular-nums!important;font-weight:900!important;line-height:1.12!important;white-space:nowrap!important;letter-spacing:.02em!important}',
