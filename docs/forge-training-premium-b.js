@@ -150,9 +150,14 @@ function imageData(name){
     node.getAttribute?.('alt')||node.getAttribute?.('aria-label')||
     node.closest?.('figure')?.querySelector?.('figcaption')?.textContent||''
    ).toLocaleLowerCase('de');
-   const isAnatomy=(node,index)=>/hauptmuskel|beanspruchte muskel|muskelgruppe|anatom/i.test(label(node))||
-    node.classList?.contains('forge-anatomy-v2-image');
-   const movement=nodes.filter((node,i)=>!isAnatomy(node,i));
+   // One-exercise mobility cards contain movement AND anatomy in the same
+   // approved composite. Do not mistake the whole card for a muscle-only image:
+   // until its 3 separate files are QA-approved, it remains a readable hero.
+   const combined=(node)=>!!node.closest?.('.forge-mob-single-card');
+   const isAnatomy=(node,index)=>!combined(node)&&(
+    /hauptmuskel|beanspruchte muskel|muskelgruppe|anatom/i.test(label(node))||
+    node.classList?.contains('forge-anatomy-v2-image'));
+   const movement=nodes.filter((node,i)=>combined(node)||!isAnatomy(node,i));
    const chosen=movement[Math.min(rule.stage,Math.max(0,movement.length-1))]||movement[0];
    art.assetCount=movement.length;
    art.main=chosen?.cloneNode(true)||null;
@@ -169,10 +174,14 @@ function imageData(name){
  // The native catalogue remains the source for movement photos. The
  // separate detailed atlas is preferred only for the live muscle indicator.
  const anatomyAsset=PREMIUM_MUSCLE_ASSETS[name];
- if(anatomyAsset){
+ // The central V8 registry provides exercise-specific mobility anatomy too.
+ // The older six approved premium strength graphics keep their priority.
+ const sharedAsset=!anatomyAsset?window.ForgeMediaV8?.get?.(name):null;
+ const preferredAsset=anatomyAsset?.src||sharedAsset?.muscle;
+ if(preferredAsset){
   const muscleImg=create('img');
-  muscleImg.src=anatomyAsset.src;
-  muscleImg.alt=name+' – anatomische '+anatomyAsset.view+' mit markierten Haupt- und Hilfsmuskeln';
+  muscleImg.src=preferredAsset;
+  muscleImg.alt=name+' – detaillierte anatomische Muskel- und Mobilisationsbereiche';
   muscleImg.decoding='async';
   art.muscle=muscleImg;
  }
