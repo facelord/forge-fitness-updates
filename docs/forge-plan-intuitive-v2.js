@@ -55,6 +55,9 @@ function refreshCadence(){
  const weekdayPick=$('forgePlanV2WeekdayPick');
  if(weekdayPick)weekdayPick.hidden=isInterval;
  const days=$('days'),cycle=$('forgePlanV2NewUnitCount');
+ const firstOption=Array.from(days?.options||[]).find(option=>option.value==='1');
+ if(firstOption){firstOption.hidden=!isInterval;firstOption.disabled=!isInterval;}
+ if(!isInterval&&days&&Number(days.value)<2)days.value='3';
  const original=$('forgePlanV2OriginalDays'),cycleField=$('forgePlanV2NewUnits');
  if(original)original.hidden=isInterval;
  if(cycleField)cycleField.hidden=!isInterval;
@@ -280,6 +283,12 @@ function mountCreator(page){
  schedule.append(weekCount);
  const normalDays=moveField(schedule,'Wie viele Trainingstage?','days');
  if(normalDays)normalDays.id='forgePlanV2OriginalDays';
+ // The original fixed-week schedule offers 2–6 days. Add 1 exclusively
+ // for rolling plans; the cadence generator supplies its actual single slot.
+ const originalCount=$('days');
+ if(originalCount?.tagName==='SELECT'&&!Array.from(originalCount.options).some(o=>o.value==='1')){
+  const one=E('option','','1');one.value='1';originalCount.prepend(one);
+ }
  const unitField=E('label','forge-plan-v2-new-units','Wie viele verschiedene Trainingseinheiten?');
  unitField.id='forgePlanV2NewUnits';
  const unitCount=E('select');unitCount.id='forgePlanV2NewUnitCount';
