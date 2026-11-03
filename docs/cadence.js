@@ -78,7 +78,7 @@ function updateActiveInterval(input){
    created++;
   }
   C.validate(proposed);
-  state.settings={...oldSettings,cadence:proposed};
+  state.settings={...oldSettings,days:proposed.planOrder.length,cadence:proposed};
   save();
  }catch(error){
   state.settings=oldSettings;state.plan=oldPlan;
