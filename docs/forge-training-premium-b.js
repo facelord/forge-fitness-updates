@@ -122,7 +122,7 @@ const MEDIA_RULES=Object.freeze({
  'Latziehen':Object.freeze({stage:1,fit:'contain',position:'center center'}),
  'Seitheben':Object.freeze({stage:1,fit:'contain',position:'center center'}),
  'Ausfallschritte':Object.freeze({stage:1,fit:'cover',position:'center center'}),
- 'Plank':Object.freeze({stage:0,fit:'contain',position:'center center'})
+ 'Plank':Object.freeze({stage:1,fit:'cover',position:'center bottom'})
 });
 // Reuse the FORGE detailed anatomical atlas (not the simplistic workout silhouettes).
 // Each mobile asset is a portrait crop of its matching front or back anatomy view.
