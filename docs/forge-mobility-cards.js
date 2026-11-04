@@ -29,6 +29,8 @@
  });
  const previousAtlas=window.forgeExerciseIllustrations;
  const previousPublic=window.forgePublicExercisePictures;
+ const approvedPhotos=new Set(Array.isArray(window.forgeMobilityPhotoInfo?.names)?window.forgeMobilityPhotoInfo.names:[]);
+ const useFallback=name=>Object.prototype.hasOwnProperty.call(verified,name)&&!approvedPhotos.has(name);
  let zoomInstance=0;
  const escapeText=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  function card(name){
@@ -39,11 +41,11 @@
    '<input class="forge-mob-zoom-toggle" type="checkbox" id="'+id+'" aria-label="Übungskarte vergrößern: '+escapeText(name)+'">'+
    '<label class="forge-mob-zoom-control" for="'+id+'">Bilddetails vergrößern · anschließend seitlich wischen</label>'+
    '<div class="forge-mob-card-scroll" role="region" tabindex="0" aria-label="Übungskarte seitlich verschiebbar">'+
-   '<img loading="lazy" decoding="async" src="./mobility-cards/'+asset+'" alt="'+escapeText(name)+' – FORGE Übungskarte: Startposition, Endposition und beanspruchte Muskulatur"></div>'+
+   '<img loading="lazy" decoding="async" tabindex="0" role="button" src="./mobility-cards/'+asset+'" alt="'+escapeText(name)+' – FORGE Übungskarte: Startposition, Endposition und beanspruchte Muskulatur; antippen für Vollbild und Zoom"></div>'+
    '<figcaption>'+escapeText(name)+' · Startposition / Endposition / Muskulatur</figcaption></figure>';
  }
- window.forgeExerciseIllustrations=function(name){return Object.prototype.hasOwnProperty.call(verified,name)?card(name):(typeof previousAtlas==='function'?previousAtlas(name):'');};
- window.forgePublicExercisePictures=function(name){return Object.prototype.hasOwnProperty.call(verified,name)?card(name):(typeof previousPublic==='function'?previousPublic(name):'');};
+ window.forgeExerciseIllustrations=function(name){return useFallback(name)?card(name):(typeof previousAtlas==='function'?previousAtlas(name):'');};
+ window.forgePublicExercisePictures=function(name){return useFallback(name)?card(name):(typeof previousPublic==='function'?previousPublic(name):'');};
  window.forgeMobilitySingleCards=Object.freeze({names:Object.keys(verified),card});
  function styles(){
   if(document.getElementById('forgeMobSingleCardStyle'))return;

@@ -18,10 +18,20 @@
  }
  function filterMobility(exercises,query){
    var term=normalize(query);
-   return exercises.filter(x=>!term||normalize([x.name,x.region].concat(x.steps||[]).join(' ')).includes(term));
+   return exercises.filter(x=>!term||normalize([x.name,x.region,x.tip].concat(x.steps||[]).join(' ')).includes(term));
  }
  // A pure read-only helper for regression tests; there is no second exercise store.
- window.ForgeCatalogCategories={filterMobility:filterMobility,normalize:normalize};
+ function doseLabel(exercise){
+   var amount=Number(exercise&&exercise.amount)||0;
+   var seconds=Number(exercise&&exercise.seconds)||0;
+   var labels=[];
+   if(exercise&&exercise.mode==='hold'&&amount>0)labels.push(amount+' Sek. halten');
+   else if(amount>0)labels.push(amount+' Wiederholungen');
+   if(seconds>0&&(exercise&&exercise.mode!=='hold'||seconds!==amount))labels.push('ca. '+seconds+' Sek.');
+   if(exercise&&exercise.sides)labels.push('je Seite');
+   return labels.join(' · ');
+ }
+ window.ForgeCatalogCategories={filterMobility:filterMobility,normalize:normalize,doseLabel:doseLabel};
  function refreshMixButtons(){
    var names=typeof window.forgePlusMobilityMixNames==='function'
      ?window.forgePlusMobilityMixNames():[];
@@ -47,6 +57,8 @@
    if(!host||host.dataset.ready)return;
    host.dataset.ready='1';
    host.classList.add('forge165-mob-content');
+   var dosage=doseLabel(exercise);
+   if(dosage)host.append(element('p','forge165-dose',dosage));
    var picture=element('div','forge165-visual');
    if(typeof window.forgeExerciseIllustrations==='function'){
      var html=window.forgeExerciseIllustrations(exercise.name);
@@ -132,6 +144,7 @@
      '#forgeCatalogCategoryChoices .forge165-category-card small{font-size:11px;line-height:1.35;color:#bfd1ca}',
      '#forgeCatalog .forge165-hint{margin:3px 0 13px;color:#bac9c5;font-size:12px;line-height:1.5}',
      '#forgeCatalog .forge165-region{font-size:11px;font-weight:600;color:#acd6bd;text-align:right}',
+     '#forgeCatalog .forge165-dose{margin:8px 0;padding:9px 11px;border-radius:9px;background:#142c24;color:#b8f6bd;font-size:13px;font-weight:750;line-height:1.5}',
      '#forgeCatalog .forge165-instructions{padding:6px 0 10px;font-size:13px;line-height:1.55}',
      '#forgeCatalog .forge165-instructions ol{padding-left:22px;margin:10px 0}',
      '#forgeCatalog .forge165-instructions li{margin:6px 0}',

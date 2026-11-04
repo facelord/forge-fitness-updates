@@ -17,6 +17,11 @@ function renderWith(fn,name){
  const markup=originalRenderer(fn,name);
  const record=find(name);
  if(!markup||!record?.muscle)return markup;
+ // Preserve all three independently reviewed photos when an exercise is approved.
+ if(record.type==='mobility'&&window.forgeMobilityPhotoInfo?.names?.includes(name))return markup;
+ // The V10.1 gallery already carries its correct independent muscle SVG;
+ // never rebuild or downscale its image nodes in the old V8 adapter.
+ if(record.type==='strength'&&window.ForgeChestPhotoBlock01?.names?.includes(name))return markup;
  const root=document.createElement('div');root.innerHTML=markup;
  const figures=Array.from(root.querySelectorAll('figure')).filter(node=>!!node.querySelector('img,svg'));
  if(figures.length<3){

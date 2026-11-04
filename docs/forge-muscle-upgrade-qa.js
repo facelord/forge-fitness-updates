@@ -26,7 +26,7 @@ const images={
  "Bird Dog": "19-bird-dog.svg"
 };
 const gridQuery='.forge165-photo-grid,.forge166-photo-grid,.forge167-photo-grid,.forge169-photo-grid';
-const zoomQuery='.forge165-photo-grid img,.forge166-photo-grid img,.forge167-photo-grid img,.forge169-photo-grid img';
+const zoomQuery='.forge165-photo-grid img,.forge166-photo-grid img,.forge167-photo-grid img,.forge169-photo-grid img,#forgeCatalog .forge-mob-card-scroll img,#forgeCatalog .forge-mob-photos img,.forge-media-v8-mobility-anatomy img,.forge-v101-chest-grid img';
 const originalExercise=window.forgeExerciseIllustrations;
 const originalCatalog=window.forgePublicExercisePictures;
 function assetFor(name){return Object.prototype.hasOwnProperty.call(images,name)?'./muscle-atlas-v2/'+images[name]:null;}
@@ -57,17 +57,18 @@ function styles(){
  if(document.getElementById('forge-anatomy-v2-style'))return;
  const el=document.createElement('style');el.id='forge-anatomy-v2-style';
  el.textContent=`
- .forge165-photo-grid img,.forge166-photo-grid img,.forge167-photo-grid img,.forge169-photo-grid img{cursor:zoom-in}
+ .forge165-photo-grid img,.forge166-photo-grid img,.forge167-photo-grid img,.forge169-photo-grid img,#forgeCatalog .forge-mob-card-scroll img,#forgeCatalog .forge-mob-photos img,.forge-media-v8-mobility-anatomy img,.forge-v101-chest-grid img{cursor:zoom-in}
  .forge-anatomy-v2-figure img.forge-anatomy-v2-image{display:block;width:100%!important;height:auto!important;max-height:none!important;aspect-ratio:1420/1240!important;object-fit:contain!important;background:#061720!important}
  .forge-anatomy-v2-legend{font-size:11px!important;color:#cedbd2!important;line-height:1.5!important;text-align:center;padding:6px 8px 9px!important;margin:0!important}
  .forge-anatomy-v2-image:focus-visible{outline:3px solid #a8f55d;outline-offset:2px}
- .forge-anatomy-v2-modal{position:fixed;inset:0;z-index:2147483640;background:rgba(3,10,15,.98);color:#f5fff7;display:flex;flex-direction:column}
- .forge-anatomy-v2-bar{display:flex;align-items:center;gap:8px;background:#102630;padding:calc(6px + env(safe-area-inset-top,0px)) 10px 8px}
- .forge-anatomy-v2-bar strong{flex:1;min-width:0;font-size:12px;max-height:42px;overflow:hidden}
+ .forge-anatomy-v2-modal{position:fixed;inset:0;z-index:2147483640;background:rgba(3,10,15,.72);color:#f5fff7;display:flex;align-items:center;justify-content:center;padding:clamp(14px,4vw,32px);box-sizing:border-box;touch-action:manipulation}
+ .forge-anatomy-v2-panel{width:min(640px,100%);height:min(78dvh,720px);max-height:calc(100dvh - 28px);min-height:0;display:flex;flex-direction:column;overflow:hidden;border:1px solid #3c5f50;border-radius:16px;background:#091a1c;box-shadow:0 18px 65px rgba(0,0,0,.65);touch-action:auto}
+ .forge-anatomy-v2-bar{display:flex;flex:none;align-items:center;gap:6px;background:#102630;padding:5px 8px}
+ .forge-anatomy-v2-bar strong{flex:1;min-width:0;font-size:12px;line-height:1.2;max-height:3.6em;overflow:hidden}
  .forge-anatomy-v2-bar button{min-width:44px;min-height:44px;border-radius:9px;border:1px solid #4b746f;background:#1b3641;color:white;font-size:22px}
- .forge-anatomy-v2-stage{flex:1;min-height:0;display:flex;justify-content:center;align-items:center;overflow:hidden;touch-action:none;cursor:grab}
- .forge-anatomy-v2-stage img{max-width:calc(100vw - 14px);max-height:calc(100vh - 122px);width:auto;height:auto;object-fit:contain;pointer-events:none;user-select:none;-webkit-user-drag:none;transform-origin:center;will-change:transform}
- .forge-anatomy-v2-help{text-align:center;padding:7px 10px calc(7px + env(safe-area-inset-bottom,0px));font-size:11px;color:#b9d0ca}
+ .forge-anatomy-v2-stage{flex:1;min-width:0;min-height:0;box-sizing:border-box;display:flex;justify-content:center;align-items:center;overflow:hidden;padding:8px 10px;touch-action:none;cursor:grab}
+ .forge-anatomy-v2-stage img{display:block;flex:none;min-width:0;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;object-position:center center;pointer-events:none;user-select:none;-webkit-user-drag:none;transform-origin:center center;will-change:transform}
+ .forge-anatomy-v2-help{flex:none;text-align:center;padding:4px 8px 6px;font-size:11px;color:#b9d0ca}
  `;
  document.head.append(el);
 }
@@ -81,9 +82,11 @@ function zoomOpen(source){
  const minus=make('−','Verkleinern'),plus=make('+','Vergrößern'),reset=make('↺','Zoom zurücksetzen'),exit=make('✕','Schließen');
  bar.append(title,minus,plus,reset,exit);
  const stage=document.createElement('div');stage.className='forge-anatomy-v2-stage';
- const img=document.createElement('img');img.src=source.currentSrc||source.src;img.alt=source.alt||'';img.draggable=false;stage.append(img);
- const help=document.createElement('div');help.className='forge-anatomy-v2-help';help.textContent='Zwei Finger: Zoom · Bei Vergrößerung: Bild verschieben';
- box.append(bar,stage,help);
+ const img=document.createElement('img');img.src=source.currentSrc||source.src;img.alt=source.alt||'';img.draggable=false;
+ // V10.2: every opening starts at 1x fit-to-contain, never at a test zoom.
+ img.style.transform='translate(0px, 0px) scale(1)';stage.append(img);
+ const help=document.createElement('div');help.className='forge-anatomy-v2-help';help.textContent='Zwei Finger: Zoom · Tippe daneben zum Schließen';
+ const panel=document.createElement('div');panel.className='forge-anatomy-v2-panel';panel.append(bar,stage,help);box.append(panel);
  let z=1,x=0,y=0,prior=0;const pointers=new Map(),oldOverflow=document.body.style.overflow,oldFocus=document.activeElement;
  function draw(){img.style.transform='translate('+x+'px,'+y+'px) scale('+z+')';}
  function setZoom(next){z=Math.min(6,Math.max(1,next));if(z===1){x=0;y=0;}draw();}
@@ -94,6 +97,8 @@ function zoomOpen(source){
  plus.addEventListener('click',()=>setZoom(z*1.35));
  reset.addEventListener('click',()=>setZoom(1));
  exit.addEventListener('click',close);
+ // Click or tap the dimmed page, never the image/panel, to dismiss.
+ box.addEventListener('click',event=>{if(event.target===box)close();});
  stage.addEventListener('dblclick',()=>setZoom(z>1?1:2.3));
  stage.addEventListener('wheel',e=>{e.preventDefault();setZoom(z*(e.deltaY<0?1.16:1/1.16));},{passive:false});
  const span=()=>{const a=[...pointers.values()];return a.length===2?Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y):0;};
