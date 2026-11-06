@@ -26,7 +26,7 @@ const images={
  "Bird Dog": "19-bird-dog.svg"
 };
 const gridQuery='.forge165-photo-grid,.forge166-photo-grid,.forge167-photo-grid,.forge169-photo-grid';
-const zoomQuery='.forge165-photo-grid img,.forge166-photo-grid img,.forge167-photo-grid img,.forge169-photo-grid img,#forgeCatalog .forge-mob-card-scroll img,#forgeCatalog .forge-mob-photos img,.forge-media-v8-mobility-anatomy img,.forge-v101-chest-grid img';
+const zoomQuery='.forge165-photo-grid img,.forge166-photo-grid img,.forge167-photo-grid img,.forge169-photo-grid img,#forgeCatalog .forge-mob-card-scroll img,#forgeCatalog .forge-mob-photos img,.forge-media-v8-mobility-anatomy img,.forge-v101-chest-grid img,.forge-strength-board img,#forgePremiumHero .forge-b-main-photo.forge-strength-board-hero img';
 const originalExercise=window.forgeExerciseIllustrations;
 const originalCatalog=window.forgePublicExercisePictures;
 function assetFor(name){return Object.prototype.hasOwnProperty.call(images,name)?'./muscle-atlas-v2/'+images[name]:null;}
@@ -57,7 +57,7 @@ function styles(){
  if(document.getElementById('forge-anatomy-v2-style'))return;
  const el=document.createElement('style');el.id='forge-anatomy-v2-style';
  el.textContent=`
- .forge165-photo-grid img,.forge166-photo-grid img,.forge167-photo-grid img,.forge169-photo-grid img,#forgeCatalog .forge-mob-card-scroll img,#forgeCatalog .forge-mob-photos img,.forge-media-v8-mobility-anatomy img,.forge-v101-chest-grid img{cursor:zoom-in}
+ .forge165-photo-grid img,.forge166-photo-grid img,.forge167-photo-grid img,.forge169-photo-grid img,#forgeCatalog .forge-mob-card-scroll img,#forgeCatalog .forge-mob-photos img,.forge-media-v8-mobility-anatomy img,.forge-v101-chest-grid img,.forge-strength-board img,#forgePremiumHero .forge-b-main-photo.forge-strength-board-hero img{cursor:zoom-in}
  .forge-anatomy-v2-figure img.forge-anatomy-v2-image{display:block;width:100%!important;height:auto!important;max-height:none!important;aspect-ratio:1420/1240!important;object-fit:contain!important;background:#061720!important}
  .forge-anatomy-v2-legend{font-size:11px!important;color:#cedbd2!important;line-height:1.5!important;text-align:center;padding:6px 8px 9px!important;margin:0!important}
  .forge-anatomy-v2-image:focus-visible{outline:3px solid #a8f55d;outline-offset:2px}

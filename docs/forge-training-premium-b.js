@@ -153,7 +153,7 @@ function imageData(name){
    // One-exercise mobility cards contain movement AND anatomy in the same
    // approved composite. Do not mistake the whole card for a muscle-only image:
    // until its 3 separate files are QA-approved, it remains a readable hero.
-   const combined=(node)=>!!node.closest?.('.forge-mob-single-card');
+   const combined=(node)=>!!node.closest?.('.forge-mob-single-card,.forge-strength-board');
    const isAnatomy=(node,index)=>!combined(node)&&(
     /hauptmuskel|beanspruchte muskel|muskelgruppe|anatom/i.test(label(node))||
     node.classList?.contains('forge-anatomy-v2-image'));
@@ -209,6 +209,11 @@ function showHero(card,name,session){
    mainPhoto.dataset.fit=art.rule.fit;
    mainPhoto.style.objectPosition=art.rule.position;
    if(art.composite)mainPhoto.classList.add('forge-b-split-photo');
+  }
+  if(mainPhoto.dataset?.forgeStrengthBoardImage==='1'){
+   visual.classList.add('forge-strength-board-hero');
+   mainPhoto.dataset.fit='contain';
+   mainPhoto.style.objectPosition='center center';
   }
   visual.append(mainPhoto);
  }

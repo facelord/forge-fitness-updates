@@ -22,6 +22,10 @@ function renderWith(fn,name){
  // The V10.1 gallery already carries its correct independent muscle SVG;
  // never rebuild or downscale its image nodes in the old V8 adapter.
  if(record.type==='strength'&&window.ForgeChestPhotoBlock01?.names?.includes(name))return markup;
+ // A V10.5 approved photo triple already contains the correct independent SVG.
+ if(record.type==='strength'&&window.ForgeStrengthBlock02?.approvedNames?.includes(name))return markup;
+ // User-approved single board already contains movement, anatomy and tips.
+ if(record.type==='strength'&&window.ForgeStrengthBoards?.has?.(name))return markup;
  const root=document.createElement('div');root.innerHTML=markup;
  const figures=Array.from(root.querySelectorAll('figure')).filter(node=>!!node.querySelector('img,svg'));
  if(figures.length<3){
