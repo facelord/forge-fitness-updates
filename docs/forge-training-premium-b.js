@@ -232,15 +232,17 @@ function showHero(card,name,session){
  const anatomy=$('forgeBAnatomy');
  if(anatomy){
   anatomy.replaceChildren();
-  anatomy.append(create('span','forge-b-anatomy-label','Hauptmuskeln'));
-  if(art.muscle)anatomy.append(picture(art.muscle,name+' – beanspruchte Muskelgruppen'));
-  else {
-   const fallback=anatomyFallback(name);
-   if(fallback)anatomy.append(fallback);
-   else anatomy.hidden=true;
-  }
   if(window.ForgeStrengthBoards?.isStrength?.(name))anatomy.hidden=true;
-  else if(art.muscle||muscleGroups[name])anatomy.hidden=false;
+  else {
+   anatomy.append(create('span','forge-b-anatomy-label','Hauptmuskeln'));
+   if(art.muscle)anatomy.append(picture(art.muscle,name+' – beanspruchte Muskelgruppen'));
+   else {
+    const fallback=anatomyFallback(name);
+    if(fallback)anatomy.append(fallback);
+    else anatomy.hidden=true;
+   }
+   if(art.muscle||muscleGroups[name])anatomy.hidden=false;
+  }
  }
  const title=$('forgeBExerciseName');if(title)title.textContent=name;
  lastHero=identity;lastCard=card;rendered++;
