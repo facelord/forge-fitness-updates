@@ -59,14 +59,17 @@ function updateActiveInterval(input){
  var cycle;
  try{cycle=cycleUnits(count);}
  catch(error){return {ok:false,error:error.message};}
- var proposed={...active,every:Number(input&&input.every),anchor:String(input&&input.anchor||''),planOrder:cycle.order.slice()};
+ // Manual rhythm edit always defines A as the new first unit. The separate
+ // "Verschieben" operation preserves B/C phase explicitly.
+ var proposed={...active,every:Number(input&&input.every),anchor:String(input&&input.anchor||''),planOrder:cycle.order.slice(),rotationOffset:0};
  try{
   for(var i=0;i<cycle.newUnits;i++)proposed.planOrder.push('__new_unit_'+i);
   C.validate(proposed);
  }catch(error){return {ok:false,error:'Bitte ein gültiges Startdatum, 1–14 Tage Abstand und 1–4 Einheiten wählen.'};}
  if(proposed.every===active.every&&proposed.anchor===active.anchor&&
     proposed.planOrder.length===active.planOrder.length&&
-    proposed.planOrder.every((id,i)=>String(id)===String(active.planOrder[i])))
+    proposed.planOrder.every((id,i)=>String(id)===String(active.planOrder[i]))&&
+    (active.rotationOffset||0)===0)
   return {ok:true,changed:false,created:0,paused:0};
  var oldSettings=state.settings,oldPlan=state.plan.slice();
  var created=0;
@@ -90,8 +93,41 @@ function updateActiveInterval(input){
  applyMode();
  return {ok:true,changed:true,created,paused:Math.max(0,active.planOrder.length-count)};
 }
+/* Move the next scheduled unit without skipping its letter in the rotation.
+ * Shift B to Monday -> B on Monday, C after "every" calendar days.
+ * Existing workout logs and exercises are never touched. */
+function postponeNextWorkout(input){
+ var active=cadence();
+ if(!active)return {ok:false,error:'Die Funktion ist für Pläne mit „Alle X Tage“ verfügbar.'};
+ if(state.activeWorkout)return {ok:false,error:'Bitte zuerst das laufende Training beenden.'};
+ var today=C.localToday(new Date()),due;
+ try{due=C.next(active,today);}
+ catch(error){return {ok:false,error:'Aktueller Trainingsrhythmus ist ungültig.'};}
+ if(input?.fromDate&&input.fromDate!==due.date)
+  return {ok:false,error:'Der Trainingsplan wurde inzwischen geändert. Bitte Termin neu auswählen.'};
+ var moved;
+ try{moved=C.postponeNext(active,today,String(input?.toDate||''));}
+ catch(error){return {ok:false,error:error.message};}
+ if(!state.plan.some(p=>String(p.id)===String(due.planId)))
+  return {ok:false,error:'Die geplante Trainingseinheit wurde nicht gefunden.'};
+ var previous=state.settings;
+ try{
+  state.settings={...previous,cadence:moved.cadence};
+  save();
+ }catch(error){
+  state.settings=previous;
+  console.error('FORGE: Training verschieben fehlgeschlagen',error);
+  return {ok:false,error:'Speichern fehlgeschlagen. Der Plan bleibt unverändert.'};
+ }
+ mode='interval';every=moved.cadence.every;anchor=moved.cadence.anchor;dirty=false;
+ try{render();}catch(error){console.error('FORGE: Ansicht nach Verschieben aktualisieren',error);}
+ applyMode();
+ return {ok:true,before:moved.before,after:moved.after,
+  next:C.upcoming(moved.cadence,moved.after.date,2)[1],changed:true};
+}
 window.ForgeCadenceSchedule=Object.freeze({
  getActive:()=>cadence(),
+ postponeNextWorkout,
  previewUnitCount:count=>{
   try{return {ok:true,...cycleUnits(Number(count))};}
   catch(error){return {ok:false,error:error.message};}
@@ -280,7 +316,7 @@ function overview(){
   var next=C.upcoming(c,dateNow(),5);
   box.replaceChildren();
   box.append(E('strong','forge-cadence-due','Alle '+c.every+' '+(c.every===1?'Tag':'Tage')+' · Training im Wechsel'));
-  box.append(E('p','forge-cadence-help','Keine festen Trainingstage. Verpasste Termine verschieben den Kalender nicht automatisch.'));
+  box.append(E('p','forge-cadence-help','Keine festen Wochentage. Über „Nächste Einheit verschieben“ kannst du den gesamten folgenden Rhythmus nach hinten legen.'));
   next.forEach((x,i)=>{
    var p=state.plan.find(v=>v.id===x.planId);
    var row=E('div','forge-cadence-upcoming',(i===0?'Nächstes Training: ':'')+pretty(x.date)+' · '+(p?.title||'Training'));

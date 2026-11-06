@@ -488,7 +488,18 @@ function renderCompact(){
      exercisePreview(day.primary).length+' Übungen · '+(day.primary.location==='gym'?'Studio':'Zuhause')));
     const tools=el('div','forge-polish-day-actions');
     tools.append(createBtn('▶ Start',()=>startPlanned(day.primary.id)));
-    if(state.settings?.cadence?.mode!=='interval'){
+    if(state.settings?.cadence?.mode==='interval'){
+     // Rolling sessions are not fixed weekdays. Shift only the NEXT due unit
+     // so B stays B and all subsequent units inherit the same new interval.
+     const core=window.ForgeCadenceCore,cadence=state.settings.cadence;
+     let upcoming=null;
+     try{upcoming=core?.next(cadence,localISO());}catch(_){}
+     if(upcoming?.date===day.date&&String(upcoming.planId)===String(day.primary.id)){
+      const move=createBtn('↔ Verschieben',()=>window.ForgePlanShift?.open?.(),'forge-polish-shift-action');
+      move.setAttribute('aria-label','Nächste Trainingseinheit vom '+day.date+' mit gesamtem Folgerhythmus verschieben');
+      tools.append(move);
+     }
+    }else{
      tools.append(createBtn('↔ Verschieben',()=>moveDay(day.primary,day.weekday),'btn alt small'));
     }
     content.append(tools);

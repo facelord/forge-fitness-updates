@@ -21,6 +21,11 @@
     if(!c||c.mode!=='interval'||!Number.isInteger(c.every)||c.every<1||c.every>14)throw Error('Intervall muss 1 bis 14 Tage betragen');
     toOrdinal(c.anchor);
     if(!Array.isArray(c.planOrder)||!c.planOrder.length||!c.planOrder.every(x=>typeof x==='string'&&x.length))throw Error('Fehlende Trainingseinheiten');
+    // Rotation offset keeps the same named unit (e.g. B) when its date moves.
+    // Legacy plans without an offset still begin at A.
+    if(c.rotationOffset!==undefined &&
+       (!Number.isInteger(c.rotationOffset)||c.rotationOffset<0||c.rotationOffset>=c.planOrder.length))
+      throw Error('Ungültige Trainingsrotation');
     return c;
   }
   function onDate(c,iso){
@@ -28,26 +33,40 @@
     const delta=toOrdinal(iso)-toOrdinal(c.anchor);
     if(delta<0||delta%c.every!==0)return null;
     const index=delta/c.every;
-    return {date:iso,step:index,planId:c.planOrder[index%c.planOrder.length]};
+    return {date:iso,step:index,planId:c.planOrder[(index+(c.rotationOffset||0))%c.planOrder.length]};
   }
   function next(c,iso){
     validate(c);
     const diff=toOrdinal(iso)-toOrdinal(c.anchor);
     const step=Math.max(0,Math.ceil(diff/c.every));
     const date=fromOrdinal(toOrdinal(c.anchor)+step*c.every);
-    return {date,step,planId:c.planOrder[step%c.planOrder.length]};
+    return {date,step,planId:c.planOrder[(step+(c.rotationOffset||0))%c.planOrder.length]};
   }
   function upcoming(c,iso,count=4){
     const list=[],first=next(c,iso);
     for(let i=0;i<count;i++){
       const step=first.step+i;
-      list.push({date:fromOrdinal(toOrdinal(c.anchor)+step*c.every),step,planId:c.planOrder[step%c.planOrder.length]});
+      list.push({date:fromOrdinal(toOrdinal(c.anchor)+step*c.every),step,planId:c.planOrder[(step+(c.rotationOffset||0))%c.planOrder.length]});
     }
     return list;
+  }
+  function postponeNext(c,fromDate,toDate){
+    validate(c);
+    const due=next(c,fromDate);
+    const original=toOrdinal(due.date),target=toOrdinal(toDate);
+    if(target<=original)throw Error('Bitte einen späteren Trainingstag wählen.');
+    if(target-toOrdinal(fromDate)>90)throw Error('Verschieben ist maximal 90 Tage im Voraus möglich.');
+    const rotationOffset=(c.rotationOffset||0)+due.step;
+    const shifted={...c,anchor:toDate,rotationOffset:rotationOffset%c.planOrder.length};
+    validate(shifted);
+    const moved=next(shifted,toDate);
+    if(moved.planId!==due.planId||moved.date!==toDate)
+      throw Error('Verschieben der Trainingseinheit fehlgeschlagen.');
+    return {before:due,after:moved,cadence:shifted};
   }
   function week(c,iso){
     const n=toOrdinal(iso);const dow=(new Date(n*MS).getUTCDay()+6)%7,mon=n-dow;
     return Array.from({length:7},(_,i)=>({date:fromOrdinal(mon+i),weekday:i,event:onDate(c,fromOrdinal(mon+i))}));
   }
-  return Object.freeze({toOrdinal,fromOrdinal,localToday,validate,onDate,next,upcoming,week});
+  return Object.freeze({toOrdinal,fromOrdinal,localToday,validate,onDate,next,upcoming,postponeNext,week});
 });

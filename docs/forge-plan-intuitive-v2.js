@@ -91,7 +91,7 @@ function cadencePreview(){
   if(!cycle?.ok)throw Error(cycle?.error||'Ungültige Einheitenauswahl');
   const order=cycle.order.slice();
   for(let i=0;i<cycle.newUnits;i++)order.push('forge-new-preview-'+i);
-  const candidate={...current,anchor:date.value,every:Number(interval.value),planOrder:order};
+  const candidate={...current,anchor:date.value,every:Number(interval.value),planOrder:order,rotationOffset:0};
   C.validate(candidate);
   const today=C.localToday(new Date());
   const upcoming=C.upcoming(candidate,today,4);
@@ -101,6 +101,42 @@ function cadencePreview(){
   }).join(' → ');
  }catch(error){preview.textContent='Bitte ein gültiges Startdatum wählen.';}
 }
+function nextRollingUnit(){
+ const current=window.ForgeCadenceSchedule?.getActive(),C=window.ForgeCadenceCore;
+ if(!current||!C)return null;
+ try{
+  const due=C.next(current,C.localToday(new Date()));
+  const index=current.planOrder.findIndex(id=>String(id)===String(due.planId));
+  return {due,unit:'Einheit '+String.fromCharCode(65+Math.max(0,index)),current,C};
+ }catch(_){return null;}
+}
+function shiftPreview(){
+ const data=nextRollingUnit(),field=$('forgePlanV2ShiftDate'),preview=$('forgePlanV2ShiftPreview');
+ if(!data||!field||!preview)return;
+ try{
+  const shifted=data.C.postponeNext(data.current,data.C.localToday(new Date()),field.value);
+  const future=data.C.upcoming(shifted.cadence,field.value,3);
+  const unitName=entry=>'Einheit '+String.fromCharCode(65+data.current.planOrder.findIndex(id=>String(id)===String(entry.planId)));
+  preview.textContent=future.map(entry=>readableDate(entry.date)+' · '+unitName(entry)).join(' → ');
+ }catch(error){preview.textContent=error.message||'Bitte ein gültiges, späteres Datum wählen.';}
+}
+function openShiftEditor(){
+ const data=nextRollingUnit(),editor=$('forgePlanV2ShiftEditor'),field=$('forgePlanV2ShiftDate');
+ if(!data||!editor||!field)return false;
+ const min=data.C.fromOrdinal(data.C.toOrdinal(data.due.date)+1);
+ const max=data.C.fromOrdinal(data.C.toOrdinal(data.C.localToday(new Date()))+90);
+ field.min=min;field.max=max;
+ // Prefer the following Monday, otherwise the next available calendar day.
+ const weekday=new Date(data.C.toOrdinal(data.due.date)*86400000).getUTCDay();
+ const mondayAhead=(8-weekday)%7||7;
+ const suggested=data.C.fromOrdinal(data.C.toOrdinal(data.due.date)+mondayAhead);
+ field.value=suggested<=max?suggested:min;
+ $('forgePlanV2ShiftFeedback').textContent='';
+ editor.hidden=false;shiftPreview();
+ editor.scrollIntoView?.({block:'nearest',behavior:'smooth'});field.focus();
+ return true;
+}
+window.ForgePlanShift=Object.freeze({open:openShiftEditor,preview:shiftPreview});
 function refreshActiveCadence(){
  const bar=$('forgePlanV2Cadence');
  if(!bar||typeof state==='undefined')return;
@@ -111,6 +147,10 @@ function refreshActiveCadence(){
   return;
  }
  const label=$('forgePlanV2CadenceCurrent');
+ const next=nextRollingUnit();
+ const dueLabel=$('forgePlanV2ShiftDue'),shift=$('forgePlanV2Shift');
+ if(shift)shift.hidden=!next;
+ if(dueLabel)dueLabel.textContent=next?'Nächste Einheit: '+next.unit+' · '+readableDate(next.due.date):'';
  const length=Array.isArray(current.planOrder)?current.planOrder.length:state.plan.length;
  const text='Start: '+readableDate(current.anchor)+' · Alle '+current.every+' '+(current.every===1?'Tag':'Tage')+' · '+length+' '+(length===1?'Einheit':'Einheiten');
  if(label&&label.textContent!==text)label.textContent=text;
@@ -170,7 +210,36 @@ function mountActiveCadence(surface){
  actions.append(cancel,saveButton);editor.append(actions);
  const feedback=E('p','forge-plan-v2-cadence-feedback','');feedback.id='forgePlanV2CadenceFeedback';
  feedback.setAttribute('role','status');feedback.setAttribute('aria-live','polite');
- box.append(editor,feedback);surface.append(box);refreshActiveCadence();
+ box.append(editor,feedback);
+ // Keep the next-workout action visible even when the active exercise list is folded.
+ const shift=E('div','forge-plan-v2-shift');shift.id='forgePlanV2Shift';
+ const shiftTop=E('div','forge-plan-v2-shift-top');
+ const shiftDue=E('strong','forge-plan-v2-shift-due','');shiftDue.id='forgePlanV2ShiftDue';
+ const shiftButton=button('↔ Nächste Einheit verschieben',openShiftEditor,'forge-plan-v2-shift-open');
+ shiftButton.id='forgePlanV2ShiftButton';shiftButton.setAttribute('aria-controls','forgePlanV2ShiftEditor');
+ shiftTop.append(shiftDue,shiftButton);shift.append(shiftTop);
+ const shiftEditor=E('div','forge-plan-v2-shift-editor');shiftEditor.id='forgePlanV2ShiftEditor';shiftEditor.hidden=true;
+ const shiftField=E('label','','Neuer Trainingstag');
+ const shiftDate=E('input');shiftDate.type='date';shiftDate.id='forgePlanV2ShiftDate';
+ shiftDate.setAttribute('aria-label','Neues Datum für die nächste geplante Trainingseinheit');
+ shiftDate.addEventListener('change',shiftPreview);shiftField.append(shiftDate);
+ shiftEditor.append(shiftField);
+ shiftEditor.append(E('p','forge-plan-v2-shift-help','Die nächste Einheit bleibt erhalten. Alle folgenden Einheiten verschieben sich automatisch im gewählten Tagesabstand.'));
+ const shiftResult=E('p','forge-plan-v2-shift-preview','');shiftResult.id='forgePlanV2ShiftPreview';shiftEditor.append(shiftResult);
+ const shiftActions=E('div','forge-plan-v2-shift-actions');
+ const shiftFeedback=E('p','forge-plan-v2-shift-feedback','');shiftFeedback.id='forgePlanV2ShiftFeedback';
+ shiftFeedback.setAttribute('role','status');shiftFeedback.setAttribute('aria-live','polite');
+ shiftActions.append(button('Abbrechen',()=>{shiftEditor.hidden=true;shiftFeedback.textContent='';},'forge-plan-v2-shift-cancel'),
+ button('Termin & Folgeplan verschieben',()=>{
+  const data=nextRollingUnit();
+  const result=window.ForgeCadenceSchedule?.postponeNextWorkout({fromDate:data?.due.date,toDate:shiftDate.value});
+  if(!result?.ok){shiftFeedback.textContent=result?.error||'Verschieben fehlgeschlagen.';return;}
+  shiftEditor.hidden=true;
+  shiftFeedback.textContent='Verschoben: '+readableDate(result.after.date)+'. Nächste Einheit danach: '+readableDate(result.next.date)+'.';
+  refreshActiveCadence();
+ },'forge-plan-v2-shift-save'));
+ shiftEditor.append(shiftActions);shift.append(shiftEditor,shiftFeedback);
+ box.append(shift);surface.append(box);refreshActiveCadence();
 }
 
 function refreshOverview(){
@@ -407,6 +476,22 @@ function styles(){
   '#plan .forge-plan-v2-cadence-save{background:#9eff00;border:1px solid #9eff00;color:#111b0b}',
   '#plan .forge-plan-v2-cadence-feedback{font-size:12px;color:#b7f29a;margin:9px 0 0}',
   '#plan .forge-plan-v2-cadence-feedback:empty{display:none}',
+  '#plan .forge-plan-v2-shift{margin:13px 0 0;padding:12px 0 3px;border-top:1px solid #365343}',
+  '#plan .forge-plan-v2-shift[hidden],#plan .forge-plan-v2-shift-editor[hidden]{display:none!important}',
+  '#plan .forge-plan-v2-shift-top{display:grid;gap:8px}',
+  '#plan .forge-plan-v2-shift-due{font-size:13px;color:#edf6e8}',
+  '#plan .forge-plan-v2-shift-open{width:100%;min-height:48px;border:1px solid #9eff00;border-radius:10px;background:#24422e;color:#d6ffb5;font-weight:800;font-size:14px}',
+  '#plan .forge-plan-v2-shift-editor{padding:13px 0 4px}',
+  '#plan .forge-plan-v2-shift-editor label{display:grid;gap:8px;font-size:13px;color:#d3e9d0;font-weight:700}',
+  '#plan .forge-plan-v2-shift-editor input{width:100%;min-height:48px;box-sizing:border-box;padding:8px 12px;border-radius:9px;color-scheme:dark;font-size:16px}',
+  '#plan .forge-plan-v2-shift-help{font-size:12px;line-height:1.5;color:#c4d7bd;margin:11px 0}',
+  '#plan .forge-plan-v2-shift-preview{font-size:12px;line-height:1.6;color:#b8ff86;margin:10px 0}',
+  '#plan .forge-plan-v2-shift-actions{display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end}',
+  '#plan .forge-plan-v2-shift-actions button{min-height:45px;padding:9px 12px;border-radius:9px;font-weight:750;font-size:12px}',
+  '#plan .forge-plan-v2-shift-cancel{background:transparent;border:1px solid #56775b;color:#dce8da}',
+  '#plan .forge-plan-v2-shift-save{background:#9eff00;border:1px solid #9eff00;color:#0c1608}',
+  '#plan .forge-plan-v2-shift-feedback{font-size:12px;color:#b8ff86;line-height:1.5;margin:8px 0}',
+  '#plan .forge-plan-v2-shift-feedback:empty{display:none}',
   '@media(max-width:380px){#plan .forge-plan-v2-cadence-fields{grid-template-columns:1fr}}',
   '#plan .forge-plan-v2-kicker{font-size:11px;color:#a8f55d;font-weight:850;letter-spacing:.08em}',
   '#plan .forge-plan-v2-active h2{font-size:20px;margin:6px 0 4px;color:#f4fff0}',
