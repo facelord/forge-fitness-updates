@@ -4,6 +4,10 @@
 (function(){
 'use strict';
 const boards={"Beinstrecker":"./strength-boards/beinstrecker.webp","Abduktorenmaschine":"./strength-boards/abduktorenmaschine.webp","Adduktorenmaschine":"./strength-boards/adduktorenmaschine.webp","Einbeiniges rumänisches Kreuzheben":"./strength-boards/einbeiniges-rdl.webp"};
+const allStrength=Object.freeze(["Abduktorenmaschine","Adduktorenmaschine","Arnold Press","Ausfallschritte","Back Extensions","Bankdrücken","Beinbeuger","Beinpresse","Beinstrecker","Bird Dog","Bizepscurls","Bizepscurls mit Rucksack","Brustgestütztes Rudern","Brustpresse","Butterfly / Pec Deck","Dead Bug","Dips","Dips (Trizepsfokus)","Einarmiges Kurzhantelrudern","Einbeiniges rumänisches Kreuzheben","Enge Liegestütze","Face Pulls","Farmer's Carry","Gerade-Arme-Pulldown","Glute Bridge","Hammer Curls","Hip Thrust","Kabel-Flys","Klimmzüge","Klimmzüge (breiter Griff)","Klimmzüge (enger Griff)","Kniebeuge","Kniebeugen","Kreuzheben","Latziehen","Liegestütze","Pallof Press","Pike Push-ups","Plank","Reverse Flys","Reverse Snow Angels","Rudern am Kabel","Rudern mit Rucksack","Rumänisches Kreuzheben","Schrägbank Kurzhantel","Schulter-Außenrotation","Schulterdrücken","Seitheben","Superman Hold","Trizepsdrücken","Wadenheben","Überkopf-Trizepsstrecken"]);
+const strengthSet=new Set(allStrength);
+const isStrength=name=>strengthSet.has(name);
+const has=name=>Object.prototype.hasOwnProperty.call(boards,name);
 const previousExercise=window.forgeExerciseIllustrations;
 const previousCatalog=window.forgePublicExercisePictures;
 const safe=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -17,12 +21,13 @@ function render(name){
   '<figcaption>Gesamte Übungsübersicht ansehen · Zum Vergrößern tippen</figcaption>'+
   '</figure></div>';
 }
-window.forgeExerciseIllustrations=name=>Object.prototype.hasOwnProperty.call(boards,name)?
- render(name):(typeof previousExercise==='function'?previousExercise(name):'');
-window.forgePublicExercisePictures=name=>Object.prototype.hasOwnProperty.call(boards,name)?
- render(name):(typeof previousCatalog==='function'?previousCatalog(name):'');
-window.ForgeStrengthBoards=Object.freeze({names:Object.keys(boards),render,has:name=>
- Object.prototype.hasOwnProperty.call(boards,name)});
+window.forgeExerciseIllustrations=name=>isStrength(name)?render(name):
+ (typeof previousExercise==='function'?previousExercise(name):'');
+window.forgePublicExercisePictures=name=>isStrength(name)?render(name):
+ (typeof previousCatalog==='function'?previousCatalog(name):'');
+window.ForgeStrengthBoards=Object.freeze({names:Object.keys(boards),allStrengthNames:allStrength,
+ pendingNames:Object.freeze(allStrength.filter(name=>!has(name))),render,has,isStrength,
+ isPending:name=>isStrength(name)&&!has(name)});
 function style(){
  if(document.getElementById('forge-strength-board-styles'))return;
  const tag=document.createElement('style');

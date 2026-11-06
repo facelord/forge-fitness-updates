@@ -185,6 +185,14 @@ function imageData(name){
   muscleImg.decoding='async';
   art.muscle=muscleImg;
  }
+ // Suppress ALL legacy strength media: only the approved one-image board may render.
+ // A missing board is intentionally text-only; no old photos or anatomy fallbacks.
+ if(window.ForgeStrengthBoards?.isStrength?.(name)){
+  art.muscle=null;
+  if(!window.ForgeStrengthBoards.has(name)){
+   art.main=null;art.assetCount=0;art.composite=false;
+  }
+ }
  artCache.set(name,art);return art;
 }
 
@@ -217,7 +225,7 @@ function showHero(card,name,session){
   }
   visual.append(mainPhoto);
  }
- else if(name==='Ausfallschritte')visual.innerHTML=lungeSvg;
+ else if(name==='Ausfallschritte'&&!window.ForgeStrengthBoards?.isStrength?.(name))visual.innerHTML=lungeSvg;
  else visual.append(create('span','forge-b-fallback','Bild zur Übung noch nicht vorhanden'));
  const shade=create('div','forge-b-media-shade');
  hero.replaceChildren(visual,shade);
@@ -231,7 +239,8 @@ function showHero(card,name,session){
    if(fallback)anatomy.append(fallback);
    else anatomy.hidden=true;
   }
-  if(art.muscle||muscleGroups[name])anatomy.hidden=false;
+  if(window.ForgeStrengthBoards?.isStrength?.(name))anatomy.hidden=true;
+  else if(art.muscle||muscleGroups[name])anatomy.hidden=false;
  }
  const title=$('forgeBExerciseName');if(title)title.textContent=name;
  lastHero=identity;lastCard=card;rendered++;
