@@ -117,6 +117,19 @@ function archiveActions(){
 }
 function flattenGuides(target){
  if(!target)return;
+ // The approved FORGE board already includes muscle diagrams, both positions,
+ // technique and tips. Hide the legacy metadata, duplicate anatomy and text.
+ // Preserve the existing button for adding the exercise to the workout plan.
+ const board=$('.forge-strength-board',target);
+ if(board){
+  const add=$(':scope > button',target);
+  if(target.dataset.forge159BoardOnly!=='1'){
+   target.replaceChildren(board,...(add?[add]:[]));
+   target.dataset.forge159BoardOnly='1';
+  }
+  target.classList.add('forge159-catalog-detail','forge159-board-only');
+  return;
+ }
  const guide=$('details.forge-strength-guide',target);
  if(guide){
   const body=$('.forge-strength-body',guide);
@@ -193,6 +206,11 @@ function styles(){
  #plan .forge159-catalog-detail .forge-muscle-figure{max-width:100%}
  #plan .forge159-catalog-detail .forge-plus-meta{margin:8px 0 12px}
  #plan .forge159-catalog-detail .forge-strength-body>p{margin:10px 0}
+ /* With a completed strength board, do not add old anatomy or instruction panels. */
+ #plan .forge159-board-only{display:flex;flex-direction:column;gap:8px;padding:0 3px 10px}
+ #plan .forge159-board-only .forge-strength-board{order:0;margin:6px 0 0!important;width:100%;min-width:0}
+ #plan .forge159-board-only>.btn{order:1;align-self:flex-start;margin:3px 0 2px;min-height:44px}
+ #plan .forge159-board-only .forge-strength-board img{display:block;width:100%!important;height:auto!important;object-fit:contain!important;object-position:center!important}
  @media(max-width:380px){#plan .forge159-archive-actions{width:100%;justify-content:flex-start}
  #plan .forge159-archive-actions button{flex:1 1 auto}}
  `;

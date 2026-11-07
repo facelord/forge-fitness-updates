@@ -69,6 +69,10 @@ function styles(){
  .forge-anatomy-v2-stage{flex:1;min-width:0;min-height:0;box-sizing:border-box;display:flex;justify-content:center;align-items:center;overflow:hidden;padding:8px 10px;touch-action:none;cursor:grab}
  .forge-anatomy-v2-stage img{display:block;flex:none;min-width:0;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;object-position:center center;pointer-events:none;user-select:none;-webkit-user-drag:none;transform-origin:center center;will-change:transform}
  .forge-anatomy-v2-help{flex:none;text-align:center;padding:4px 8px 6px;font-size:11px;color:#b9d0ca}
+ /* Board: fit its complete 4:3 landscape composition without blank vertical space. */
+ .forge-anatomy-v2-board-panel{width:min(640px,100%);height:auto;max-height:calc(100dvh - 28px)}
+ .forge-anatomy-v2-board-panel .forge-anatomy-v2-stage{flex:0 0 auto;width:100%;height:auto;min-height:0;aspect-ratio:1448/1086;padding:0}
+ .forge-anatomy-v2-board-panel .forge-anatomy-v2-stage img{width:100%;height:auto;max-width:100%;max-height:100%;object-fit:contain;object-position:center center}
  `;
  document.head.append(el);
 }
@@ -77,7 +81,9 @@ function zoomOpen(source){
  if(current)current();
  const box=document.createElement('div');box.className='forge-anatomy-v2-modal';box.setAttribute('role','dialog');box.setAttribute('aria-modal','true');box.setAttribute('aria-label','Übungsbild vergrößern');
  const bar=document.createElement('div');bar.className='forge-anatomy-v2-bar';
- const title=document.createElement('strong');title.textContent=source.alt||'Übungsbild';
+ const boardImage=!!(source.classList?.contains?.('forge-strength-board-image')||
+  source.closest?.('.forge-strength-board-hero')?.classList?.contains?.('forge-strength-board-hero'));
+ const title=document.createElement('strong');title.textContent=boardImage?'FORGE-Übungstafel':source.alt||'Übungsbild';
  const make=(text,label)=>{const b=document.createElement('button');b.type='button';b.textContent=text;b.setAttribute('aria-label',label);return b;};
  const minus=make('−','Verkleinern'),plus=make('+','Vergrößern'),reset=make('↺','Zoom zurücksetzen'),exit=make('✕','Schließen');
  bar.append(title,minus,plus,reset,exit);
@@ -86,7 +92,7 @@ function zoomOpen(source){
  // V10.2: every opening starts at 1x fit-to-contain, never at a test zoom.
  img.style.transform='translate(0px, 0px) scale(1)';stage.append(img);
  const help=document.createElement('div');help.className='forge-anatomy-v2-help';help.textContent='Zwei Finger: Zoom · Tippe daneben zum Schließen';
- const panel=document.createElement('div');panel.className='forge-anatomy-v2-panel';panel.append(bar,stage,help);box.append(panel);
+ const panel=document.createElement('div');panel.className='forge-anatomy-v2-panel'+(boardImage?' forge-anatomy-v2-board-panel':'');panel.append(bar,stage,help);box.append(panel);
  let z=1,x=0,y=0,prior=0;const pointers=new Map(),oldOverflow=document.body.style.overflow,oldFocus=document.activeElement;
  function draw(){img.style.transform='translate('+x+'px,'+y+'px) scale('+z+')';}
  function setZoom(next){z=Math.min(6,Math.max(1,next));if(z===1){x=0;y=0;}draw();}
