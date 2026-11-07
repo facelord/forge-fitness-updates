@@ -221,7 +221,9 @@ function showHero(card,name,session){
   if(mainPhoto.dataset?.forgeStrengthBoardImage==='1'){
    visual.classList.add('forge-strength-board-hero');
    mainPhoto.dataset.fit='contain';
-   mainPhoto.style.objectPosition='center center';
+   // Inline important overrides earlier global object-fit:cover!important.
+   mainPhoto.style.setProperty('object-fit','contain','important');
+   mainPhoto.style.setProperty('object-position','center center','important');
   }
   visual.append(mainPhoto);
  }
