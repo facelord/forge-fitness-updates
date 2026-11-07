@@ -31,7 +31,33 @@
    if(exercise&&exercise.sides)labels.push('je Seite');
    return labels.join(' · ');
  }
- window.ForgeCatalogCategories={filterMobility:filterMobility,normalize:normalize,doseLabel:doseLabel};
+ // Versioned baseline: every exercise already published before this feature.
+ // Future exercises absent from this list show NEU, even on a fresh installation.
+ const baselineNames=new Set(["90/90-Vorbeuge","Abduktorenmaschine","Adduktorenmaschine","Arnold Press","Ausfallschritte","Back Extensions","Bankdrücken","Beckenkippen in Rückenlage","Beckenkreisen im Stand","Beinbeuger","Beinpendel vor und zurück","Beinpresse","Beinstrecker","Bird Dog","Bizepscurls","Bizepscurls mit Rucksack","Brustgestütztes Rudern","Brustpresse","Brustwirbelsäulenstreckung über Foam Roller","Bulgarian Split Squat","Butterfly / Pec Deck","Dead Bug","Dips","Dips (Trizepsfokus)","Einarmiges Kurzhantelrudern","Einbeiniges rumänisches Kreuzheben","Enge Liegestütze","Face Pulls","Farmer's Carry","Fersengleiten in Rückenlage","Fußkreisen","Fußsohle mit Ball mobilisieren","Gerade-Arme-Pulldown","Glute Bridge","Hammer Curls","Hamstring-Dehnung mit Gurt","Handgelenksmobilisation","Hängendes Knieheben","Hip Thrust","Hüftkreise im Vierfüßlerstand","Hüftkreisen im Stand","Kabel-Crunches","Kabel-Flys","Klimmzüge","Klimmzüge (breiter Griff)","Klimmzüge (enger Griff)","Knie zur Brust in Rückenlage","Kniebeuge","Kniebeugen","Kreuzheben","Latziehen","Liegestütze","Pallof Press","Pike Push-ups","Plank","Quadrizeps-Dehnung im Stand","Reverse Flys","Reverse Snow Angels","Rudern am Kabel","Rudern mit Rucksack","Rumänisches Kreuzheben","Schrägbank Kurzhantel","Schulter-Außenrotation","Schulterdrücken","Schulterdrücken mit der Langhantel","Schulterheben mit Stab","Schulterkreisen","Seitheben","Seitliches Beinpendel","Soleus-Dehnung mit gebeugtem Knie","Sprunggelenk-Mobilisation an der Wand","Superman Hold","Thread the Needle","Trizepsdrücken","Überkopf-Trizepsstrecken","Wadenheben"]);
+ const openedKey='forge-catalog-new-opened-v1';
+ const opened=new Set();
+ try{
+   const values=JSON.parse(localStorage.getItem(openedKey)||'[]');
+   if(Array.isArray(values))values.filter(x=>typeof x==='string').forEach(x=>opened.add(x));
+ }catch(_){/* Private mode: in-memory dismissals still work. */}
+ function isNewExercise(name){
+   return typeof name==='string'&&name.length>0&&!baselineNames.has(name)&&!opened.has(name);
+ }
+ function markExerciseOpened(name){
+   if(!isNewExercise(name))return false;
+   opened.add(name);
+   try{localStorage.setItem(openedKey,JSON.stringify([...opened]));}catch(_){}
+   return true;
+ }
+ function syncBadge(summary,name){
+   if(!summary)return;
+   const badge=summary.querySelector('.forge-catalog-new');
+   if(!isNewExercise(name)){badge?.remove();return;}
+   if(badge){badge.textContent='NEU';return;}
+   summary.append(element('span','forge-catalog-new','NEU'));
+ }
+ window.ForgeCatalogCategories={filterMobility:filterMobility,normalize:normalize,doseLabel:doseLabel,
+   isNewExercise:isNewExercise,markExerciseOpened:markExerciseOpened,baselineCount:baselineNames.size};
  function refreshMixButtons(){
    var names=typeof window.forgePlusMobilityMixNames==='function'
      ?window.forgePlusMobilityMixNames():[];
@@ -123,6 +149,8 @@
      var summary=element('summary');
      summary.append(element('span','',exercise.name));
      summary.append(element('small','forge165-region',exercise.region||'Mobilität'));
+     details.dataset.forgeExerciseName=exercise.name;
+     syncBadge(summary,exercise.name);
      details.append(summary,element('div','forge-catalog-loaded'));
      details.addEventListener('toggle',()=>{if(details.open)populateMobility(details,exercise);});
      root.append(details);
@@ -167,6 +195,18 @@
        results=$('forgeCatalogResults'),count=$('forgeCatalogCount');
    var inner=catalog?.querySelector('.forge-catalog-inner');
    if(!catalog||!inner||!input||!results||!count)return null;
+   if(!results.dataset.forgeNewToggleReady){
+     results.dataset.forgeNewToggleReady='1';
+     // Capture toggle events for touch, keyboard and screen-reader activation.
+     results.addEventListener('toggle',event=>{
+       const details=event.target;
+       if(!details?.open||!details.matches?.('details.forge-catalog-item'))return;
+       const name=details.dataset.forgeExerciseName;
+       if(!name)return;
+       markExerciseOpened(name);
+       syncBadge(details.querySelector('summary'),name);
+     },true);
+   }
    var choices=$('forgeCatalogCategoryChoices');
    if(!choices){
      choices=element('div','forge165-category-grid');
@@ -219,6 +259,14 @@
      if(ui.label)ui.label.textContent='Kraftübungen durchsuchen';
      if(typeof previousRender==='function'){
        previousRender();
+       // The original renderer permanently labels a group NEU. Replace that
+       // with per-exercise badges, cleared on its first real expansion.
+       ui.results.querySelectorAll('details.forge-catalog-item').forEach((details,index)=>{
+         const name=window.forge131Results?.[index];
+         if(!name)return;
+         details.dataset.forgeExerciseName=name;
+         syncBadge(details.querySelector('summary'),name);
+       });
        ui.count.textContent=(window.forge131Results?.length||0)+' Kraftübungen gefunden';
      }
    }else{
