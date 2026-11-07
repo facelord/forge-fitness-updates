@@ -13,6 +13,7 @@ const has=name=>Object.prototype.hasOwnProperty.call(boards,canonical(name));
 const isStrength=name=>strengthSet.has(name)||has(name);
 const previousExercise=window.forgeExerciseIllustrations;
 const previousCatalog=window.forgePublicExercisePictures;
+const previousMuscleMap=window.forgeMuscleMap;
 const safe=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function render(name){
  const file=has(name)?boards[canonical(name)]:null;
@@ -45,6 +46,14 @@ window.forgePublicExercisePictures=name=>isStrength(name)?render(name):
 window.ForgeStrengthBoards=Object.freeze({names:Object.keys(boards),allStrengthNames:allStrength,
  pendingNames:Object.freeze(allStrength.filter(name=>!has(name))),render,has,isStrength,
  isPending:name=>isStrength(name)&&!has(name)});
+// A complete approved board already contains the anatomy. Do not append the old,
+// oversized 'Beanspruchte Muskelgruppen' accordion below it in the catalogue.
+// Keep the original map available for mobility and exercises without an approved board.
+if(typeof previousMuscleMap==='function'){
+ window.forgeMuscleMap=function(name){
+  return has(name)?'':previousMuscleMap.apply(this,arguments);
+ };
+}
 function style(){
  if(document.getElementById('forge-strength-board-styles'))return;
  const tag=document.createElement('style');
