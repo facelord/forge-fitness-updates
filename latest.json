@@ -3,5 +3,5 @@
   "versionName": "14.13.566",
   "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.566/FORGE-Fitness-14.13.566.apk",
   "sha256": "477fe92f533fffc8a5b36afe3d70a1291fff458f02ac4de226c04b6341e339dc",
-  "notes": "FORGE Amazfit/Zepp, Bluetooth-Pulsmesser und manuelle Pulsfelder auf Web und Android vorerst unsichtbar; bestehende Integrationen und gespeicherte Cardio-Daten bleiben erhalten. Tagesform liegt weiterhin schlank unter Fortschritt > Statistiken."
+  "notes": "Neues Design (Layout B): Blau-Schwarz mit Inter, Navigation Plan · Workout · Essen · Erfolge mit Wischen, neuer Workout-Ablauf mit Tagesform, großen +/−-Feldern, Satzpause-Bildschirm und Abschluss-Übersicht. Zurück zum alten Aussehen: Einstellungen > Darstellung."
 }
