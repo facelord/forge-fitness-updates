@@ -56,7 +56,7 @@ function canContinue(kind,step,s){
   if(step==='how')return s.how==='auto'||s.how==='manual';
   if(step==='basics')return !!(s.goal&&s.place&&s.level);
   if(step==='split')return !!s.split;
-  if(step==='mdays')return s.mmode==='interval'?(s.mevery>=1&&s.mevery<=14&&s.munits>=1&&s.munits<=6&&!!s.manchor):(s.mdays||[]).length>=1&&(s.mdays||[]).length<=7;
+  if(step==='mdays')return s.mmode==='interval'?(s.mevery>=1&&s.mevery<=14&&s.munits>=1&&s.munits<=4&&!!s.manchor):(s.mdays||[]).length>=1&&(s.mdays||[]).length<=7;
   if(step==='rhythm')return s.mode==='interval'?(s.every>=1&&s.every<=14&&s.units>=1&&s.units<=4&&!!s.anchor):(s.days||[]).length>=1;
   return true;
  }
@@ -176,7 +176,7 @@ function defaultsStrength(){
  if(cad&&Number.isInteger(cad.every)){
   const n=Array.isArray(cad.planOrder)?cad.planOrder.length:3;
   out.mode='interval';out.every=cad.every;out.units=Math.max(1,Math.min(4,n));
-  out.mmode='interval';out.mevery=cad.every;out.munits=Math.max(1,Math.min(6,n));
+  out.mmode='interval';out.mevery=cad.every;out.munits=Math.max(1,Math.min(4,n));
  }
  return out;
 }
@@ -362,7 +362,7 @@ function render(){
    if(s.mmode==='interval'){
     const ev=everyOptions(s.mevery);
     const c1=el('div','wz-card');c1.append(group('Alle wie viele Tage?',ev.length<=5?ev.length:3,ev.map(n=>opt(String(n),s.mevery===n,()=>{s.mevery=n;render();}))));
-    const c2=el('div','wz-card');c2.append(group('Verschiedene Einheiten im Wechsel',3,[1,2,3,4,5,6].map(n=>opt(n===1?'Nur A':'A–'+String.fromCharCode(64+n),s.munits===n,()=>{s.munits=n;render();},'sm'))));
+    const c2=el('div','wz-card');c2.append(group('Verschiedene Einheiten im Wechsel',4,[1,2,3,4].map(n=>opt(n===1?'Nur A':'A–'+String.fromCharCode(64+n),s.munits===n,()=>{s.munits=n;render();},'sm'))));
     const f=el('label','wz-field');f.append(el('span','wz-label','Erster Trainingstag'));const inp=el('input');inp.type='date';inp.value=s.manchor;inp.addEventListener('change',()=>{s.manchor=inp.value;render();});f.append(inp);
     body.append(c1,c2,f);
    }else{

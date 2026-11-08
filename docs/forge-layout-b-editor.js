@@ -73,7 +73,8 @@ function draftUnits(days,location){
 }
 /* Rolling plan („alle X Tage“): ordered units A, B, C … instead of weekdays. */
 function draftSlots(count,location){
- const n=Math.max(1,Math.min(6,Math.round(Number(count))||1));
+ // The rotation engine (cadence.js) supports 1–4 units in a rolling plan.
+ const n=Math.max(1,Math.min(4,Math.round(Number(count))||1));
  return Array.from({length:n},(_,i)=>({id:'draft-u'+i,weekday:i,slot:true,label:'Einheit '+unitLetter(i),short:unitLetter(i),title:'Einheit '+unitLetter(i),location:location==='home'?'home':'gym',ex:[]}));
 }
 /* The cadence object exactly as cadence.js stores it after plan creation. */
