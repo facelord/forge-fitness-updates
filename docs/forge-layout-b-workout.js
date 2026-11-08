@@ -251,6 +251,32 @@ body.forge-layout-b .forge-lb-ovfoot .forge-lb-ov-end{border:0;background:#f3f7f
 .forge-lb-finish .fin-done{height:68px;border-radius:34px;border:0;background:${ACC};color:#142016;font-size:18px;font-weight:800}
 .forge-lb-finish .fin-more{height:44px;border-radius:22px;border:0;background:transparent;color:#95a3b7;font-size:14px;font-weight:600}
 .forge-lb-finish button:focus-visible{outline:2px solid ${ACC};outline-offset:2px}
+
+/* Blätter: Technik, Training beenden */
+.forge-lb-sheet-wrap{position:fixed;inset:0;z-index:2147482000;background:rgba(5,8,13,.72);display:flex;flex-direction:column;justify-content:flex-end;font-family:Inter,system-ui,sans-serif}
+.forge-lb-sheet{background:#111723;color:#f3f7fc;border-top:1px solid #3a4556;border-radius:28px 28px 0 0;padding:10px 16px calc(22px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;max-height:90vh;overflow-y:auto;box-sizing:border-box;max-width:560px;width:100%;margin:0 auto}
+.forge-lb-handle{width:44px;height:5px;border-radius:3px;background:#3a4556;align-self:center;flex:0 0 5px}
+.forge-lb-sheet-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.forge-lb-sheet-head small{display:block;font-size:13px;color:#95a3b7}
+.forge-lb-sheet-head strong{display:block;font-size:24px;font-weight:800;line-height:1.15}
+.forge-lb-x{width:44px;height:44px;flex:0 0 44px;border-radius:22px;border:1px solid #293346;background:#171e2a;color:#f3f7fc;display:flex;align-items:center;justify-content:center;padding:0}
+.forge-lb-wsheet .forge-lb-tech-pics,.forge-lb-wsheet .forge-lb-tech-map{border-radius:18px;overflow:hidden;background:#0b1018;border:1px solid #293346}
+.forge-lb-wsheet .forge-lb-tech-pics img,.forge-lb-wsheet .forge-lb-tech-map img{max-width:100%;height:auto;display:block}
+.forge-lb-tcard{background:#171e2a;border:1px solid #293346;border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:9px;font-size:14px;line-height:1.45}
+.forge-lb-tcard>small{font-size:12px;color:#95a3b7;text-transform:uppercase;letter-spacing:1.3px}
+.forge-lb-tcard p{margin:0}
+.forge-lb-step{display:flex;gap:10px}
+.forge-lb-step b{color:${ACC};min-width:12px}
+.forge-lb-tip{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.4;background:#1a2a22;border:1px solid #405d39;border-radius:14px;padding:10px 12px}
+.forge-lb-tip b{color:${ACC}}
+.forge-lb-tnote{margin:0;font-size:15px;color:#c3cddb;line-height:1.45}
+.forge-lb-tlink{color:#95a3b7;font-size:13px;text-align:center}
+.forge-lb-tstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;background:#171e2a;border:1px solid #293346;border-radius:18px;padding:14px}
+.forge-lb-tstats b{display:block;font-size:20px;font-weight:800}
+.forge-lb-tstats span{font-size:12px;color:#95a3b7}
+.forge-lb-sheet-main{height:62px;border-radius:31px;border:0;background:${ACC};color:#142016;font-size:17px;font-weight:800;flex:0 0 auto}
+.forge-lb-sheet-sec{height:54px;border-radius:27px;border:1px solid #3a4556;background:#171e2a;color:#f3f7fc;font-size:16px;font-weight:700;flex:0 0 auto}
+.forge-lb-sheet button:focus-visible,.forge-lb-sheet a:focus-visible{outline:2px solid ${ACC};outline-offset:2px}
 /* Vor dem Start: Tagesform */
 body.forge-layout-b .forge-lb-form[hidden]{display:none!important}
 body.forge-layout-b .forge-lb-form{margin:12px 0 14px;display:flex;flex-direction:column;gap:10px}
@@ -291,7 +317,7 @@ function build(shell){
  main.addEventListener('click',()=>{const warm=$('forgePremiumShell')?.classList.contains('forge-v91-warming');(warm?$('forgeV91WarmDone'):document.querySelector('#forgeQuickWorkout .forge-primary-action'))?.click();});
  const next=el('button','forge-lb-side');next.type='button';next.innerHTML=SVG.next+'<span>Nächste</span>';
  next.addEventListener('click',()=>{
-  if(next.dataset.mode==='finish'){openOverview();return;}
+  if(next.dataset.mode==='finish'){confirmFinish();return;}
   heroArrow(1);
  });
  bottom.append(swap,main,next);
@@ -341,12 +367,75 @@ function heroArrow(dir){
  if(b)b.click();
 }
 function openOverview(){$('forgeCompactExercises')?.click();}
+/* ---------- Blätter: Technik (B2-5) und Training beenden (N5) ---------- */
+let sheetWrap=null;
+function closeSheet(){if(sheetWrap){sheetWrap.remove();sheetWrap=null;document.removeEventListener('keydown',sheetKey,true);}}
+function sheetKey(e){if(e.key==='Escape'){e.preventDefault();closeSheet();}}
+function openSheet(label,build){
+ closeSheet();
+ const wrap=el('div','forge-lb-sheet-wrap');
+ const s=el('div','forge-lb-sheet forge-lb-wsheet');s.setAttribute('role','dialog');s.setAttribute('aria-modal','true');s.setAttribute('aria-label',label);
+ s.append(el('div','forge-lb-handle'));
+ build(s);
+ wrap.append(s);wrap.addEventListener('click',e=>{if(e.target===wrap)closeSheet();});
+ document.body.append(wrap);sheetWrap=wrap;document.addEventListener('keydown',sheetKey,true);
+ s.querySelector('button')?.focus({preventScroll:true});
+ return s;
+}
+function sheetHead(kicker,title,closeLabel){
+ const h=el('div','forge-lb-sheet-head');const t=el('div');t.append(el('small','',kicker),el('strong','',title));
+ const x=el('button','forge-lb-x');x.type='button';x.setAttribute('aria-label',closeLabel);
+ x.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+ x.addEventListener('click',closeSheet);h.append(t,x);return h;
+}
+function technique(name){
+ let guide=null;try{guide=typeof FORGE_STRENGTH_GUIDES!=='undefined'?FORGE_STRENGTH_GUIDES[name]:null;}catch(e){}
+ let pics='';try{pics=typeof window.forgePublicExercisePictures==='function'?window.forgePublicExercisePictures(name):'';}catch(e){}
+ let map='';try{map=typeof window.forgeMuscleMap==='function'?window.forgeMuscleMap(name):'';}catch(e){}
+ return {guide:Array.isArray(guide)?guide:null,pics:String(pics||''),map:String(map||'')};
+}
 function openTechnique(){
- // Prefer the exercise's own technique panel inside the overview, fall back to tips.
- const f=focus();
- const more=$('forgeCompactMore');
- if(more){more.click();return;}
- if(f)openOverview();
+ const s=live();const f=focus();if(!s)return;
+ const ex=s.workoutDraft?.exercises?.[f?f.i:0];const name=ex?.name||'Übung';
+ const t=technique(name);
+ openSheet('Technik: '+name,sh=>{
+  sh.append(sheetHead('Technik',name,'Zurück zum Satz'));
+  if(t.pics){const box=el('div','forge-lb-tech-pics');box.innerHTML=t.pics;sh.append(box);}
+  if(t.map){const box=el('div','forge-lb-tech-map');box.innerHTML=t.map;sh.append(box);}
+  if(t.guide){
+   const tr=el('div','forge-lb-tcard');tr.append(el('small','','Trainiert'),el('p','',t.guide[0]||''));sh.append(tr);
+   const how=el('div','forge-lb-tcard');how.append(el('small','','Ausführung'));
+   t.guide.slice(1,4).forEach((x,k)=>{const r=el('div','forge-lb-step');r.append(el('b','',String(k+1)),el('span','',x));how.append(r);});
+   sh.append(how);
+   if(t.guide[4]){const tip=el('div','forge-lb-tip');tip.append(el('b','','Tipp'),el('span','',t.guide[4]));sh.append(tip);}
+  }else{
+   sh.append(el('p','forge-lb-tnote','Für diese Übung liegt noch keine geprüfte Einzelanleitung vor.'));
+  }
+  const yt=el('a','forge-lb-tlink','Videoanleitungen suchen ↗');yt.href='https://www.youtube.com/results?search_query='+encodeURIComponent(name+' Übung richtige Ausführung Anfänger deutsch');yt.target='_blank';yt.rel='noopener noreferrer';
+  sh.append(yt);
+  const back=el('button','forge-lb-sheet-main','Zurück zum Satz');back.type='button';back.addEventListener('click',closeSheet);sh.append(back);
+ });
+}
+function workoutStats(){
+ const s=live();const d=s?.workoutDraft;const ex=d?.exercises||[];
+ let done=0,total=0,vol=0;
+ for(const e of ex)for(const x of e.sets||[]){total++;if(x&&x.done){done++;vol+=(Number(String(x.kg||'').replace(',','.'))||0)*(Number(x.reps)||0);}}
+ const sec=parseClock($('workoutDigitalClock')?.textContent||'')||0;
+ return {done,total,vol:Math.round(vol),minutes:Math.max(0,Math.round(sec/60))};
+}
+function confirmFinish(){
+ const st=workoutStats();
+ openSheet('Training beenden?',sh=>{
+  const h=el('div','forge-lb-sheet-head');const t=el('div');t.append(el('strong','','Training beenden?'));h.append(t);sh.append(h);
+  sh.append(el('p','forge-lb-tnote',st.done<st.total?'Du hast '+st.done+' von '+st.total+' Sätzen erledigt. Offene Sätze werden nicht gespeichert.':'Alle '+st.total+' Sätze erledigt. Stark!'));
+  const g=el('div','forge-lb-tstats');
+  for(const [v,l] of [[String(st.minutes),st.minutes===1?'Minute':'Minuten'],[String(st.done),'Sätze'],[st.vol.toLocaleString('de-DE'),'kg Volumen']]){const c=el('div');c.append(el('b','',v),el('span','',l));g.append(c);}
+  sh.append(g);
+  const ok=el('button','forge-lb-sheet-main','Beenden & speichern');ok.type='button';
+  ok.addEventListener('click',()=>{closeSheet();$('workoutExercises')?.closest('details')?.removeAttribute('open');$('saveWorkout')?.click();});
+  const cont=el('button','forge-lb-sheet-sec','Weiter trainieren');cont.type='button';cont.addEventListener('click',closeSheet);
+  sh.append(ok,cont);
+ });
 }
 function stepTo(targetJ){
  const p=plan(),nav=window.forge130FocusNavigate;
@@ -450,7 +539,7 @@ function renderLive(){
  if(nodes.next.dataset.mode!==mode){
   nodes.next.dataset.mode=mode;
   nodes.next.innerHTML=(lastEx?SVG.flag:SVG.next)+'<span>'+(lastEx?'Beenden':'Nächste')+'</span>';
-  nodes.next.setAttribute('aria-label',lastEx?'Training beenden – Übersicht öffnen':'Nächste Übung');
+  nodes.next.setAttribute('aria-label',lastEx?'Training beenden':'Nächste Übung');
  }
  renderRest(s,p,draft,i,j,cur);
 }
@@ -525,7 +614,7 @@ function overviewFooter(){
  const cont=el('button','forge-lb-ov-cont','Weiter trainieren');cont.type='button';
  cont.addEventListener('click',()=>{list.open=false;});
  const end=el('button','forge-lb-ov-end','Training beenden & speichern');end.type='button';
- end.addEventListener('click',()=>{list.open=false;$('saveWorkout')?.click();});
+ end.addEventListener('click',()=>{list.open=false;confirmFinish();});
  foot.append(cont,end);
  list.append(foot);
 }

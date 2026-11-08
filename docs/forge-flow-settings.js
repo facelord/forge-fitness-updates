@@ -50,7 +50,8 @@ function apply(){
 }
 function row(label,control){
  const r=make('label','forge-settings-row');
- r.append(make('span','',label),control);
+ r.append(make('span','',label));
+ if(control)r.append(control);
  return r;
 }
 function check(label,enabled,onChange){
