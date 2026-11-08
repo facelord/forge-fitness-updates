@@ -44,13 +44,14 @@ function rhythmText(s){
 function strengthSummary(s){
  return [['Ziel',label(GOALS,s.goal)],['Trainingsort',label(PLACES,s.place)],['Erfahrung',label(LEVELS,s.level)],['Aufteilung',label(SPLITS,s.split)],['Rhythmus',rhythmText(s)]];
 }
-function strengthSteps(s){return s.how==='manual'?['how']:['how','basics','split','rhythm','create'];}
+function strengthSteps(s){return s.how==='manual'?['how','mdays','mname']:['how','basics','split','rhythm','create'];}
 function mobilitySteps(m){return ['how',m.how==='custom'?'pick':'routine','when','save'];}
 function canContinue(kind,step,s){
  if(kind==='strength'){
   if(step==='how')return s.how==='auto'||s.how==='manual';
   if(step==='basics')return !!(s.goal&&s.place&&s.level);
   if(step==='split')return !!s.split;
+  if(step==='mdays')return (s.mdays||[]).length>=1&&(s.mdays||[]).length<=7;
   if(step==='rhythm')return s.mode==='interval'?(s.every>=1&&s.every<=14&&s.units>=1&&s.units<=4&&!!s.anchor):(s.days||[]).length>=1;
   return true;
  }
@@ -163,7 +164,8 @@ function defaultsStrength(){
  let days=spreadDays(3);
  try{if(typeof chosenDays==='function'){const d=chosenDays();if(Array.isArray(d)&&d.length)days=d.slice().sort((a,b)=>a-b);}}catch(e){}
  return {kind:'strength',how:'auto',goal:v('goal')||'muscle',place:v('place')||'gym',level:v('level')||'beginner',split:v('split')||'full',
-  mode:'weekdays',days,every:3,units:3,anchor:localDate(new Date()),name:''};
+  mode:'weekdays',days,every:3,units:3,anchor:localDate(new Date()),name:'',
+  mdays:days.slice(),mplace:v('place')==='home'?'home':'gym'};
 }
 function defaultsMobility(){
  let cfg={};try{cfg=typeof mobConfig==='function'?mobConfig():{};}catch(e){}
@@ -208,7 +210,7 @@ function next(){
  flow.error='';
  if(step==='type'){return;}
  if(!canContinue(flow.kind,step,flow.s)){render();return;}
- if(flow.kind==='strength'&&step==='how'&&flow.s.how==='manual'){openManual();return;}
+ if(step==='mname'){openOwnPlan();return;}
  if(step==='create'){createStrength();return;}
  if(step==='save'){saveMobilityPlan();return;}
  flow.step++;render();
@@ -252,18 +254,12 @@ function createStrength(){
  }
  render();
 }
-function openManual(){
- close();
- if(typeof window.go==='function')window.go('plan');
- const page=$('plan');page?.classList.remove('forge-lb-plan-home');
- const tools=$('forgeSlimTools');if(tools&&!tools.open)tools.open=true;
- const create=[...(page?.querySelectorAll('button')||[])].find(b=>/Neuen Trainingsplan erstellen/.test(b.textContent||''));
- if(create&&create.getAttribute('aria-pressed')!=='true')create.click();
- setTimeout(()=>{
-  const manual=$('forge150PlanHub')?.querySelector('button[data-mode="manual"]');
-  manual?.click();
-  ($('forge150ManualPanel')||$('forge150PlanHub'))?.scrollIntoView?.({block:'start'});
- },60);
+/* „Komplett selbst wählen“: days and place here, exercises in the unit editor (P6/P7). */
+function openOwnPlan(){
+ const s=flow.s;
+ if(typeof window.ForgeLayoutBEditorDraft!=='function'){flow.error='Der Plan-Editor ist noch nicht geladen. Bitte erneut versuchen.';render();return;}
+ const opened=window.ForgeLayoutBEditorDraft({days:s.mdays,location:s.mplace,name:s.name});
+ if(opened)close();else{flow.error='Der Plan-Editor konnte nicht geöffnet werden.';render();}
 }
 function saveMobilityPlan(){
  const m=flow.s;
@@ -344,7 +340,23 @@ function render(){
    body.append(bigCard(ICON.spark,'Plan vorschlagen','4 kurze Schritte. FORGE schlägt Übungen vor, danach kannst du jede Einheit frei anpassen.',s.how==='auto',()=>{s.how='auto';render();}),
     bigCard(ICON.pen,'Komplett selbst wählen','Einheiten und Übungen selbst aus dem Katalog zusammenstellen.',s.how==='manual',()=>{s.how='manual';render();}));
    body.append(el('p','wz-note','Dein aktueller Plan bleibt aktiv, bis der neue erstellt ist. Danach wird er archiviert.'));
-   nextLabel=s.how==='manual'?'Selbst zusammenstellen':'Weiter';
+   nextLabel='Weiter';
+  }else if(step==='mdays'){
+   head.append(el('h2','','An welchen Tagen trainierst du?'),el('p','','Jeder Tag wird eine eigene Einheit – die Übungen wählst du gleich selbst.'));
+   const c=el('div','wz-card');c.append(group('Deine Trainingstage',7,DAYS.map((d,i)=>opt(d,s.mdays.includes(i),()=>{s.mdays=s.mdays.includes(i)?s.mdays.filter(x=>x!==i):s.mdays.concat(i).sort((a,b)=>a-b);render();},'day sm'))));
+   c.append(el('p','wz-note',s.mdays.length?s.mdays.length+' '+(s.mdays.length===1?'Trainingstag':'Trainingstage')+' pro Woche':'Tippe mindestens einen Tag an.'));
+   body.append(c);
+   body.append(group('Trainingsort',2,[['gym','Fitnessstudio'],['home','Zuhause']].map(([v,t])=>opt(t,s.mplace===v,()=>{s.mplace=v;render();}))));
+   body.append(el('p','wz-note','Den Ort kannst du später für jeden Tag einzeln ändern.'));
+  }else if(step==='mname'){
+   head.append(el('h2','','Wie soll dein Plan heißen?'),el('p','','Danach wählst du für jeden Tag die Übungen aus dem Katalog.'));
+   const sum=el('div','wz-sum');sum.append(el('small','','Deine Auswahl'));
+   [['Tage',s.mdays.map(d=>DAYS[d]).join(' · ')],['Trainingsort',s.mplace==='home'?'Zuhause':'Fitnessstudio'],['Übungen','wählst du selbst']].forEach(([k,v])=>{const r=el('div');r.append(el('span','',k),el('b','',v));sum.append(r);});
+   const f=el('label','wz-field');f.append(el('span','wz-label','Name deines Plans (optional)'));
+   const inp=el('input');inp.type='text';inp.maxLength=70;inp.placeholder='Zum Beispiel „Mein 3er-Split“';inp.value=s.name||'';inp.autocomplete='off';
+   inp.addEventListener('input',()=>{s.name=inp.value;});f.append(inp);
+   body.append(sum,f);
+   nextLabel='Übungen auswählen';
   }else if(step==='basics'){
    head.append(el('h2','','Was möchtest du trainieren?'),el('p','','Wähle, was zu deinem Alltag passt. Alles lässt sich später ändern.'));
    body.append(group('Dein Ziel',2,GOALS.map(([v,t])=>opt(t,s.goal===v,()=>{s.goal=v;render();}))));

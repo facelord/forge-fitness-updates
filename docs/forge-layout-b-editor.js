@@ -64,7 +64,41 @@ function unitDirty(x){
  if(!x)return false;
  return JSON.stringify({title:x.title,location:x.location,ex:x.ex.map(e=>({...e,sets:Number(e.sets),reps:Number(e.reps)}))})!==x.baseline;
 }
-window.ForgeLayoutBEditor=Object.freeze({unitLetter,stepValue,doseText,muscleLabel,normalize,splitCatalog,filterCatalog,matchesChip,MUSCLE_CHIPS,moveItem,unitDirty});
+const DAY_SHORT=Object.freeze(['Mo','Di','Mi','Do','Fr','Sa','So']);
+const DAY_FULL=Object.freeze(['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag']);
+/* Own plan from scratch: one unit per chosen weekday. */
+function draftUnits(days,location){
+ return [...new Set(days||[])].filter(d=>Number.isInteger(d)&&d>=0&&d<=6).sort((a,b)=>a-b)
+  .map(d=>({id:'draft-'+d,weekday:d,title:DAY_FULL[d],location:location==='home'?'home':'gym',ex:[]}));
+}
+function draftIssue(units){
+ if(!units||!units.length)return 'Wähle mindestens einen Trainingstag.';
+ for(const u of units){
+  const day=DAY_FULL[u.weekday]||'Ein Tag';
+  if(!u.ex.length)return day+' braucht noch mindestens eine Übung.';
+  if(u.ex.length>MAX_EX)return day+': maximal '+MAX_EX+' Übungen.';
+  const names=u.ex.map(e=>String(e.name||'').trim());
+  if(names.some(n=>!n))return day+': Übung ohne Namen.';
+  if(new Set(names).size!==names.length)return day+': Jede Übung nur einmal.';
+  if(u.ex.some(e=>!(Number(e.sets)>=1&&Number(e.sets)<=MAX_SETS&&Number(e.reps)>=1&&Number(e.reps)<=MAX_REPS)))return day+': Sätze 1–15 und Wiederholungen 1–999.';
+ }
+ return null;
+}
+/* Same shape as the app's own manualSavePlan(). */
+function draftPlan(units,name,idFn){
+ const label=String(name||'').trim().slice(0,70)||'Mein individueller Trainingsplan';
+ return units.slice().sort((a,b)=>a.weekday-b.weekday).map(u=>({id:idFn(),weekday:u.weekday,type:'full',title:label+' · '+DAY_FULL[u.weekday],location:u.location==='home'?'home':'gym',
+  ex:u.ex.map(e=>({name:String(e.name).trim(),sets:Number(e.sets),reps:Number(e.reps),unit:e.unit||'auto'}))}));
+}
+/* Own exercises (not in the catalog) that a plan already contains may stay when
+   the plan is edited; the core validator only knows catalog names. */
+function ownExercisesOk(x,catalog,existing){
+ const cat=new Set(catalog||[]),old=new Set(existing||[]);
+ const names=(x&&x.ex||[]).map(e=>e&&e.name);
+ if(!names.length||new Set(names).size!==names.length)return false;
+ return names.some(n=>!cat.has(n))&&names.every(n=>cat.has(n)||old.has(n));
+}
+window.ForgeLayoutBEditor=Object.freeze({ownExercisesOk,draftUnits,draftIssue,draftPlan,unitLetter,stepValue,doseText,muscleLabel,normalize,splitCatalog,filterCatalog,matchesChip,MUSCLE_CHIPS,moveItem,unitDirty});
 if(typeof document==='undefined')return;
 
 /* ---------- environment ---------- */
@@ -174,6 +208,11 @@ ${E} .ed-status.err{color:#ffb4b8}
 ${E} .ed-status.ok{color:${ACC}}
 ${E} .ed-save{height:64px;border-radius:32px;border:0;background:${ACC};color:#142016;font:inherit;font-size:18px;font-weight:800}
 ${E} .ed-save.quiet{background:#171e2a;color:#f3f7fc;border:1px solid #3a4556}
+${E} .ed-tabs button.empty{color:#6f7d90}
+${E} .ed-hint{flex:0 0 auto;margin:6px 4px;font-size:14px;color:#95a3b7;line-height:1.5;text-align:center}
+${C} .cat-own{grid-column:1/-1;border-radius:18px;border:1px dashed #3a4556;background:transparent;color:#f3f7fc;font:inherit;text-align:left;padding:14px 16px;display:flex;flex-direction:column;gap:3px}
+${C} .cat-own b{font-size:15px;font-weight:700}
+${C} .cat-own small{font-size:12px;color:#95a3b7}
 ${E} .ed-empty{margin:auto 0;font-size:15px;color:#c3cddb;text-align:center;line-height:1.5;padding:0 12px}
 ${E} button:focus-visible,${C} button:focus-visible{outline:2px solid ${ACC};outline-offset:2px}
 .forge-lb-ed-shade{position:fixed;inset:0;z-index:2147480500;background:#05080dcc;display:flex;flex-direction:column;justify-content:flex-end;font-family:Inter,system-ui,sans-serif;color:#f3f7fc}
@@ -226,11 +265,30 @@ function ensureCss(){if(!$('forgeLayoutBEditorCss')){const s=el('style');s.id='f
 
 /* ---------- editor state ---------- */
 let root=null,ed=null;
+const unitList=()=>ed&&ed.draft?ed.draft.units:plans();
 function stagedFor(id){
+ if(ed.draft)return ed.draft.units.find(u=>u.id===id)||null;
  if(!ed.staged.has(id)){const p=planById(id);if(!p)return null;ed.staged.set(id,api().cloneEdit(p));}
  return ed.staged.get(id);
 }
-function dirtyIds(){return [...ed.staged.entries()].filter(([,x])=>unitDirty(x)).map(([id])=>id);}
+function dirtyIds(){
+ if(ed.draft)return ed.draft.units.filter(u=>u.ex.length).map(u=>u.id);
+ return [...ed.staged.entries()].filter(([,x])=>unitDirty(x)).map(([id])=>id);
+}
+function openDraft(opts){
+ if(!enabled())return false;
+ const units=draftUnits(opts&&opts.days,opts&&opts.location);
+ if(!units.length)return false;
+ ensureCss();closeEditor(true);
+ ed={unit:units[0].id,open:0,staged:new Map(),status:'',tone:'',draft:{units,name:String(opts.name||'')}};
+ root=el('div','forge-lb-ed');root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-label','Neuen Plan zusammenstellen');
+ document.body.append(root);document.body.classList.add('forge-lb-ed-open');
+ document.addEventListener('keydown',onKey,true);
+ if(typeof state!=='undefined'&&state.activeWorkout)ed.blocked=true;
+ render();
+ loadMobLib().then(()=>{if(root&&ed)render();});
+ return true;
+}
 
 function openEditor(unitId,exerciseIndex){
  if(!enabled()||!api())return false;
@@ -268,18 +326,19 @@ function render(){
  const inner=el('div','ed-in');root.append(inner);
  const top=el('div','ed-top');
  const x=btn('ed-round','',()=>closeEditor(false));x.innerHTML=ICON.x;x.setAttribute('aria-label','Planbearbeitung abbrechen und schließen');
- top.append(x,el('div','ed-kicker','Plan bearbeiten'),el('div','',''));top.lastChild.style.width='44px';
+ top.append(x,el('div','ed-kicker',ed.draft?'Neuer Plan · Übungen wählen':'Plan bearbeiten'),el('div','',''));top.lastChild.style.width='44px';
  inner.append(top);
  if(ed.blocked){
   inner.append(el('p','ed-empty','Während eines laufenden Trainings bleibt der Plan unverändert. Beende zuerst dein Workout.'));
   const f=el('div','ed-foot');f.append(btn('ed-save quiet','Schließen',()=>closeEditor(true)));inner.append(f);return;
  }
- const list=plans();
- if(!planById(ed.unit))ed.unit=String(list[0].id);
+ const list=unitList();
+ if(!list.some(p=>String(p.id)===ed.unit))ed.unit=String(list[0].id);
  const tabs=el('div','ed-tabs'+(list.length===2?' two':''));tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Trainingseinheit auswählen');
  list.forEach((p,i)=>{
   const id=String(p.id),x=ed.staged.get(id);
-  const b=btn(unitDirty(x)?'dirty':'',unitLetter(i)+' · '+((x?x.title:p.title)||'Einheit '+(i+1)),()=>{if(ed.unit===id)return;ed.unit=id;ed.open=0;render();});
+  const label=ed.draft?DAY_SHORT[p.weekday]+(p.ex.length?' · '+p.ex.length:''):unitLetter(i)+' · '+((x?x.title:p.title)||'Einheit '+(i+1));
+  const b=btn(!ed.draft&&unitDirty(x)?'dirty':(ed.draft&&!p.ex.length?'empty':''),label,()=>{if(ed.unit===id)return;ed.unit=id;ed.open=0;render();});
   b.setAttribute('role','tab');b.setAttribute('aria-selected',String(id===ed.unit));
   tabs.append(b);
  });
@@ -287,22 +346,30 @@ function render(){
  const w=stagedFor(ed.unit);
  const head=el('div','ed-title');const t=el('div');
  t.append(el('h1','',w.title||'Einheit'),el('small','',w.ex.length+' '+(w.ex.length===1?'Übung':'Übungen')+' · '+(w.location==='home'?'Zuhause':'Fitnessstudio')));
- const ren=btn('ed-pill','Umbenennen',()=>renameSheet(w));ren.setAttribute('aria-label','Trainingseinheit umbenennen');
+ const ren=btn('ed-pill',ed.draft?'Ort ändern':'Umbenennen',()=>renameSheet(w));ren.setAttribute('aria-label',ed.draft?'Trainingsort ändern':'Trainingseinheit umbenennen');
  head.append(t,ren);inner.append(head);
 
  const body=el('div','ed-list');
  if(ed.open>=w.ex.length)ed.open=w.ex.length-1;
  w.ex.forEach((ex,i)=>body.append(i===ed.open?exerciseCard(w,ex,i):exerciseRow(ex,i)));
+ if(!w.ex.length)body.append(el('p','ed-hint','Noch keine Übungen für '+(DAY_FULL[w.weekday]||'diesen Tag')+'. Wähle die erste aus dem Katalog.'));
  const add=btn('ed-add','',()=>openCatalog({mode:'add',unit:w}));
- add.innerHTML=ICON.plus+'<span>Weitere Übung auswählen</span>';
+ add.innerHTML=ICON.plus+'<span>'+(w.ex.length?'Weitere Übung auswählen':'Übung auswählen')+'</span>';
  if(w.ex.length>=MAX_EX){add.disabled=true;add.lastChild.textContent='Maximal '+MAX_EX+' Übungen';}
  body.append(add);inner.append(body);
  requestAnimationFrame(()=>{body.scrollTop=keepScroll;});
 
  const foot=el('div','ed-foot');
+ if(ed.draft){
+  const issue=draftIssue(ed.draft.units);
+  const st=el('p','ed-status'+(ed.tone?' '+ed.tone:''),ed.status||(issue?'':'Alle Tage gefüllt'));st.setAttribute('role','status');
+  if(!ed.status&&!issue)st.classList.add('ok');
+  const save=btn('ed-save'+(issue?' quiet':''),'Plan erstellen',createDraft);
+  foot.append(st,save);inner.append(foot);return;
+ }
  const dirty=dirtyIds();
  const st=el('p','ed-status'+(ed.tone?' '+ed.tone:''),ed.status||(dirty.length?'Noch nicht gespeichert':''));st.setAttribute('role','status');
- const save=btn('ed-save'+(dirty.length?'':' quiet'),dirty.length?'Plan speichern':'Fertig',()=>dirty.length?saveAll():closeEditor(true));
+ const save=btn('ed-save'+(dirty.length?'':' quiet'),dirty.length?'Plan speichern':'Fertig',()=>dirtyIds().length?saveAll():closeEditor(true));
  foot.append(st,save);inner.append(foot);
 }
 function exerciseRow(ex,i){
@@ -327,6 +394,7 @@ function stepper(label,ex,key,max){
 }
 function changed(){
  ed.status='';ed.tone='';
+ if(ed.draft)return;
  const dirty=dirtyIds();
  const st=root?.querySelector('.ed-status');if(st){st.className='ed-status';st.textContent=dirty.length?'Noch nicht gespeichert':'';}
  const sv=root?.querySelector('.ed-save');if(sv){sv.className='ed-save'+(dirty.length?'':' quiet');sv.textContent=dirty.length?'Plan speichern':'Fertig';}
@@ -345,10 +413,10 @@ function exerciseCard(w,ex,i){
  const acts=el('div','ed-acts');
  acts.append(btn('ed-alt','Alternative Übung',()=>openCatalog({mode:'replace',unit:w,index:i})));
  const del=btn('ed-del','Entfernen',()=>{
-  if(w.ex.length<=1)return;
-  w.ex.splice(i,1);ed.open=Math.min(i,w.ex.length-1);ed.status='„'+ex.name+'“ entfernt – erst „Plan speichern“ übernimmt es.';ed.tone='';render();
+  if(w.ex.length<=1&&!ed.draft)return;
+  w.ex.splice(i,1);ed.open=Math.max(0,Math.min(i,w.ex.length-1));ed.status=ed.draft?'„'+ex.name+'“ entfernt':'„'+ex.name+'“ entfernt – erst „Plan speichern“ übernimmt es.';ed.tone='';render();
  });
- if(w.ex.length<=1){del.disabled=true;del.title='Mindestens eine Übung muss bleiben';}
+ if(w.ex.length<=1&&!ed.draft){del.disabled=true;del.title='Mindestens eine Übung muss bleiben';}
  acts.append(del);c.append(acts);
  return c;
 }
@@ -357,7 +425,8 @@ function saveAll(){
  const a=api();
  for(const id of ids){
   const p=planById(id),x=ed.staged.get(id);
-  const res=a.commitStaged(p,x);
+  let res=a.commitStaged(p,x);
+  if(!res.ok&&ownExercisesOk(x,catalogNames(),plans().flatMap(q=>q.ex.map(e=>e.name))))res=commitOwn(p,x);
   if(!res.ok){
    ed.unit=id;ed.status=(plans().length>1?(p?.title||'Einheit')+': ':'')+res.reason;ed.tone='err';
    // Units committed before this one stay saved; refresh their baselines.
@@ -368,6 +437,76 @@ function saveAll(){
  closeEditor(true);
  try{if(typeof window.render==='function')window.render();}catch(e){console.error('FORGE: Ansicht nach Planspeichern',e);}
  toast(ids.length>1?'Plan gespeichert · '+ids.length+' Einheiten geändert':'Plan gespeichert');
+}
+function createDraft(){
+ const issue=draftIssue(ed.draft.units);
+ if(issue){
+  ed.status=issue;ed.tone='err';
+  const bad=ed.draft.units.find(u=>!u.ex.length);if(bad)ed.unit=bad.id;
+  render();return;
+ }
+ if(plans().length){
+  openSheet('Neuen Plan aktivieren?',s=>{
+   s.append(sheetHead('','Neuen Plan aktivieren?'));
+   s.append(el('p','','Dein aktueller Plan „'+((typeof state!=='undefined'&&state.activePlanName)||'Trainingsplan')+'“ wird archiviert. Deine gespeicherten Trainings bleiben erhalten.'));
+   s.append(btn('sh-main','Plan aktivieren',()=>{closeSheet();activateDraft();}));
+   s.append(btn('sh-sec','Zurück',closeSheet));
+  });
+  return;
+ }
+ activateDraft();
+}
+function activateDraft(){
+ if(typeof state==='undefined'||state.activeWorkout){ed.status='Bitte zuerst dein laufendes Workout abschließen.';ed.tone='err';render();return;}
+ const mkId=()=>typeof uid==='function'?uid():Date.now().toString(36)+Math.random().toString(36).slice(2);
+ const name=String(ed.draft.name||'').trim().slice(0,70)||'Mein individueller Trainingsplan';
+ const raw=(()=>{try{return localStorage.getItem(KEY);}catch(e){return null;}})();
+ const snapshot=JSON.stringify({plan:state.plan,settings:state.settings,archive:state.planArchive,id:state.activePlanId,name:state.activePlanName,started:state.activePlanStarted,off:state.hasDeactivatedPlan});
+ try{
+  if(typeof archiveCurrentPlan==='function'&&state.plan.length)archiveCurrentPlan();
+  state.plan=draftPlan(ed.draft.units,name,mkId);
+  state.settings={...state.settings,days:state.plan.length,weekdays:state.plan.map(d=>d.weekday),split:'full'};
+  state.hasDeactivatedPlan=false;state.activePlanId=mkId();state.activePlanName=name;state.activePlanStarted=new Date().toISOString();
+  save();
+ }catch(err){
+  console.error('FORGE: eigener Plan',err);
+  try{const o=JSON.parse(snapshot);state.plan=o.plan;state.settings=o.settings;if(o.archive!==undefined)state.planArchive=o.archive;state.activePlanId=o.id;state.activePlanName=o.name;state.activePlanStarted=o.started;state.hasDeactivatedPlan=o.off;
+   if(raw!=null)localStorage.setItem(KEY,raw);}catch(e){}
+  ed.status='Der Plan konnte nicht gespeichert werden. Dein bisheriger Plan bleibt aktiv.';ed.tone='err';render();return;
+ }
+ const n=state.plan.length;
+ closeEditor(true);
+ try{if(typeof window.render==='function')window.render();}catch(e){console.error('FORGE: Ansicht nach Planerstellung',e);}
+ try{if(typeof window.go==='function')window.go('plan');}catch(e){}
+ toast('„'+name+'“ ist aktiv · '+n+' '+(n===1?'Trainingstag':'Trainingstage'));
+}
+/* Same guards and verified write as ForgeActivePlanEdit.commitStaged, for
+   plans that contain own exercises created with „Komplett selbst wählen“. */
+function commitOwn(p,x){
+ if(!p||state.activeWorkout)return {ok:false,reason:'Ein laufendes Training darf nicht verändert werden.'};
+ const title=String(x.title||'').trim();
+ if(!title||title.length>90)return {ok:false,reason:'Bitte einen gültigen Namen eingeben.'};
+ if(!['gym','home'].includes(x.location))return {ok:false,reason:'Ungültiger Trainingsort.'};
+ if(x.ex.length<1||x.ex.length>MAX_EX)return {ok:false,reason:'Der Plan benötigt 1 bis 15 Übungen.'};
+ const ex=x.ex.map(e=>({...e,sets:Number(e.sets),reps:Number(e.reps)}));
+ if(ex.some(e=>!Number.isInteger(e.sets)||e.sets<1||e.sets>MAX_SETS||!Number.isInteger(e.reps)||e.reps<1||e.reps>MAX_REPS))return {ok:false,reason:'Sätze 1–15 und Wiederholungen 1–999 eingeben.'};
+ const changing=JSON.stringify(p.ex)!==JSON.stringify(ex);
+ if(changing&&state.workoutDraft&&String(state.workoutDraft.planId)===String(p.id))return {ok:false,reason:'Für diesen Trainingstag existiert ein gespeicherter Trainingsentwurf. Bitte zuerst abschließen. Der Entwurf bleibt erhalten.'};
+ const backup={title:p.title,location:p.location,ex:structuredClone(p.ex),last:state.forge138LastEdit==null?null:structuredClone(state.forge138LastEdit)};
+ let raw=null;
+ try{
+  raw=localStorage.getItem(KEY);
+  if(changing)state.forge138LastEdit={planId:p.id,ex:structuredClone(p.ex)};
+  p.title=title;p.location=x.location;p.ex=structuredClone(ex);save();
+  const copy=JSON.parse(localStorage.getItem(KEY)||'null')?.plan?.find(q=>String(q.id)===String(p.id));
+  if(!copy||JSON.stringify(copy.ex)!==JSON.stringify(p.ex)||copy.title!==p.title)throw Error('verify');
+  return {ok:true};
+ }catch(err){
+  console.error('FORGE Plan speichern fehlgeschlagen',err);
+  p.title=backup.title;p.location=backup.location;p.ex=backup.ex;state.forge138LastEdit=backup.last;
+  try{if(raw==null)localStorage.removeItem(KEY);else localStorage.setItem(KEY,raw);}catch(e){}
+  return {ok:false,reason:'Speichern fehlgeschlagen. Der bisherige Plan bleibt erhalten.'};
+ }
 }
 function toast(text){
  const t=el('div','',text);t.setAttribute('role','status');
@@ -397,18 +536,19 @@ function sheetHead(kicker,title){
  h.append(t,x);return h;
 }
 function askDiscard(){
+ const draft=!!ed?.draft;
  openSheet('Änderungen verwerfen?',s=>{
-  s.append(sheetHead('','Änderungen verwerfen?'));
-  s.append(el('p','','Du hast Änderungen am Plan, die noch nicht gespeichert sind.'));
-  s.append(btn('sh-main','Plan speichern',()=>{closeSheet();saveAll();}));
+  s.append(sheetHead('',draft?'Neuen Plan verwerfen?':'Änderungen verwerfen?'));
+  s.append(el('p','',draft?'Deine ausgewählten Übungen gehen verloren. Dein aktueller Plan bleibt unverändert.':'Du hast Änderungen am Plan, die noch nicht gespeichert sind.'));
+  if(!draft)s.append(btn('sh-main','Plan speichern',()=>{closeSheet();saveAll();}));
   s.append(btn('sh-danger','Verwerfen',()=>{closeSheet();closeEditor(true);}));
   s.append(btn('sh-sec','Weiter bearbeiten',closeSheet));
  });
 }
 function renameSheet(w){
  openSheet('Trainingseinheit umbenennen',s=>{
-  s.append(sheetHead('Trainingseinheit','Name & Trainingsort'));
-  const lab=el('label','','Name');const input=el('input');input.type='text';input.maxLength=90;input.value=w.title;lab.append(input);s.append(lab);
+  s.append(sheetHead(ed.draft?DAY_FULL[w.weekday]:'Trainingseinheit',ed.draft?'Trainingsort':'Name & Trainingsort'));
+  const lab=el('label','','Name');const input=el('input');input.type='text';input.maxLength=90;input.value=w.title;lab.append(input);if(!ed.draft)s.append(lab);
   let loc=w.location;
   const seg=el('div','sh-seg');seg.setAttribute('role','radiogroup');seg.setAttribute('aria-label','Trainingsort');
   [['gym','Fitnessstudio'],['home','Zuhause']].forEach(([v,txt])=>{const b=btn('',txt,()=>{loc=v;seg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-checked',String(x===b)));});b.setAttribute('role','radio');b.setAttribute('aria-checked',String(v===loc));seg.append(b);});
@@ -419,7 +559,7 @@ function renameSheet(w){
    if(!name){err.textContent='Bitte einen Namen eingeben.';input.focus();return;}
    w.title=name;w.location=loc;closeSheet();render();
   }));
-  setTimeout(()=>input.focus(),60);
+  if(!ed.draft)setTimeout(()=>input.focus(),60);
  });
 }
 
@@ -468,7 +608,13 @@ function fill(){
  if(cat.tab==='mobility'&&!mobLib){grid.append(el('div','cat-none','Mobilitätsübungen werden geladen …'));return;}
  const items=filterCatalog(catItems(),cat.query).filter(it=>cat.tab!=='strength'||matchesChip(it,cat.chip));
  const inUnit=new Set(cat.unit?cat.unit.ex.map(e=>e.name):[]);
- if(!items.length){grid.append(el('div','cat-none',cat.query||cat.chip!=='Alle'?'Keine passende Übung gefunden.':'Keine Übungen in dieser Kategorie.'));return;}
+ const q=String(cat.query||'').trim();
+ if(ed&&ed.draft&&cat.unit&&cat.mode!=='browse'&&q.length>=2&&!items.some(it=>normalize(it.name)===normalize(q))&&!inUnit.has(q)){
+  const own=btn('cat-own','',()=>pickExercise(q.slice(0,80),true));
+  own.append(el('b','','„'+q.slice(0,80)+'“ als eigene Übung'),el('small','','Nicht im Katalog – ohne Bild und Anleitung'));
+  grid.append(own);
+ }
+ if(!items.length){if(grid.children.length)return;grid.append(el('div','cat-none',cat.query||cat.chip!=='Alle'?'Keine passende Übung gefunden.':'Keine Übungen in dieser Kategorie.'));return;}
  items.slice(0,cat.limit).forEach(it=>{
   const already=inUnit.has(it.name);
   const card=btn('cat-card','',()=>pickExercise(it.name));
@@ -481,7 +627,7 @@ function fill(){
   grid.append(btn('cat-more','Weitere '+Math.min(40,items.length-cat.limit)+' von '+(items.length-cat.limit)+' anzeigen',()=>{const y=grid.scrollTop;cat.limit+=40;fill();grid.scrollTop=y;}));
  }
 }
-function pickExercise(name){
+function pickExercise(name,custom){
  if(cat.mode==='browse'){techSheet(name);return;}
  const w=cat.unit;if(!w)return;
  if(w.ex.some(e=>e.name===name))return;
@@ -491,7 +637,8 @@ function pickExercise(name){
   ed.open=cat.index;ed.status='„'+old+'“ ersetzt durch „'+name+'“';ed.tone='';
  }else{
   if(w.ex.length>=MAX_EX)return;
-  w.ex.push(defaultsFor(name));ed.open=w.ex.length-1;ed.status='„'+name+'“ hinzugefügt';ed.tone='';
+  const d=custom?{name,sets:3,reps:10}:defaultsFor(name);if(ed.draft)d.unit=d.unit||'auto';
+  w.ex.push(d);ed.open=w.ex.length-1;ed.status='„'+name+'“ hinzugefügt';ed.tone='';
  }
  cat=null;closeSheet();render();
  requestAnimationFrame(()=>root?.querySelector('.ed-card')?.scrollIntoView?.({block:'nearest'}));
@@ -548,7 +695,7 @@ function install(){
  if(!document.body||!enabled())return false;
  document.addEventListener('click',intercept,true);
  wrapGlobals();setTimeout(wrapGlobals,1500);
- window.ForgeLayoutBEditorOpen=openEditor;window.ForgeLayoutBCatalogOpen=openBrowse;
+ window.ForgeLayoutBEditorOpen=openEditor;window.ForgeLayoutBEditorDraft=openDraft;window.ForgeLayoutBCatalogOpen=openBrowse;
  return true;
 }
 function boot(){if(install())return;let n=0;const t=setInterval(()=>{if(install()||++n>20)clearInterval(t);},250);}
