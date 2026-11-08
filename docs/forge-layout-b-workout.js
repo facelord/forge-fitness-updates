@@ -318,7 +318,7 @@ function buildRest(){
  const txt=el('div','forge-lb-ring-txt');const big=el('b','','0:00');const of=el('span','','');txt.append(big,of);ring.append(txt);
  const row=el('div','forge-lb-rest-row');
  const add=el('button','forge-lb-pill','+ 30 Sek.');add.type='button';
- add.addEventListener('click',()=>{if(typeof window.forge130RestAdd==='function')window.forge130RestAdd(30);});
+ add.addEventListener('click',()=>{if(typeof window.forge130RestAdd==='function')window.forge130RestAdd(30);setTimeout(tick,0);});
  const pause=el('button','forge-lb-pill');pause.type='button';pause.innerHTML=SVG.pause+'<span>Training pausieren</span>';
  pause.addEventListener('click',()=>$('forgeLivePause')?.click());
  const adjust=el('button','forge-lb-pill','Werte anpassen');adjust.type='button';
@@ -328,7 +328,7 @@ function buildRest(){
  const foot=el('div','forge-lb-rest-foot');
  const card=el('div','forge-lb-nextcard');const cs=el('small','','Als Nächstes');const cb=el('b','','');card.append(cs,cb);
  const go=el('button','forge-lb-rest-go','Zum nächsten Satz');go.type='button';
- go.addEventListener('click',()=>{if(typeof window.forge130RestSkip==='function')window.forge130RestSkip();});
+ go.addEventListener('click',()=>{if(typeof window.forge130RestSkip==='function')window.forge130RestSkip();setTimeout(tick,0);});
  const note=el('div','forge-lb-rest-note','Automatische Satzpause · Dauer in den Einstellungen');
  foot.append(card,go,note);
  root.append(head,mid,foot);
