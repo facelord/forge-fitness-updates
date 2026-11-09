@@ -1,30 +1,12 @@
-/* FORGE – 19 separate, exercise-specific SVG muscle illustrations. 
+/* FORGE – image zoom viewer (formerly also 19 atlas SVGs, now on the V12 boards). 
  * Red = primary, orange = supporting; replaces only the third image.
  * First two position photos, mobility cards, approved shoulder rotation untouched.
  */
 (function(){
 'use strict';
-const images={
- "Brustpresse": "01-brustpresse.svg",
- "Butterfly / Pec Deck": "02-butterfly.svg",
- "Kabel-Flys": "03-kabel-flys.svg",
- "Einarmiges Kurzhantelrudern": "04-einarmiges-rudern.svg",
- "Brustgestütztes Rudern": "05-brustgestuetztes-rudern.svg",
- "Gerade-Arme-Pulldown": "06-gerade-arme-pulldown.svg",
- "Arnold Press": "07-arnold-press.svg",
- "Hammer Curls": "08-hammer-curls.svg",
- "Überkopf-Trizepsstrecken": "09-trizeps-ueberkopf.svg",
- "Hip Thrust": "10-hip-thrust.svg",
- "Beinstrecker": "11-beinstrecker.svg",
- "Abduktorenmaschine": "12-abduktoren.svg",
- "Adduktorenmaschine": "13-adduktoren.svg",
- "Einbeiniges rumänisches Kreuzheben": "14-einbeiniges-rdl.svg",
- "Back Extensions": "15-back-extensions.svg",
- "Farmer's Carry": "16-farmers-carry.svg",
- "Pallof Press": "17-pallof-press.svg",
- "Dead Bug": "18-dead-bug.svg",
- "Bird Dog": "19-bird-dog.svg"
-};
+// The 19 separate atlas SVGs were superseded by the V12 boards and removed;
+// this module keeps the shared zoom viewer for boards and photos.
+const images={};
 const gridQuery='.forge165-photo-grid,.forge166-photo-grid,.forge167-photo-grid,.forge169-photo-grid';
 const zoomQuery='.forge165-photo-grid img,.forge166-photo-grid img,.forge167-photo-grid img,.forge169-photo-grid img,#forgeCatalog .forge-mob-card-scroll img,#forgeCatalog .forge-mob-photos img,.forge-media-v8-mobility-anatomy img,.forge-v101-chest-grid img,.forge-strength-board img,#forgePremiumHero .forge-b-main-photo.forge-strength-board-hero img';
 const originalExercise=window.forgeExerciseIllustrations;

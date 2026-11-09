@@ -126,14 +126,8 @@ const MEDIA_RULES=Object.freeze({
 });
 // Reuse the FORGE detailed anatomical atlas (not the simplistic workout silhouettes).
 // Each mobile asset is a portrait crop of its matching front or back anatomy view.
-const PREMIUM_MUSCLE_ASSETS=Object.freeze({
- 'Bankdrücken':Object.freeze({src:'./muscle-premium-vb/bankdruecken.svg',view:'Vorderansicht'}),
- 'Latziehen':Object.freeze({src:'./muscle-premium-vb/latziehen.svg',view:'Rückenansicht'}),
- 'Seitheben':Object.freeze({src:'./muscle-premium-vb/seitheben.svg',view:'Vorderansicht'}),
- 'Rumänisches Kreuzheben':Object.freeze({src:'./muscle-premium-vb/rum-kreuzheben.svg',view:'Rückenansicht'}),
- 'Ausfallschritte':Object.freeze({src:'./muscle-premium-vb/ausfallschritte.svg',view:'Vorderansicht'}),
- 'Plank':Object.freeze({src:'./muscle-premium-vb/plank.svg',view:'Vorderansicht'})
-});
+// Strength muscles now live on the approved V12 boards; the old atlas portraits were removed.
+const PREMIUM_MUSCLE_ASSETS=Object.freeze({});
 function imageData(name){
  if(artCache.has(name))return artCache.get(name);
  const rule=MEDIA_RULES[name]||{stage:1,fit:'contain',position:'center center'};

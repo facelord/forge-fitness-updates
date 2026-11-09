@@ -20,7 +20,7 @@
       "imageStatus": "atlas-schematic-sequence",
       "startImage": "forge162-atlas[0]",
       "endImage": "forge162-atlas[1]",
-      "muscleImage": "./muscle-atlas-v2/01-brustpresse.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-v2",
       "approvedForReplacement": false
     },
@@ -31,7 +31,7 @@
       "imageStatus": "atlas-schematic-sequence",
       "startImage": "forge162-atlas[0]",
       "endImage": "forge162-atlas[1]",
-      "muscleImage": "./muscle-atlas-v2/02-butterfly.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-v2",
       "approvedForReplacement": false
     },
@@ -42,7 +42,7 @@
       "imageStatus": "atlas-schematic-sequence",
       "startImage": "forge162-atlas[0]",
       "endImage": "forge162-atlas[1]",
-      "muscleImage": "./muscle-atlas-v2/03-kabel-flys.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-v2",
       "approvedForReplacement": false
     },
@@ -53,7 +53,7 @@
       "imageStatus": "three-image-photo-sequence",
       "startImage": "embedded-photo-sequence[0]",
       "endImage": "embedded-photo-sequence[1]",
-      "muscleImage": "./muscle-atlas-v2/04-einarmiges-rudern.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-v2",
       "approvedForReplacement": false
     },
@@ -64,7 +64,7 @@
       "imageStatus": "three-image-photo-sequence",
       "startImage": "embedded-photo-sequence[0]",
       "endImage": "embedded-photo-sequence[1]",
-      "muscleImage": "./muscle-atlas-v2/05-brustgestuetztes-rudern.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-v2",
       "approvedForReplacement": false
     },
@@ -75,7 +75,7 @@
       "imageStatus": "three-image-photo-sequence",
       "startImage": "embedded-photo-sequence[0]",
       "endImage": "embedded-photo-sequence[1]",
-      "muscleImage": "./muscle-atlas-v2/06-gerade-arme-pulldown.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-v2",
       "approvedForReplacement": false
     },
@@ -86,7 +86,7 @@
       "imageStatus": "three-image-photo-sequence",
       "startImage": "embedded-photo-sequence[0]",
       "endImage": "embedded-photo-sequence[1]",
-      "muscleImage": "./muscle-atlas-v2/07-arnold-press.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-v2",
       "approvedForReplacement": false
     },
@@ -108,7 +108,7 @@
       "imageStatus": "three-image-photo-sequence",
       "startImage": "embedded-photo-sequence[0]",
       "endImage": "embedded-photo-sequence[1]",
-      "muscleImage": "./muscle-atlas-v2/08-hammer-curls.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-v2",
       "approvedForReplacement": false
     },
@@ -119,7 +119,7 @@
       "imageStatus": "three-image-photo-sequence",
       "startImage": "embedded-photo-sequence[0]",
       "endImage": "embedded-photo-sequence[1]",
-      "muscleImage": "./muscle-atlas-v2/09-trizeps-ueberkopf.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-v2",
       "approvedForReplacement": false
     },
@@ -130,7 +130,7 @@
       "imageStatus": "three-image-photo-sequence",
       "startImage": "embedded-photo-sequence[0]",
       "endImage": "embedded-photo-sequence[1]",
-      "muscleImage": "./muscle-atlas-v2/10-hip-thrust.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-v2",
       "approvedForReplacement": false
     },
@@ -141,7 +141,7 @@
       "imageStatus": "atlas-schematic-sequence",
       "startImage": "forge162-atlas[0]",
       "endImage": "forge162-atlas[1]",
-      "muscleImage": "./muscle-atlas-v2/11-beinstrecker.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-v2",
       "approvedForReplacement": false
     },
@@ -152,7 +152,7 @@
       "imageStatus": "atlas-schematic-sequence",
       "startImage": "forge162-atlas[0]",
       "endImage": "forge162-atlas[1]",
-      "muscleImage": "./muscle-atlas-v2/12-abduktoren.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-v2",
       "approvedForReplacement": false
     },
@@ -163,7 +163,7 @@
       "imageStatus": "atlas-schematic-sequence",
       "startImage": "forge162-atlas[0]",
       "endImage": "forge162-atlas[1]",
-      "muscleImage": "./muscle-atlas-v2/13-adduktoren.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-v2",
       "approvedForReplacement": false
     },
@@ -174,7 +174,7 @@
       "imageStatus": "atlas-schematic-sequence",
       "startImage": "forge162-atlas[0]",
       "endImage": "forge162-atlas[1]",
-      "muscleImage": "./muscle-atlas-v2/14-einbeiniges-rdl.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-v2",
       "approvedForReplacement": false
     },
@@ -185,7 +185,7 @@
       "imageStatus": "atlas-schematic-sequence",
       "startImage": "forge162-atlas[0]",
       "endImage": "forge162-atlas[1]",
-      "muscleImage": "./muscle-atlas-v2/15-back-extensions.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-v2",
       "approvedForReplacement": false
     },
@@ -196,7 +196,7 @@
       "imageStatus": "three-image-photo-sequence",
       "startImage": "embedded-photo-sequence[0]",
       "endImage": "embedded-photo-sequence[1]",
-      "muscleImage": "./muscle-atlas-v2/16-farmers-carry.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-v2",
       "approvedForReplacement": false
     },
@@ -207,7 +207,7 @@
       "imageStatus": "three-image-photo-sequence",
       "startImage": "embedded-photo-sequence[0]",
       "endImage": "embedded-photo-sequence[1]",
-      "muscleImage": "./muscle-atlas-v2/17-pallof-press.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-v2",
       "approvedForReplacement": false
     },
@@ -218,7 +218,7 @@
       "imageStatus": "three-image-photo-sequence",
       "startImage": "embedded-photo-sequence[0]",
       "endImage": "embedded-photo-sequence[1]",
-      "muscleImage": "./muscle-atlas-v2/18-dead-bug.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-v2",
       "approvedForReplacement": false
     },
@@ -229,7 +229,7 @@
       "imageStatus": "three-image-photo-sequence",
       "startImage": "embedded-photo-sequence[0]",
       "endImage": "embedded-photo-sequence[1]",
-      "muscleImage": "./muscle-atlas-v2/19-bird-dog.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-v2",
       "approvedForReplacement": false
     },
@@ -480,7 +480,7 @@
       "imageStatus": "legacy-photo-catalog-visual-qa-pending",
       "startImage": "existing-legacy-photo",
       "endImage": "existing-legacy-photo",
-      "muscleImage": "./muscle-premium-vb/ausfallschritte.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-premium-vb",
       "approvedForReplacement": false
     },
@@ -491,7 +491,7 @@
       "imageStatus": "legacy-photo-catalog-visual-qa-pending",
       "startImage": "existing-legacy-photo",
       "endImage": "existing-legacy-photo",
-      "muscleImage": "./muscle-premium-vb/rum-kreuzheben.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-premium-vb",
       "approvedForReplacement": false
     },
@@ -502,7 +502,7 @@
       "imageStatus": "legacy-photo-catalog-visual-qa-pending",
       "startImage": "existing-legacy-photo",
       "endImage": "existing-legacy-photo",
-      "muscleImage": "./muscle-premium-vb/bankdruecken.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-premium-vb",
       "approvedForReplacement": false
     },
@@ -513,7 +513,7 @@
       "imageStatus": "legacy-photo-catalog-visual-qa-pending",
       "startImage": "existing-legacy-photo",
       "endImage": "existing-legacy-photo",
-      "muscleImage": "./muscle-premium-vb/latziehen.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-premium-vb",
       "approvedForReplacement": false
     },
@@ -524,7 +524,7 @@
       "imageStatus": "legacy-photo-catalog-visual-qa-pending",
       "startImage": "existing-legacy-photo",
       "endImage": "existing-legacy-photo",
-      "muscleImage": "./muscle-premium-vb/seitheben.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-premium-vb",
       "approvedForReplacement": false
     },
@@ -535,7 +535,7 @@
       "imageStatus": "legacy-photo-catalog-visual-qa-pending",
       "startImage": "existing-legacy-photo",
       "endImage": "existing-legacy-photo",
-      "muscleImage": "./muscle-premium-vb/plank.svg",
+      "muscleImage": null,
       "muscleStatus": "detailed-anatomy-premium-vb",
       "approvedForReplacement": false
     }
