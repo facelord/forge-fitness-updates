@@ -305,7 +305,7 @@ function saveMobilityPlan(){
 let mobLib=null;
 function loadMobLib(){
  if(mobLib)return Promise.resolve(mobLib);
- return fetch('./exercise-plus-data.json',{cache:'force-cache'}).then(r=>r.json()).then(d=>{mobLib=Array.isArray(d.mobility)?d.mobility:[];return mobLib;}).catch(()=>{mobLib=[];return mobLib;});
+ return fetch('./exercise-plus-data.json',{cache:'force-cache'}).then(r=>r.json()).then(d=>{mobLib=Array.isArray(d.mobility)?d.mobility:[];try{if(window.ForgeMobilityCatalog)mobLib=window.ForgeMobilityCatalog.withExtras(mobLib,typeof FORGE_EX_GUIDES!=='undefined'?FORGE_EX_GUIDES:{});}catch(e){}return mobLib;}).catch(()=>{mobLib=[];return mobLib;});
 }
 
 /* ---------- rendering ---------- */
@@ -442,9 +442,11 @@ function render(){
    body.append(chips,lst);
    loadMobLib().then(lib=>{
     if(!root||steps()[flow.step]!=='pick')return;
-    const regions=['Alle',...new Set(lib.map(x=>x.region))];
-    chips.replaceChildren(...regions.map(r=>{const c=el('button','wz-chip',r);c.type='button';c.setAttribute('aria-pressed',String(s.region===r));c.addEventListener('click',()=>{s.region=r;render();});return c;}));
-    const shown=lib.filter(x=>s.region==='Alle'||x.region===s.region);
+    // Unterkategorien wie im Übungskatalog: Gelenke · Yoga · Dehnen.
+    const catOf=n=>{try{return window.ForgeMobilityCatalog?window.ForgeMobilityCatalog.categoryOf(n):'Gelenke';}catch(e){return 'Gelenke';}};
+    const cats=['Alle','Gelenke','Yoga','Dehnen'];if(!cats.includes(s.region))s.region='Alle';
+    chips.replaceChildren(...cats.map(r=>{const c=el('button','wz-chip',r);c.type='button';c.setAttribute('aria-pressed',String(s.region===r));c.addEventListener('click',()=>{s.region=r;render();});return c;}));
+    const shown=lib.filter(x=>s.region==='Alle'||catOf(x.name)===s.region);
     lst.replaceChildren(...shown.map(x=>{
      const on=s.picked.includes(x.name);
      const b=el('button','wz-ex');b.type='button';b.setAttribute('aria-pressed',String(on));

@@ -125,7 +125,7 @@ function groupFor(name){try{if(typeof FORGE_131_EXERCISES!=='undefined')return F
 let mobLib=null,mobLoading=null;
 function loadMobLib(){
  if(mobLib)return Promise.resolve(mobLib);
- if(!mobLoading)mobLoading=fetch('./exercise-plus-data.json',{cache:'force-cache'}).then(r=>r.json()).then(d=>{mobLib=Array.isArray(d.mobility)?d.mobility:[];return mobLib;}).catch(()=>{mobLib=[];return mobLib;});
+ if(!mobLoading)mobLoading=fetch('./exercise-plus-data.json',{cache:'force-cache'}).then(r=>r.json()).then(d=>{mobLib=Array.isArray(d.mobility)?d.mobility:[];try{if(window.ForgeMobilityCatalog)mobLib=window.ForgeMobilityCatalog.withExtras(mobLib,typeof FORGE_EX_GUIDES!=='undefined'?FORGE_EX_GUIDES:{});}catch(e){}return mobLib;}).catch(()=>{mobLib=[];return mobLib;});
  return mobLoading;
 }
 function labelFor(name){
@@ -606,7 +606,7 @@ function openCatalog(opts){
   s.append(sheetHead('Übungskatalog',title));
   const seg=el('div','cat-seg');seg.hidden=opts.mode!=='browse';seg.setAttribute('role','tablist');seg.setAttribute('aria-label','Kategorie');
   [['strength','Kraftübungen'],['mobility','Mobilität']].forEach(([v,txt])=>{
-   const b=btn('',txt,()=>{cat.tab=v;cat.limit=40;cat.chip='Alle';cat.query='';input.value='';chips.hidden=v!=='strength';chips.querySelectorAll('button').forEach((x,k)=>x.setAttribute('aria-pressed',String(k===0)));sheet.classList.toggle('mob',v==='mobility');seg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-selected',String(x===b)));input.placeholder=placeholder();input.setAttribute('aria-label',placeholder());fill();});
+   const b=btn('',txt,()=>{cat.tab=v;cat.limit=40;cat.chip='Alle';cat.query='';input.value='';chips.hidden=v!=='strength';mchips.hidden=v!=='mobility';cat.mcat='Alle';mchips.querySelectorAll('button').forEach((x,k)=>x.setAttribute('aria-pressed',String(k===0)));chips.querySelectorAll('button').forEach((x,k)=>x.setAttribute('aria-pressed',String(k===0)));sheet.classList.toggle('mob',v==='mobility');seg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-selected',String(x===b)));input.placeholder=placeholder();input.setAttribute('aria-label',placeholder());fill();});
    b.setAttribute('role','tab');b.setAttribute('aria-selected',String(v===cat.tab));seg.append(b);
   });
   s.append(seg);
@@ -615,9 +615,12 @@ function openCatalog(opts){
   const input=el('input');input.type='search';input.value=cat.query;input.placeholder=placeholder();input.setAttribute('aria-label',placeholder());
   input.addEventListener('input',()=>{cat.query=input.value;cat.limit=40;fill();});
   lab.append(input);s.append(lab);
+  const mchips=el('div','cat-chips');mchips.setAttribute('role','group');mchips.setAttribute('aria-label','Mobilität: Kategorie');mchips.hidden=cat.tab!=='mobility';
+  cat.mcat=cat.mcat||'Alle';
+  ['Alle','Gelenke','Yoga','Dehnen'].forEach(name=>{const b=btn('',name,()=>{cat.mcat=name;cat.limit=40;mchips.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));fill();});b.setAttribute('aria-pressed',String(name===cat.mcat));mchips.append(b);});
   const chips=el('div','cat-chips');chips.setAttribute('role','group');chips.setAttribute('aria-label','Muskelgruppe');chips.hidden=cat.tab!=='strength';
   MUSCLE_CHIPS.forEach(([name])=>{const b=btn('',name,()=>{cat.chip=name;cat.limit=40;chips.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));fill();});b.setAttribute('aria-pressed',String(name===cat.chip));chips.append(b);});
-  s.append(chips);
+  s.append(chips,mchips);
   const grid=el('div','cat-grid');s.append(grid);
   s.append(el('div','cat-hint',opts.mode==='browse'?'Antippen zeigt Technik und Muskeln':opts.mode==='replace'?'Antippen ersetzt die Übung in der Einheit':'Antippen übernimmt die Übung in die Einheit'));
   cat.grid=grid;
@@ -629,7 +632,8 @@ function fill(){
  const grid=cat.grid;if(!grid)return;
  grid.replaceChildren();grid.scrollTop=0;
  if(cat.tab==='mobility'&&!mobLib){grid.append(el('div','cat-none','Mobilitätsübungen werden geladen …'));return;}
- const items=filterCatalog(catItems(),cat.query).filter(it=>cat.tab!=='strength'||matchesChip(it,cat.chip));
+ const catOf=n=>{try{return window.ForgeMobilityCatalog?window.ForgeMobilityCatalog.categoryOf(n):'Gelenke';}catch(e){return 'Gelenke';}};
+ const items=filterCatalog(catItems(),cat.query).filter(it=>cat.tab==='strength'?matchesChip(it,cat.chip):(!cat.mcat||cat.mcat==='Alle'||catOf(it.name)===cat.mcat));
  const inUnit=new Set(cat.unit?cat.unit.ex.map(e=>e.name):[]);
  const q=String(cat.query||'').trim();
  if(ed&&ed.draft&&cat.unit&&cat.mode!=='browse'&&q.length>=2&&!items.some(it=>normalize(it.name)===normalize(q))&&!inUnit.has(q)){

@@ -1,7 +1,7 @@
 /* FORGE exercise expansion: one original UI design, no changes to existing workout data. */
 (function(){
 'use strict';
-var S=[],M=[],byName={},selected=[],timer=null;
+var S=[],M=[],byName={},selected=[],savedMix=[],timer=null;
 var $=id=>document.getElementById(id);
 var E=(tag,cls,txt)=>{var n=document.createElement(tag);if(cls)n.className=cls;if(txt!==undefined)n.textContent=txt;return n;};
 var btn=(txt,fn,alt)=>{var n=E('button','btn small'+(alt?' alt':''),txt);n.type='button';n.addEventListener('click',fn);return n;};
@@ -40,10 +40,12 @@ function originalGuides(){
 }
 function install(data){
  if(!data||data.strength?.length!==20||data.mobility?.length!==20)throw Error('Incomplete FORGE library');
- S=data.strength;M=data.mobility;
+ S=data.strength;M=data.mobility.slice();
+ // Mobility moves from the guided routines join the catalogue (Gelenke · Yoga · Dehnen).
+ try{if(window.ForgeMobilityCatalog)M=window.ForgeMobilityCatalog.withExtras(M,FORGE_EX_GUIDES);}catch(ex){console.warn('FORGE: mobility extras',ex);}
  // Reuse the existing routine guide format so detailed instructions also show
  // inside a custom mobility week, not only in the exercise discovery library.
- M.forEach(x=>{FORGE_EX_GUIDES[x.name]=[x.steps,x.tip];});
+ M.forEach(x=>{if(x.source!=='routine'||!FORGE_EX_GUIDES[x.name])FORGE_EX_GUIDES[x.name]=[x.steps,x.tip];});
  const originalMobGuide=window.forgeMobExerciseGuide;
  if(typeof originalMobGuide==='function')window.forgeMobExerciseGuide=function(item){
    const x=M.find(v=>v.name===item[0]);
@@ -83,10 +85,19 @@ function install(data){
  };
  if($('manualExercise'))manualInit();
  if($('forgeCatalog')?.open)forge131RenderCatalog();
+ savedMix=(Array.isArray(state.forgeMobCustom)?state.forgeMobCustom:[]).slice();
  selected=(Array.isArray(state.forgeMobCustom)?state.forgeMobCustom:[]).filter(n=>M.some(x=>x.name===n));
  routine();
  // Reuse the original mobile training-mix workflow from the separated catalog.
  window.forgePlusMobilityMixNames=function(){return selected.slice();};
+ // Later registration (if the catalogue module loads after this library).
+ window.forgePlusRegisterMobility=function(list){
+  var have=new Set(M.map(x=>x.name)),added=(list||[]).filter(x=>x&&x.name&&!have.has(x.name));
+  if(!added.length)return 0;
+  M=M.concat(added);
+  selected=savedMix.concat(selected.filter(n=>!savedMix.includes(n))).filter(n=>M.some(x=>x.name===n));
+  routine();return added.length;
+ };
  window.forgePlusToggleMobilityMix=function(name){
   if(!M.some(x=>x.name===name))return false;
   addToMix(name);return selected.includes(name);

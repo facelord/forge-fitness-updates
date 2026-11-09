@@ -47,7 +47,51 @@ function isToday(cfg,weekday,trainedToday){
  if(cfg.timing==='both')return days.includes(weekday)||!!trainedToday;
  return days.includes(weekday);
 }
-window.ForgeLayoutBMobility=Object.freeze({hasSides,buildPhases,totalSeconds,minutesLabel,clock,firstPhaseOf,isToday,PREP,SIDE_PREP});
+/* ---------- Mobilitätskatalog: Gelenke · Yoga · Dehnen ---------- */
+const CATEGORIES=Object.freeze(['Gelenke','Yoga','Dehnen']);
+const STRETCH=new Set(['90/90-Vorbeuge','Quadrizeps-Dehnung im Stand','Soleus-Dehnung mit gebeugtem Knie','Hamstring-Dehnung mit Gurt','Knie zur Brust in Rückenlage',
+ 'Hüftbeuger-Dehnung','Figure-Four-Dehnung','Türrahmen-Brustdehnung','Waden-Dehnung']);
+const YOGA=new Set(['Kindhaltung','Herabschauender Hund','Liegender Twist']);
+function categoryOf(name){return YOGA.has(name)?'Yoga':STRETCH.has(name)?'Dehnen':'Gelenke';}
+/* Moves that already live (with photos and guides) in the guided routines; now also in the catalogue. */
+const EXTRA_DEFS=Object.freeze([
+ ['Kindhaltung','Rücken','static',60,false],['Herabschauender Hund','Ganzkörper','static',45,false],['Liegender Twist','Wirbelsäule','static',45,true],
+ ['Hüftbeuger-Dehnung','Hüfte','static',45,true],['Figure-Four-Dehnung','Gesäß','static',45,true],['Türrahmen-Brustdehnung','Brust','static',45,true],
+ ['Waden-Dehnung','Waden','static',45,true],['Adduktoren-Rockback','Hüfte','dynamic',60,true],['Wall Slides','Schultern','dynamic',60,false]]);
+function extras(guides){
+ const g=guides||{};
+ return EXTRA_DEFS.map(([name,region,mode,seconds,sides])=>{const x=Array.isArray(g[name])?g[name]:[[],''];
+  return {name,region,mode,amount:mode==='dynamic'?10:1,seconds,sides,steps:Array.isArray(x[0])?x[0].slice():[],tip:String(x[1]||''),category:categoryOf(name),source:'routine'};});
+}
+function withExtras(list,guides){const have=new Set((list||[]).map(x=>x.name));return (list||[]).concat(extras(guides).filter(x=>!have.has(x.name)));}
+/* ---------- Video-Bibliothek ---------- */
+const VIDEO_AREAS=Object.freeze([['hips','Hüfte'],['upper','Oberkörper'],['back','Rücken'],['legs','Beine'],['full','Ganzkörper']]);
+const VIDEO_MINS=Object.freeze([5,10,15,20,30]);
+function videoList(catalog){
+ const out=[],seen=new Set();
+ for(const [key,items] of Object.entries(catalog||{})){
+  const m=/^(\w+)-(\d+)$/.exec(key);if(!m||!Array.isArray(items))continue;
+  items.forEach((v,idx)=>{if(!v||!v.url||seen.has(v.url))return;seen.add(v.url);
+   const id=(/[?&]v=([\w-]{6,})/.exec(v.url)||[])[1]||'';
+   out.push({id,url:v.url,title:String(v.title||'Video'),creator:String(v.creator||''),area:m[1],mins:Number(m[2]),idx,yoga:/yoga/i.test(String(v.title||''))});});
+ }
+ return out;
+}
+function filterVideos(list,f){
+ const q=String(f&&f.q||'').toLocaleLowerCase('de').trim();
+ return (list||[]).filter(v=>(!f||!f.area||f.area==='all'||v.area===f.area)&&(!f||!f.mins||v.mins===Number(f.mins))&&(!q||(v.title+' '+v.creator).toLocaleLowerCase('de').includes(q)));
+}
+/* Weekly plan keeps the first two videos per area+duration (legacy videoCandidates). */
+function plannable(v){return !!v&&v.idx<2;}
+function assignVideo(assignments,day,v){
+ const list=(Array.isArray(assignments)?assignments:[]).filter(a=>a&&a.day!==day);
+ list.push({day,goal:v.area,mins:v.mins,choice:v.idx,timing:'separate'});
+ return list.sort((a,b)=>a.day-b.day);
+}
+window.ForgeMobilityCatalog=Object.freeze({CATEGORIES,categoryOf,extras,withExtras});
+try{if(typeof window.forgePlusRegisterMobility==='function'&&typeof FORGE_EX_GUIDES!=='undefined')window.forgePlusRegisterMobility(extras(FORGE_EX_GUIDES));}catch(e){}
+window.ForgeLayoutBMobility=Object.freeze({hasSides,buildPhases,totalSeconds,minutesLabel,clock,firstPhaseOf,isToday,PREP,SIDE_PREP,
+ categoryOf,extras,withExtras,videoList,filterVideos,plannable,assignVideo,VIDEO_AREAS,VIDEO_MINS});
 if(typeof document==='undefined')return;
 
 /* ---------- environment ---------- */
@@ -58,7 +102,8 @@ function cfg(){try{return typeof mobConfig==='function'?mobConfig():(state.mobil
 function routines(){try{return typeof MOB_ROUTINES!=='undefined'?MOB_ROUTINES:{};}catch(e){return {};}}
 function routine(){const c=cfg();const r=routines()[c.routine||'gentle'];return r&&Array.isArray(r.items)&&r.items.length?{key:c.routine||'gentle',name:r.name,items:r.items}:null;}
 let lib=null;
-function loadLib(){if(lib)return Promise.resolve(lib);return fetch('./exercise-plus-data.json',{cache:'force-cache'}).then(r=>r.json()).then(d=>{lib=Array.isArray(d.mobility)?d.mobility:[];return lib;}).catch(()=>{lib=[];return lib;});}
+function guides(){try{return typeof FORGE_EX_GUIDES!=='undefined'?FORGE_EX_GUIDES:{};}catch(e){return {};}}
+function loadLib(){if(lib)return Promise.resolve(lib);return fetch('./exercise-plus-data.json',{cache:'force-cache'}).then(r=>r.json()).then(d=>{lib=withExtras(Array.isArray(d.mobility)?d.mobility:[],guides());return lib;}).catch(()=>{lib=[];return lib;});}
 function guide(name){
  try{if(typeof FORGE_EX_GUIDES!=='undefined'&&FORGE_EX_GUIDES[name])return {steps:FORGE_EX_GUIDES[name][0]||[],tip:FORGE_EX_GUIDES[name][1]||''};}catch(e){}
  const x=(lib||[]).find(e=>e.name===name);
@@ -87,6 +132,9 @@ const ICON={
  prev:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>',
  next:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>',
  flow:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="4.5" r="1.8"/><path d="M12 7v6M7 10l5 3 5-3M9 21l3-8 3 8"/></svg>',
+ video:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9.5v5l4.5-2.5z" fill="currentColor"/></svg>',
+ back:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
+ search:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>',
  check:'<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M5 12l5 5L19 7"/></svg>'
 };
 
@@ -113,6 +161,50 @@ ${K} .ms-meta{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px
 ${K} .ms-meta span{font-size:12px;border-radius:12px;background:#0f1620;color:#c3cddb;padding:5px 0;text-align:center}
 ${K} .ms-meta span.on{background:${TEAL};color:#062420;font-weight:800}
 body.forge-layout-b #mobWorkout .forge-lb-mob-hidden{display:none!important}
+body.forge-layout-b #forgeVideoLibrary,body.forge-layout-b #forge149MobilityCard>.forge-mob-head{display:none!important}
+${K} .ms-link{border:0;background:transparent;color:${TEAL};font:inherit;font-size:14px;font-weight:700;padding:8px 2px;min-height:44px;text-align:center}
+.forge-lb-mobvideo{width:100%;display:flex;align-items:center;gap:12px;background:#171e2a;border:1px solid #293346;border-radius:20px;padding:12px 14px;margin:0 0 14px;color:#f3f7fc;font-family:Inter,system-ui,sans-serif;text-align:left;min-height:68px;box-sizing:border-box}
+.forge-lb-mobvideo>i{width:44px;height:44px;flex:0 0 44px;border-radius:14px;background:#14302d;color:${TEAL};display:flex;align-items:center;justify-content:center}
+.forge-lb-mobvideo>span:not(.mv-chev){flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.forge-lb-mobvideo b{font-size:15px;font-weight:700}
+.forge-lb-mobvideo small{font-size:12px;color:#95a3b7}
+.forge-lb-mobvideo .mv-chev{color:#95a3b7;display:flex}
+.forge-lb-vshade{position:fixed;inset:0;z-index:2147480400;background:#05080dcc;display:flex;flex-direction:column;justify-content:flex-end;font-family:Inter,system-ui,sans-serif;color:#f3f7fc}
+.forge-lb-vsheet{background:#111723;border-top:1px solid #3a4556;border-radius:28px 28px 0 0;max-width:560px;width:100%;margin:0 auto;box-sizing:border-box;height:calc(100% - 24px - env(safe-area-inset-top));display:flex;flex-direction:column;padding:10px 16px calc(14px + env(safe-area-inset-bottom))}
+.forge-lb-vsheet .vs-handle{width:44px;height:5px;border-radius:3px;background:#3a4556;align-self:center;flex:0 0 auto}
+.forge-lb-vsheet .vs-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0 6px;flex:0 0 auto}
+.forge-lb-vsheet h2{margin:0;font-size:22px;font-weight:800;line-height:1.2}
+.forge-lb-vsheet .vs-top small{display:block;font-size:13px;color:#95a3b7;margin-top:2px}
+.forge-lb-vsheet .vs-x{width:44px;height:44px;flex:0 0 44px;border-radius:22px;border:1px solid #293346;background:#171e2a;color:#f3f7fc;display:flex;align-items:center;justify-content:center;padding:0}
+.forge-lb-vsheet .vs-back{border:0;background:transparent;color:${TEAL};font:inherit;font-size:14px;font-weight:700;display:flex;align-items:center;gap:4px;padding:0;min-height:44px}
+.forge-lb-vsheet .vs-body{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:4px 0 8px;scrollbar-width:none;overscroll-behavior:contain}
+.forge-lb-vsheet .vs-body::-webkit-scrollbar{display:none}
+.forge-lb-vsheet .vs-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:0 0 auto;padding:1px 0}
+.forge-lb-vsheet .vs-chips::-webkit-scrollbar{display:none}
+.forge-lb-vsheet .vs-chips button{flex:0 0 auto;height:40px;border-radius:20px;border:1px solid #293346;background:#171e2a;color:#c3cddb;font:inherit;font-size:14px;font-weight:600;padding:0 14px;white-space:nowrap}
+.forge-lb-vsheet .vs-chips button[aria-pressed="true"]{background:${TEAL};border-color:${TEAL};color:#062420;font-weight:800}
+.forge-lb-vsheet .vs-search{display:flex;align-items:center;gap:8px;height:48px;border-radius:24px;border:1px solid #293346;background:#171e2a;padding:0 14px;color:#95a3b7;flex:0 0 auto}
+.forge-lb-vsheet .vs-search input{flex:1;min-width:0;border:0;background:transparent;color:#f3f7fc;font:inherit;font-size:16px;outline:none}
+.forge-lb-vsheet .vs-count{font-size:12px;color:#95a3b7;text-transform:uppercase;letter-spacing:1.2px;padding:2px 2px 0}
+.forge-lb-vsheet .vs-list{display:flex;flex-direction:column;gap:8px}
+.forge-lb-vsheet .vs-card{display:flex;align-items:center;gap:12px;background:#171e2a;border:1px solid #293346;border-radius:18px;padding:8px 12px 8px 8px;color:#f3f7fc;font:inherit;text-align:left;min-height:72px}
+.forge-lb-vsheet .vs-thumb{width:96px;height:54px;flex:0 0 96px;border-radius:10px;overflow:hidden;background:#14302d;display:flex;align-items:center;justify-content:center;color:${TEAL}}
+.forge-lb-vsheet .vs-thumb img,.forge-lb-vsheet .vs-hero img{width:100%;height:100%;object-fit:cover;display:block}
+.forge-lb-vsheet .vs-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.forge-lb-vsheet .vs-t b{font-size:15px;font-weight:700;overflow-wrap:anywhere}
+.forge-lb-vsheet .vs-t small{font-size:12px;color:#95a3b7}
+.forge-lb-vsheet .vs-hero{position:relative;width:100%;aspect-ratio:16/9;border-radius:18px;overflow:hidden;background:#14302d;display:flex;align-items:center;justify-content:center;color:${TEAL};flex:0 0 auto;cursor:pointer}
+.forge-lb-vsheet .vs-play{position:absolute;width:60px;height:60px;border-radius:30px;background:rgba(11,16,24,.72);color:#f3f7fc;display:flex;align-items:center;justify-content:center}
+.forge-lb-vsheet .vs-meta{font-size:14px;color:${TEAL};font-weight:600}
+.forge-lb-vsheet .vs-note{margin:0;font-size:13px;color:#95a3b7;line-height:1.45}
+.forge-lb-vsheet .vs-go{height:56px;border-radius:28px;border:0;background:${TEAL};color:#062420;font:inherit;font-size:17px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;flex:0 0 auto}
+.forge-lb-vsheet .vs-sec{min-height:50px;border-radius:25px;border:1px solid #2f6a62;background:transparent;color:#f3f7fc;font:inherit;font-size:15px;font-weight:700;flex:0 0 auto}
+.forge-lb-vsheet .vs-label{font-size:12px;color:#95a3b7;text-transform:uppercase;letter-spacing:1.2px}
+.forge-lb-vsheet .vs-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.forge-lb-vsheet .vs-days button{height:46px;border-radius:14px;border:1px solid #293346;background:#171e2a;color:#f3f7fc;font:inherit;font-size:14px;font-weight:700;padding:0}
+.forge-lb-vsheet .vs-days button.busy{border-color:#2f6a62;background:#14302d}
+.forge-lb-vsheet .vs-toast{background:#14302d;border:1px solid #2f6a62;border-radius:14px;padding:10px 12px;font-size:14px;font-weight:700;color:#d6f7f0}
+.forge-lb-vsheet button:focus-visible{outline:2px solid ${TEAL};outline-offset:2px}
 ${R}{position:fixed;inset:0;z-index:2147480200;background:#0b1018;color:#f3f7fc;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column}
 ${R} .mr-in{flex:1;min-height:0;display:flex;flex-direction:column;max-width:560px;width:100%;margin:0 auto;box-sizing:border-box;padding:calc(14px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));gap:10px}
 ${R} .mr-top{display:flex;align-items:center;gap:12px;min-height:44px}
@@ -167,6 +259,12 @@ function ensureCss(){if(!$('forgeLayoutBMobilityCss')){const s=el('style');s.id=
 
 /* ---------- start card in Workout › Mobilität ---------- */
 function thumb(name){const t=el('span','ms-th');const src=images(name)[0];if(src){const i=el('img');i.src=src;i.alt='';i.loading='lazy';t.append(i);}else t.innerHTML=ICON.flow;return t;}
+let showList=false;
+function toPlan(){
+ try{if(typeof window.go==='function')window.go('plan');}catch(e){}
+ setTimeout(()=>{if(typeof window.ForgeLayoutBWizardOpen==='function')window.ForgeLayoutBWizardOpen('mobility');},120);
+}
+/* Training › Mobilität: genau eine Routine-Karte + Videokachel. Pläne entstehen nur im Plan. */
 function renderCard(){
  if(!enabled())return;
  const host=$('mobWorkout');if(!host)return;
@@ -176,46 +274,130 @@ function renderCard(){
  card.replaceChildren();
  const c=cfg(),r=routine();
  if(!c.enabled||!r){
-  // W5: start a routine right away – a plan is optional.
-  const all=routines(),keys=Object.keys(all).filter(k=>all[k]&&Array.isArray(all[k].items)&&all[k].items.length);
-  const first=keys.includes('gentle')?'gentle':keys[0];
-  if(!first){
-   card.append(el('div','ms-kick','Mobilität'),el('h3','','Noch kein Mobilitätsplan'));
-   card.append(btn('ms-go','Mobilitätsplan erstellen',()=>{if(typeof window.ForgeLayoutBWizardOpen==='function')window.ForgeLayoutBWizardOpen('mobility');}));
-   hideLegacy();return;
+  card.append(el('div','ms-kick',run()?'Läuft gerade':'Deine Mobilitätsroutine'),el('h3','',run()?(run().name||'Mobilität'):'Noch keine Routine'));
+  if(run()){
+   const go=btn('ms-go','',()=>startRun());go.innerHTML=ICON.play+'<span>Mobilität fortsetzen</span>';card.append(go);
+  }else{
+   card.append(el('div','ms-sub','Lege deine Routine im Plan fest – an festen Tagen oder nach dem Krafttraining.'));
+   card.append(btn('ms-go','Routine im Plan erstellen',toPlan));
+   const g=routines().gentle;
+   if(g&&Array.isArray(g.items)&&g.items.length)card.append(btn('ms-link','Ohne Plan: '+g.name+' ('+minutesLabel(totalSeconds(g.items,lib))+') starten',()=>startRun('gentle')));
   }
-  const fr=all[first];
-  card.append(el('div','ms-kick',run()?'Läuft gerade':'Schnell starten'),el('h3','',run()?(run().name||fr.name):fr.name));
-  card.append(el('div','ms-sub',fr.items.length+' Übungen · '+minutesLabel(totalSeconds(fr.items,lib))+' · geführt mit Timer und Seitenwechsel'));
-  const go=btn('ms-go','',()=>startRun(first));go.innerHTML=ICON.play+'<span>'+(run()?'Mobilität fortsetzen':'Jetzt starten')+'</span>';card.append(go);
-  const others=keys.filter(k=>k!==first);
-  if(others.length){
-   card.append(el('div','ms-label','Andere Routine'));
-   const grid=el('div','ms-grid');
-   others.forEach(k=>{const r=all[k];const b=btn('ms-tile','',()=>startRun(k));b.append(el('b','',r.name),el('span','',r.items.length+' Übungen · '+minutesLabel(totalSeconds(r.items,lib))));grid.append(b);});
-   card.append(grid);
-  }
-  card.append(btn('ms-sec','Mobilitätsplan erstellen',()=>{if(typeof window.ForgeLayoutBWizardOpen==='function')window.ForgeLayoutBWizardOpen('mobility');}));
-  hideLegacy();return;
+  videoTile(card);hideLegacy();return;
  }
  const today=isToday(c,todayIdx(),trainedToday());
  const logs=Array.isArray(c.logs)?c.logs:[];
  const done=logs.some(l=>l&&l.date&&localDay(new Date(l.date))===localDay(new Date()));
- card.append(el('div','ms-kick',done?'Heute erledigt ✓':today?'Heute dran':'Mobilität'));
+ card.append(el('div','ms-kick',done?'Heute erledigt ✓':today?'Heute dran':'Deine Mobilitätsroutine'));
  card.append(el('h3','',r.name));
  card.append(el('div','ms-sub',r.items.length+' Übungen · '+minutesLabel(totalSeconds(r.items,lib))+' · '+(c.timing==='after'?'nach dem Krafttraining':c.timing==='both'?'Ruhetage & nach dem Training':'an Ruhetagen')));
  if(c.timing!=='after'){
   const meta=el('div','ms-meta');['Mo','Di','Mi','Do','Fr','Sa','So'].forEach((d,i)=>{const s=el('span',(c.weekdays||[]).includes(i)?'on':'',d);meta.append(s);});card.append(meta);
  }
- const list=el('div','ms-list');
- r.items.forEach(it=>{const row=el('div','ms-row');row.append(thumb(it[0]),el('b','',it[0]),el('em','',it[1]+' Sek.'+(hasSides(it,lib)?' je Seite':'')));list.append(row);});
- card.append(list);
  const go=btn('ms-go','',()=>startRun());go.innerHTML=ICON.play+'<span>'+(run()?'Mobilität fortsetzen':done?'Noch einmal starten':'Mobilität starten')+'</span>';
  card.append(go);
- card.append(btn('ms-sec','Routine ändern',()=>{if(typeof window.ForgeLayoutBWizardOpen==='function')window.ForgeLayoutBWizardOpen('mobility');}));
+ const tog=btn('ms-sec',showList?'Routine einklappen':'Routine ansehen',()=>{showList=!showList;renderCard();});tog.setAttribute('aria-expanded',String(showList));
+ card.append(tog);
+ if(showList){
+  const list=el('div','ms-list');
+  r.items.forEach(it=>{const row=el('div','ms-row');row.append(thumb(it[0]),el('b','',it[0]),el('em','',it[1]+' Sek.'+(hasSides(it,lib)?' je Seite':'')));list.append(row);});
+  card.append(list);
+ }
  if(logs.length)card.append(el('div','ms-sub',logs.length+'× erledigt'));
- hideLegacy();
+ videoTile(card);hideLegacy();
 }
+function videoCatalog(){try{return typeof MOB_VIDEO_CATALOG!=='undefined'?MOB_VIDEO_CATALOG:{};}catch(e){return {};}}
+function videoTile(card){
+ const n=videoList(videoCatalog()).length;
+ let tile=card.parentElement.querySelector(':scope > .forge-lb-mobvideo');
+ if(!n){tile?.remove();return;}
+ if(!tile){tile=btn('forge-lb-mobvideo','',()=>openVideos());card.after(tile);}
+ else if(tile.previousElementSibling!==card)card.after(tile);
+ tile.replaceChildren();
+ const i=el('i');i.innerHTML=ICON.video;const t=el('span');t.append(el('b','','Yoga & Mobilitätsvideos'),el('small','',n+' Videos · 5–30 Min.'));
+ const c=el('span','mv-chev');c.innerHTML=ICON.next;
+ tile.append(i,t,c);
+}
+/* ---------- Video-Bibliothek (Bottom Sheet) ---------- */
+let vsheet=null,vstate=null;
+const AREA_NAME=Object.fromEntries(VIDEO_AREAS);
+function openUrl(url){
+ try{if(window.ForgeAndroid&&typeof window.ForgeAndroid.openExternal==='function'){window.ForgeAndroid.openExternal(url);return;}}catch(e){}
+ try{window.open(url,'_blank','noopener');}catch(e){}
+}
+function closeVideos(){if(vsheet){vsheet.remove();vsheet=null;vstate=null;document.removeEventListener('keydown',vKey,true);}}
+function vKey(e){if(e.key!=='Escape')return;e.preventDefault();e.stopPropagation();if(vstate&&vstate.detail){vstate.detail=null;vstate.plan=false;renderVideos();}else closeVideos();}
+function openVideos(){
+ if(!enabled())return false;
+ ensureCss();closeVideos();
+ vstate={area:'all',mins:0,q:'',detail:null,plan:false,toast:''};
+ vsheet=el('div','forge-lb-vshade');vsheet.addEventListener('click',e=>{if(e.target===vsheet)closeVideos();});
+ document.body.append(vsheet);document.addEventListener('keydown',vKey,true);
+ renderVideos();return true;
+}
+function thumbFor(v,cls){
+ const t=el('span',cls);
+ if(v.id){const i=el('img');i.alt='';i.loading='lazy';i.src='https://i.ytimg.com/vi/'+v.id+'/mqdefault.jpg';i.addEventListener('error',()=>{i.remove();t.classList.add('none');t.innerHTML=ICON.video;});t.append(i);}
+ else{t.classList.add('none');t.innerHTML=ICON.video;}
+ return t;
+}
+function chipRow(label,items,cur,pick){
+ const row=el('div','vs-chips');row.setAttribute('role','group');row.setAttribute('aria-label',label);
+ items.forEach(([v,t])=>{const b=btn('',t,()=>pick(v));b.setAttribute('aria-pressed',String(String(v)===String(cur)));row.append(b);});
+ return row;
+}
+function renderVideos(){
+ if(!vsheet||!vstate)return;
+ const all=videoList(videoCatalog());
+ const sh=el('div','forge-lb-vsheet');sh.setAttribute('role','dialog');sh.setAttribute('aria-modal','true');
+ sh.append(el('div','vs-handle'));
+ const x=btn('vs-x','',closeVideos);x.innerHTML=ICON.x;x.setAttribute('aria-label','Schließen');
+ if(vstate.detail){
+  const v=vstate.detail;sh.setAttribute('aria-label',v.title);
+  const top=el('div','vs-top');const back=btn('vs-back','',()=>{vstate.detail=null;vstate.plan=false;renderVideos();});back.innerHTML=ICON.back+'<span>Zurück zur Bibliothek</span>';top.append(back,x);sh.append(top);
+  const body=el('div','vs-body');
+  const hero=thumbFor(v,'vs-hero');const play=el('i','vs-play');play.innerHTML=ICON.play;hero.append(play);hero.addEventListener('click',()=>openUrl(v.url));
+  body.append(hero,el('h2','',v.title));
+  body.append(el('div','vs-meta',[v.creator,v.mins+' Min.',AREA_NAME[v.area]||'',v.yoga?'Yoga':'Mobilität'].filter(Boolean).join(' · ')));
+  body.append(el('p','vs-note','Das Video öffnet sich in YouTube. Verfügbarkeit und genaue Länge können abweichen.'));
+  const go=btn('vs-go','',()=>openUrl(v.url));go.innerHTML=ICON.play+'<span>Video starten</span>';body.append(go);
+  if(plannable(v)){
+   if(!vstate.plan)body.append(btn('vs-sec','Für Wochenplan vormerken',()=>{vstate.plan=true;renderVideos();}));
+   else{
+    body.append(el('div','vs-label','An welchem Tag?'));
+    const cur=(typeof state!=='undefined'&&Array.isArray(state.videoAssignments))?state.videoAssignments:[];
+    const days=el('div','vs-days');
+    ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach((d,i)=>{const has=cur.find(a=>a&&a.day===i);
+     const b=btn('',d,()=>{try{state.videoAssignments=assignVideo(cur,i,v);store();if(typeof window.render==='function')window.render();}catch(e){console.error('FORGE Video vormerken',e);}
+      vstate.plan=false;vstate.toast='Für '+['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'][i]+' vorgemerkt';renderVideos();});
+     if(has)b.classList.add('busy');b.setAttribute('aria-label',d+(has?' (ersetzt das vorgemerkte Video)':''));days.append(b);});
+    body.append(days,el('p','vs-note','Ein schon vorgemerktes Video an diesem Tag wird ersetzt. Ändern kannst du das im Plan.'));
+   }
+  }
+  if(vstate.toast){body.append(el('div','vs-toast',vstate.toast));vstate.toast='';}
+  sh.append(body);
+ }else{
+  sh.setAttribute('aria-label','Video-Bibliothek');
+  const top=el('div','vs-top');const h=el('div');h.append(el('h2','','Video-Bibliothek'),el('small','','Yoga & Mobilität · öffnet in YouTube'));top.append(h,x);sh.append(top);
+  const body=el('div','vs-body');
+  body.append(chipRow('Bereich',[['all','Alle'],...VIDEO_AREAS],vstate.area,v=>{vstate.area=v;renderVideos();}));
+  body.append(chipRow('Dauer',[[0,'Alle'],...VIDEO_MINS.map(m=>[m,m+' Min.'])],vstate.mins,v=>{vstate.mins=Number(v);renderVideos();}));
+  const lab=el('label','vs-search');lab.innerHTML=ICON.search;const inp=el('input');inp.type='search';inp.placeholder='Video suchen';inp.value=vstate.q;inp.setAttribute('aria-label','Video suchen');
+  inp.addEventListener('input',()=>{vstate.q=inp.value;fillList();});lab.append(inp);body.append(lab);
+  const count=el('div','vs-count');const list=el('div','vs-list');body.append(count,list);
+  const fillList=()=>{
+   const shown=filterVideos(all,vstate);
+   count.textContent=shown.length+(shown.length===1?' Video':' Videos');
+   list.replaceChildren(...shown.map(v=>{const b=btn('vs-card','',()=>{vstate.detail=v;renderVideos();});
+    const t=el('span','vs-t');t.append(el('b','',v.title),el('small','',[v.creator,v.mins+' Min.',AREA_NAME[v.area]||''].filter(Boolean).join(' · ')));
+    b.append(thumbFor(v,'vs-thumb'),t);return b;}));
+   if(!shown.length)list.append(el('p','vs-note','Keine Videos für diese Auswahl.'));
+  };
+  fillList();sh.append(body);
+ }
+ vsheet.replaceChildren(sh);
+}
+window.ForgeLayoutBMobilityVideos=openVideos;
 /* The legacy routine list and „Routine abgeschlossen“ are replaced by the card;
    scheduled videos stay visible. */
 function hideLegacy(){
