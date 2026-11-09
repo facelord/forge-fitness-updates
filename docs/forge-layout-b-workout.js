@@ -166,6 +166,8 @@ ${H} .forge-b-media-bottom{left:16px!important;right:12px!important;bottom:12px!
 ${H} #forgeBExerciseName{font-size:clamp(21px,6vw,26px)!important;font-weight:800!important;letter-spacing:-.02em!important;max-width:100%!important}
 ${H} .forge-lb-target{font-size:13px;color:#c3cddb;margin-top:3px;font-weight:500}
 ${H} .forge-lb-tech{position:absolute;right:12px;bottom:12px;z-index:3;height:36px;border-radius:18px;border:0;background:rgba(243,247,252,.16);color:#f3f7fc;font-size:12px;font-weight:700;padding:0 12px;display:flex;align-items:center;gap:6px;backdrop-filter:blur(6px)}
+/* Übersicht (☰): nur Sätze – Aufwärmen steht im Satz-Streifen, Technik hinter dem Bild. */
+${S} #workoutExercises .forge140-exercise-warmup,${S} #workoutExercises .forge-strength-guide{display:none!important}
 ${H} .forge-lb-strip{grid-row:3;display:flex;gap:6px;min-width:0;overflow-x:auto;scrollbar-width:none}
 ${H} .forge-lb-strip::-webkit-scrollbar{display:none}
 ${H} .forge-lb-chip{flex:1 0 64px;min-width:64px;height:48px;border-radius:14px;background:#171e2a;border:1px solid #293346;color:#95a3b7;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0;font-size:12px;line-height:1.25}
