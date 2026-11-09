@@ -16,6 +16,13 @@ function wrap(previous){
  };
 }
 window.forgeExerciseIllustrations=wrap(previousExercise);
+// Thumbnails (catalogue, unit editor) ask forgeMobImage first: for strength
+// exercises it must not return the old embedded photos.
+const previousMob=window.forgeMobImage;
+if(typeof previousMob==='function'){
+ const mob=function(name){return strength()?.isStrength?.(name)?null:previousMob.apply(this,arguments);};
+ mob.forgeV12=true;window.forgeMobImage=mob;
+}
 window.forgePublicExercisePictures=wrap(previousPublic);
 window.ForgeV12VisualGuard=Object.freeze({
  version:'V12.1',
