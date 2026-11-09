@@ -125,7 +125,7 @@ function build(page){
  const cat=el('button','forge-lb-row');cat.type='button';cat.innerHTML='<span>Übungskatalog</span>'+ICON.chev;
  cat.addEventListener('click',()=>detail(()=>clickTool(/Übungskatalog/)));
  const arch=el('button','forge-lb-row');arch.type='button';arch.innerHTML='<span>Archivierte Pläne</span>'+ICON.chev;
- arch.addEventListener('click',()=>detail(()=>clickTool(/Archivierte Pläne/)));
+ arch.addEventListener('click',()=>{try{if(typeof window.ForgeLayoutBProgressOpen==='function'&&window.ForgeLayoutBProgressOpen('archive'))return;}catch(e){console.error('FORGE Archiv',e);}detail(()=>clickTool(/Archivierte Pläne/));});
  const set=el('button','forge-lb-row');set.type='button';set.innerHTML='<span>Wochenplan-Einstellungen</span>'+ICON.chev;
  set.addEventListener('click',()=>detail(()=>clickTool(/Wochenplan-Einstellungen/)));
  rows.append(cat,arch,set);

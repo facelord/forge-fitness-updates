@@ -284,6 +284,8 @@ mount('nutrition',page=>{
 });
 
 /* ---------- Erfolge ---------- */
+/* R2–R7 live in forge-layout-b-progress.js; fall back to the classic page if it is missing. */
+function viewOr(view,fallback){return ()=>{try{if(typeof window.ForgeLayoutBProgressOpen==='function'&&window.ForgeLayoutBProgressOpen(view))return;}catch(e){console.error('FORGE Erfolge',e);}fallback();};}
 mount('progress',page=>{
  const root=el('section','forge-lb-pg');root.setAttribute('aria-label','Erfolge Übersicht');
  const back=backButton('progress','Erfolge-Übersicht');
@@ -297,18 +299,22 @@ mount('progress',page=>{
  const tw=el('button','forge-lb-card forge-lb-tile2');tw.type='button';const twl=el('small','','Körpergewicht'),twv=el('b','','–');tw.append(twl,twv);
  const spark=document.createElementNS('http://www.w3.org/2000/svg','svg');spark.setAttribute('viewBox','0 0 130 34');spark.setAttribute('preserveAspectRatio','none');spark.setAttribute('aria-hidden','true');
  const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('fill','none');path.setAttribute('stroke',TEAL);path.setAttribute('stroke-width','2.5');path.setAttribute('stroke-linecap','round');path.setAttribute('stroke-linejoin','round');spark.append(path);tw.append(spark);
- tw.addEventListener('click',()=>detail('progress',()=>{const i=$('bodyWeight');i?.scrollIntoView?.({block:'center'});i?.focus?.({preventScroll:true});}));
+ tw.addEventListener('click',viewOr('weight',()=>detail('progress',()=>{const i=$('bodyWeight');i?.scrollIntoView?.({block:'center'});i?.focus?.({preventScroll:true});})));
  const tv2=el('button','forge-lb-card forge-lb-tile2');tv2.type='button';const tvl=el('small','','Volumen vs. Vorwoche'),tvv=el('b','','–');const bars=el('div','forge-lb-vbars');tv2.append(tvl,tvv,bars);
- tv2.addEventListener('click',()=>detail('progress'));
+ tv2.addEventListener('click',viewOr('history',()=>detail('progress')));
  tiles.append(tw,tv2);
  const recs=el('div','forge-lb-card forge-lb-recs');
+ recs.setAttribute('role','button');recs.tabIndex=0;recs.setAttribute('aria-label','Rekorde & Fortschritt öffnen');
+ recs.addEventListener('click',viewOr('records',()=>detail('progress')));recs.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();recs.click();}});
  const chal=el('button','forge-lb-card forge-lb-link forge-lb-chal');chal.type='button';
  const ci=el('i');ci.innerHTML=ICON.trophy;const ct=el('span');const cb=el('b','','Challenge');const cs=el('small','','');ct.append(cb,cs);chal.append(ci,ct);
  chal.addEventListener('click',()=>detail('progress',()=>{findButton($('progress'),/Challenges/)?.click();}));
  const rows=el('div','forge-lb-rows');
  const row=(label,fn)=>{const b=el('button','forge-lb-row');b.type='button';b.innerHTML='<span>'+label+'</span>'+ICON.chev;b.addEventListener('click',fn);rows.append(b);};
- row('Alle Statistiken und Verlauf',()=>detail('progress',()=>{findButton($('progress'),/Statistiken/)?.click();}));
- row('Körpergewicht eintragen',()=>tw.click());
+ row('Trainingsverlauf',viewOr('history',()=>detail('progress',()=>{findButton($('progress'),/Statistiken/)?.click();})));
+ row('Rekorde & Fortschritt',viewOr('records',()=>detail('progress')));
+ row('Muskeln & Erholung',viewOr('muscles',()=>detail('progress')));
+ row('Körpergewicht',()=>tw.click());
  row('Alle Challenges',()=>chal.click());
  root.append(back,head,hero,tiles,recs,chal,rows);
  attach(page,root);
