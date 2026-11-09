@@ -1,7 +1,7 @@
 {
-  "versionCode": 10628,
-  "versionName": "14.13.628",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.628/FORGE-Fitness-14.13.628.apk",
-  "sha256": "d0acfe2d2da07d4c8e6b18e99bbfa09dc00be2b11742ef137789fa5c35f3e9ee",
+  "versionCode": 10630,
+  "versionName": "14.13.630",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.630/FORGE-Fitness-14.13.630.apk",
+  "sha256": "d836e832e9fc5043e9bddf64c11fda6d5a8022c149a32457b5b935c472737d17",
   "notes": "Neues Design (Layout B): Blau-Schwarz mit Inter, Navigation Plan · Workout · Essen · Erfolge mit Wischen, neuer Workout-Ablauf mit Tagesform, großen +/−-Feldern, Satzpause-Bildschirm und Abschluss-Übersicht, neue Plan-Übersicht mit Trainingswoche, neue Essen- und Erfolge-Übersicht, aufgeräumte Kopfzeile mit Menü, Technik-Blatt, Bestätigung vor dem Beenden. Zurück zum alten Aussehen: Einstellungen > Darstellung. Updates werden bei GitHub-Aussetzern jetzt automatisch erneut versucht."
 }
