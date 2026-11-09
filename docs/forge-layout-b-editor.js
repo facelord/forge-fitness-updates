@@ -23,7 +23,7 @@ function stepValue(v,delta,min,max){
  let n=Math.round(Number(v));if(!Number.isFinite(n))n=min;
  return Math.max(min,Math.min(max,n+delta));
 }
-function doseText(ex){return (Number(ex&&ex.sets)||0)+' × '+(Number(ex&&ex.reps)||0);}
+function doseText(ex){const R=typeof window!=='undefined'&&window.ForgeLayoutBRest;const rest=R&&ex&&R.valid(ex.rest)?' · '+R.clock(ex.rest)+' Pause':'';return (Number(ex&&ex.sets)||0)+' × '+(Number(ex&&ex.reps)||0)+rest;}
 /* "Brust, vordere Schulter; Trizeps" → "Brust · vordere Schulter" */
 function muscleLabel(guideText,group,region){
  const parts=String(guideText||'').split(/[,;]/).map(x=>x.trim()).filter(Boolean);
@@ -98,7 +98,7 @@ function draftIssue(units){
 function draftPlan(units,name,idFn){
  const label=String(name||'').trim().slice(0,70)||'Mein individueller Trainingsplan';
  return units.slice().sort((a,b)=>a.weekday-b.weekday).map(u=>({id:idFn(),weekday:u.weekday,type:'full',title:label+' · '+(u.label||DAY_FULL[u.weekday]),location:u.location==='home'?'home':'gym',
-  ex:u.ex.map(e=>({name:String(e.name).trim(),sets:Number(e.sets),reps:Number(e.reps),unit:e.unit||'auto'}))}));
+  ex:u.ex.map(e=>({name:String(e.name).trim(),sets:Number(e.sets),reps:Number(e.reps),unit:e.unit||'auto',...(Number.isInteger(Number(e.rest))&&Number(e.rest)>=15&&Number(e.rest)<=600?{rest:Number(e.rest)}:{})}))}));
 }
 /* Own exercises (not in the catalog) that a plan already contains may stay when
    the plan is edited; the core validator only knows catalog names. */
@@ -199,6 +199,8 @@ ${E} .ed-move{display:flex;gap:6px}
 ${E} .ed-move button{width:36px;height:36px;border-radius:12px;border:1px solid #293346;background:#0f1620;color:#c3cddb;display:flex;align-items:center;justify-content:center;padding:0}
 ${E} .ed-move button:disabled{opacity:.3}
 ${E} .ed-steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+${E} .ed-rest{grid-column:1/-1}
+${E} .ed-rest output{display:block;text-align:center;font-size:16px;font-weight:800;color:#f3f7fc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 ${E} .ed-step{display:flex;flex-direction:column;gap:4px;min-width:0}
 ${E} .ed-step>span{font-size:11px;color:#95a3b7;padding-left:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 ${E} .ed-stepper{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;background:#0f1620;border:1px solid #293346;border-radius:14px}
@@ -406,6 +408,20 @@ function stepper(label,ex,key,max){
  input.addEventListener('change',()=>set(stepValue(input.value,0,1,max)));
  sync();s.append(minus,input,plus);box.append(s);return box;
 }
+/* Pause nach jedem Satz (optional, sonst Standard aus den Einstellungen). */
+function restStepper(ex){
+ const R=window.ForgeLayoutBRest;if(!R)return null;
+ const def=(()=>{try{return typeof forge130Settings==='function'?forge130Settings().restSeconds:90;}catch(e){return 90;}})();
+ const box=el('div','ed-step ed-rest');box.append(el('span','','Pause nach jedem Satz'));
+ const s=el('div','ed-stepper');
+ const minus=btn('','−'),plus=btn('','+');const out=el('output');out.setAttribute('aria-live','polite');
+ minus.setAttribute('aria-label','Pause verkürzen');plus.setAttribute('aria-label','Pause verlängern');
+ const sync=()=>{out.textContent=R.label(ex.rest,def);minus.disabled=Number(R.valid(ex.rest)?ex.rest:def)<=R.STEPS[1];plus.disabled=Number(R.valid(ex.rest)?ex.rest:def)>=R.STEPS[R.STEPS.length-1];};
+ const set=v=>{if(v)ex.rest=v;else delete ex.rest;sync();changed();};
+ minus.addEventListener('click',()=>set(R.step(ex.rest,-1,def)));
+ plus.addEventListener('click',()=>set(R.step(ex.rest,1,def)));
+ sync();s.append(minus,out,plus);box.append(s);return box;
+}
 function changed(){
  ed.status='';ed.tone='';
  if(ed.draft)return;
@@ -423,6 +439,7 @@ function exerciseCard(w,ex,i){
  mv.append(up,dn);h.append(mv);c.append(h);
  const steps=el('div','ed-steps');
  steps.append(stepper('Sätze',ex,'sets',MAX_SETS),stepper('Wiederholungen / Sekunden',ex,'reps',MAX_REPS));
+ const rs=restStepper(ex);if(rs)steps.append(rs);
  c.append(steps);
  const acts=el('div','ed-acts');
  acts.append(btn('ed-alt','Alternative Übung',()=>openCatalog({mode:'replace',unit:w,index:i})));

@@ -100,7 +100,19 @@ function finishSummary(workouts,weeklyTarget){
  return {title:w.title||'Training',minutes:Math.max(1,Math.round(num(w.durationMs)/60000)),sets,volume:Math.round(volume),
   compare,best,week,weekTarget:Math.max(1,Number(weeklyTarget)||0)};
 }
-window.ForgeLayoutBWorkout=Object.freeze({parseClock,formatShort,fmtKg,chipModel,exerciseStates,exerciseProgress,newlyDone,finishSummary});
+/* Steigerungsvorschlag: core suggestion ({step,weights}) vs. this exercise's sets.
+ * Returns {kg,step} for the first open set still below the suggestion, else null (pure, tested). */
+function raiseHint(sug,sets){
+ if(!sug||!Array.isArray(sug.weights)||!sug.weights.length)return null;
+ const list=Array.isArray(sets)?sets:[];
+ if(!list.length||list.some(x=>x&&x.done))return null;
+ for(let k=0;k<list.length;k++){
+  const want=Number(sug.weights[Math.min(k,sug.weights.length-1)]);
+  if(Number.isFinite(want)&&want>0&&num(list[k]&&list[k].kg)<want)return {kg:want,step:Number(sug.step)||0};
+ }
+ return null;
+}
+window.ForgeLayoutBWorkout=Object.freeze({parseClock,formatShort,fmtKg,chipModel,exerciseStates,exerciseProgress,newlyDone,finishSummary,raiseHint});
 if(typeof document==='undefined')return;
 
 /* ---------- environment ---------- */
@@ -186,6 +198,8 @@ ${H} .forge-lb-chip.open{border-style:dashed;border-color:#3a4556}
 ${H} .forge-lb-chip.warm-add{border-style:dashed;border-color:#3a4556;color:#95a3b7}
 ${H} .forge-lb-info{grid-row:4;display:flex;align-items:center;gap:8px;font-size:13px;color:#c3cddb;background:#14202a;border-radius:12px;padding:9px 12px;min-height:18px}
 ${H} .forge-lb-info:empty{display:none}
+${H} .forge-lb-info-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+${H} .forge-lb-raise{flex:0 0 auto;min-height:34px;border-radius:17px;border:1px solid #405d39;background:#1f2c1c;color:${ACC};font:inherit;font-size:13px;font-weight:800;padding:0 12px;margin:-4px -4px -4px 0}
 ${H} .forge-b-rest{display:none!important}
 ${S}.forge-lb-rest-min #forgePremiumShell.forge-b-shell .forge-b-rest:has(#forgeRestTimer.forge-live-rest-running){display:flex!important;grid-row:5!important}
 ${S}.forge-lb-rest-min #forgePremiumShell.forge-b-shell{grid-template-rows:46px minmax(100px,1fr) 50px auto auto minmax(170px,1.2fr) 74px!important}
@@ -597,11 +611,30 @@ function renderLive(){
    if(ls)parts.push('zuletzt '+(fmtKg(ls.kg)?fmtKg(ls.kg)+' kg × ':'')+(ls.reps??'')+(fmtKg(ls.kg)?'':' Wdh.'));
   }
  }catch(e){}
+ // Steigerungsvorschlag from the core rule (two complete sessions in a row → +2.5 / +5 kg).
+ let hint=null;
+ try{
+  const isSec=pe.unit==='sec'||pe.unit==='seconds';
+  if(!isSec&&cur.name&&typeof forge130LoadSuggestion==='function'&&typeof forge130ApplySuggestion==='function'){
+   const minReps=parseInt(String(pe.reps??''),10);
+   if(Number.isFinite(minReps)&&minReps>0)hint=raiseHint(forge130LoadSuggestion(cur.name,Number(pe.sets)||sets.length,minReps),sets);
+  }
+ }catch(e){hint=null;}
  const infoText=parts.join(' · ');
- if(nodes.info.dataset.text!==infoText){
-  nodes.info.dataset.text=infoText;
-  if(infoText){nodes.info.innerHTML=SVG.trend;nodes.info.append(document.createTextNode(infoText));}
-  else nodes.info.replaceChildren();
+ const infoKey=infoText+'|'+(hint?hint.kg:'');
+ if(nodes.info.dataset.text!==infoKey){
+  nodes.info.dataset.text=infoKey;
+  if(infoText||hint){
+   nodes.info.innerHTML=SVG.trend;
+   const t=el('span','forge-lb-info-t',infoText);nodes.info.append(t);
+   if(hint){
+    const b=el('button','forge-lb-raise');b.type='button';
+    b.textContent='↑ Steigern: '+fmtKg(hint.kg)+' kg';
+    b.setAttribute('aria-label','Steigerung übernehmen: '+fmtKg(hint.kg)+' kg für die offenen Sätze'+(hint.step?' (+'+fmtKg(hint.step)+' kg)':''));
+    b.addEventListener('click',()=>{try{forge130ApplySuggestion(i);}catch(e){console.error(e);}fxPop(b);});
+    nodes.info.append(b);
+   }
+  }else nodes.info.replaceChildren();
  }
  // main action mirrors the native primary button
  const warming=nodes.shell.classList.contains('forge-v91-warming');
