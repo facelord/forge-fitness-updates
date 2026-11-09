@@ -214,6 +214,8 @@ function attach(page,root){
 
 /* ---------- Essen ---------- */
 mount('nutrition',page=>{
+ // Essen E1–E6 (forge-layout-b-food.js) replaces this page when it is loaded.
+ if(typeof window.ForgeLayoutBFoodMount==='function')return window.ForgeLayoutBFoodMount(page,{attach,detail,home});
  const root=el('section','forge-lb-pg');root.setAttribute('aria-label','Essen Übersicht');
  const back=backButton('nutrition','Essen-Übersicht');
  const head=el('div','forge-lb-pg-head');const h=el('h2','','Essen');const date=el('span');head.append(h,date);

@@ -148,10 +148,12 @@ function openMenu(btn){
  upd.append(ui,ut);upd.addEventListener('click',()=>{closeSheet();updateTrigger()?.click();});
  const list=el('div','forge-lb-mlist');
  const row=(icon,label,fn,extra)=>{const b=el('button');b.type='button';b.innerHTML=icon;const t=el('span','',label);b.append(t);if(extra)b.append(el('em','',extra));else b.insertAdjacentHTML('beforeend',ICON.chev);b.addEventListener('click',()=>{closeSheet();fn();});list.append(b);};
- if(PAGE_ROW[pageId]&&btn&&btn.classList.contains('forge-b-pagehead-action'))row(ICON.page,PAGE_ROW[pageId],()=>openPageTarget(pageId,btn));
+ const food=typeof window.ForgeLayoutBFoodOpen==='function';
+ if(pageId==='nutrition'&&food)row(ICON.page,'Tagesziele & eigene Lebensmittel',()=>window.ForgeLayoutBFoodOpen('goals'));
+ else if(PAGE_ROW[pageId]&&btn&&btn.classList.contains('forge-b-pagehead-action'))row(ICON.page,PAGE_ROW[pageId],()=>openPageTarget(pageId,btn));
  row(ICON.gear,'Einstellungen',()=>$('forgeSettingsToggle')?.click());
  row(ICON.file,'Backup als Datei exportieren',()=>{if(typeof window.exportData==='function')window.exportData();});
- row(ICON.file,'Datensicherung öffnen',()=>{if(typeof window.go==='function')window.go('nutrition');const n=$('nutrition');n?.classList.remove('forge-lb-home');window.ForgeNutritionSlim?.openPart?.('backup');});
+ row(ICON.file,'Datensicherung',()=>{if(food){window.ForgeLayoutBFoodOpen('backup');return;}if(typeof window.go==='function')window.go('nutrition');const n=$('nutrition');n?.classList.remove('forge-lb-home');window.ForgeNutritionSlim?.openPart?.('backup');});
  const v=versionText();
  if(v){const b=el('button');b.type='button';b.innerHTML=ICON.info;b.append(el('span','','Version'),el('em','',v));b.disabled=true;list.append(b);}
  s.append(el('div','forge-lb-handle'),head,status,upd,list,el('div','forge-lb-mnote','FORGE speichert lokal. Vor einem Gerätewechsel ein Backup exportieren.'));
