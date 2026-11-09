@@ -121,6 +121,7 @@ ${W}.forge-lb-today-alt #forgeSlimWorkoutExtras>summary,${W}.forge-lb-today-alt 
 ${W}.forge-lb-today-alt #forgeSlimWorkoutExtras .forge149-workout-section{border:0!important;background:transparent!important;padding:0!important;margin:0!important}
 ${W}.forge-lb-today-alt #forgeSlimWorkoutExtras .forge149-workout-section>.card{border:0!important;background:transparent!important;padding:0!important;box-shadow:none!important;margin:0!important}
 ${W}:not(.forge-lb-today-on)>${T}{display:none!important}
+${W}.forge-lb-today-on>:not(.forge-lb-wohead):not(#forge150WorkoutModes):not(${T}):not(.forge-lb-td-classic):not(#forgeWorkoutUndoBanner):not(style):not(script){display:none!important}
 ${W} #forge150WorkoutModes{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px!important;height:48px;border-radius:24px;background:#171e2a;border:1px solid #293346;padding:4px!important;box-sizing:border-box;margin:6px 0 12px!important}
 ${W} #forge150WorkoutModes>button{border:0!important;border-radius:20px!important;background:transparent!important;color:#95a3b7!important;font:inherit!important;font-size:14px!important;font-weight:600!important;display:flex!important;align-items:center;justify-content:center;gap:6px;min-height:0!important;height:100%!important;padding:0 4px!important;box-shadow:none!important;flex:none!important}
 ${W} #forge150WorkoutModes>button[aria-pressed="true"]{background:${ACC}!important;color:#142016!important;font-weight:800!important}
@@ -298,7 +299,7 @@ function renderEmpty(){
  card.append(btn('td-go','Plan erstellen',()=>{if(typeof window.ForgeLayoutBWizardOpen==='function')window.ForgeLayoutBWizardOpen('strength');else if(typeof window.go==='function')window.go('plan');}));
  card.append(btn('td-sec','Freies Training',openFree));
 }
-function switchMode(m){const b=document.querySelector('#forge150WorkoutModes button[data-mode="'+m+'"]');if(b){b.click();setTimeout(()=>window.scrollTo(0,0),60);}}
+function switchMode(m){const b=document.querySelector('#forge150WorkoutModes button[data-mode="'+m+'"]');if(b){b.click();setTimeout(()=>window.scrollTo(0,0),60);return;}if(m==='mobility'&&typeof window.ForgeLayoutBMobilityStart==='function')window.ForgeLayoutBMobilityStart('gentle');}
 
 /* ---------- start ---------- */
 function start(u){
@@ -443,6 +444,13 @@ function headDate(){
  if(!d){const wrap=el('div');h.before(wrap);wrap.append(h);d=el('small','forge-lb-date');wrap.append(d);}
  const t=new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});if(d.textContent!==t)d.textContent=t;
 }
+/* After the mode switch; without it (slow start) directly below the page header. */
+function place(page){
+ const modes=$('forge150WorkoutModes'),head=page.querySelector(':scope > .forge-lb-wohead');
+ const anchor=modes&&modes.parentNode===page?modes:head;
+ if(anchor){if(anchor.nextElementSibling!==card)anchor.after(card);}
+ else if(page.firstElementChild!==card)page.prepend(card);
+}
 function tick(){
  if(!enabled())return;
  cleanupFree();
@@ -456,9 +464,8 @@ function tick(){
  if(!idle||m!=='strength'||!page.classList.contains('active'))classic=false;
  if(!card||!page.contains(card)){
   card=el('section','forge-lb-today');card.setAttribute('aria-label','Heutiges Training');key='';
-  const modes=$('forge150WorkoutModes');
-  if(modes&&modes.parentNode===page)modes.after(card);else page.prepend(card);
- }else{const modes=$('forge150WorkoutModes');if(modes&&modes.parentNode===page&&modes.nextElementSibling!==card)modes.after(card);}
+  place(page);
+ }else place(page);
  if(classic&&idle){
   if(!classicBar||!page.contains(classicBar)){classicBar=btn('forge-lb-td-classic','',()=>{classic=false;tick();window.scrollTo(0,0);});classicBar.innerHTML=ICON.back+'<span>Zur neuen Ansicht</span>';}
   if(classicBar.previousElementSibling!==card)card.after(classicBar);

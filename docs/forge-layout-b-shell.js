@@ -212,6 +212,34 @@ function syncGoal(){
  }catch(e){}
 }
 
+/* ---------- error notice ----------
+ * Shows errors that forgeReportError() / window.onerror collected, so a
+ * broken sub-view never goes unnoticed (the user can send a screenshot). */
+const shownErrors=new Set();
+function errorNotice(entry){
+ if(!entry||!document.body)return;
+ const k=(entry.where||'')+'|'+(entry.message||'');if(shownErrors.has(k))return;shownErrors.add(k);
+ let bar=$('forgeLbErrorBar');
+ if(!bar){
+  bar=el('div','forge-lb-errbar');bar.id='forgeLbErrorBar';bar.setAttribute('role','alert');
+  const st=el('style');st.textContent='.forge-lb-errbar{position:fixed;left:10px;right:10px;top:calc(10px + env(safe-area-inset-top));z-index:2147483000;background:#2a1418;border:1px solid #6b2a33;color:#ffe3e6;border-radius:16px;padding:10px 12px;font:13px/1.4 Inter,system-ui,sans-serif;display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow:auto}.forge-lb-errbar b{font-size:14px}.forge-lb-errbar pre{margin:0;white-space:pre-wrap;word-break:break-word;font-size:11px;color:#ffc9cf}.forge-lb-errbar .r{display:flex;gap:8px;justify-content:flex-end}.forge-lb-errbar button{min-height:36px;border-radius:18px;border:1px solid #6b2a33;background:transparent;color:#ffe3e6;font:inherit;font-weight:700;padding:0 14px}';
+  bar.append(st);document.body.append(bar);
+ }
+ const box=el('div');box.append(el('b','','Ein Teil der App hatte einen Fehler'),el('div','',(entry.where?entry.where+': ':'')+entry.message));
+ const pre=el('pre',' ',entry.stack||'');pre.hidden=true;box.append(pre);
+ const row=el('div','r');
+ const more=el('button','','Details');more.type='button';more.addEventListener('click',()=>{pre.hidden=!pre.hidden;});
+ const x=el('button','','Schließen');x.type='button';x.addEventListener('click',()=>{box.remove();if(!bar.querySelector('div'))bar.remove();});
+ row.append(more,x);box.append(row);bar.append(box);
+}
+function watchErrors(){
+ (window.__forgeErrors||[]).forEach(errorNotice);
+ document.addEventListener('forge:error',e=>errorNotice(e.detail));
+ const report=(where,err)=>{if(typeof window.forgeReportError==='function')window.forgeReportError(where,err);else errorNotice({where,message:String(err&&err.message||err),stack:String(err&&err.stack||'')});};
+ window.addEventListener('error',e=>{if(!e||!e.error)return;report('Skript',e.error);});
+ window.addEventListener('unhandledrejection',e=>{const r=e&&e.reason;if(r instanceof Error)report('Hintergrund',r);});
+}
+
 /* ---------- lifecycle ---------- */
 function tick(){
  if(!enabled())return;
@@ -221,6 +249,7 @@ function install(){
  if(!document.body||!enabled())return false;
  if(!$('forgeLayoutBShellStyle')){const st=el('style');st.id='forgeLayoutBShellStyle';st.textContent=CSS;document.head.append(st);}
  document.addEventListener('click',interceptMenu,true);
+ try{watchErrors();}catch(e){}
  tick();setInterval(()=>{if(document.visibilityState!=='hidden')tick();},800);
  return true;
 }

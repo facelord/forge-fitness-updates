@@ -55,6 +55,16 @@ function exerciseStates(draft,focusI){
  });
 }
 
+/* Share of finished sets per exercise (0..1) – drives the filling progress bar. */
+function exerciseProgress(draft){
+ const ex=Array.isArray(draft&&draft.exercises)?draft.exercises:[];
+ return ex.map(e=>{const sets=Array.isArray(e&&e.sets)?e.sets:[];return sets.length?sets.filter(x=>x&&x.done).length/sets.length:0;});
+}
+/* Indices of sets that became done between two snapshots of one exercise. */
+function newlyDone(before,after){
+ const a=Array.isArray(before)?before:[],b=Array.isArray(after)?after:[];
+ return b.map((d,k)=>d&&!a[k]?k:-1).filter(k=>k>=0);
+}
 function num(v){const n=Number(String(v??'').replace(',','.'));return Number.isFinite(n)?n:0;}
 function maxKg(entry){return Math.max(0,...((entry&&entry.sets)||[]).map(x=>num(x&&x.kg)));}
 function weekStart(d){const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x.getTime();}
@@ -89,7 +99,7 @@ function finishSummary(workouts,weeklyTarget){
  return {title:w.title||'Training',minutes:Math.max(1,Math.round(num(w.durationMs)/60000)),sets,volume:Math.round(volume),
   compare,best,week,weekTarget:Math.max(1,Number(weeklyTarget)||0)};
 }
-window.ForgeLayoutBWorkout=Object.freeze({parseClock,formatShort,fmtKg,chipModel,exerciseStates,finishSummary});
+window.ForgeLayoutBWorkout=Object.freeze({parseClock,formatShort,fmtKg,chipModel,exerciseStates,exerciseProgress,newlyDone,finishSummary});
 if(typeof document==='undefined')return;
 
 /* ---------- environment ---------- */
@@ -129,10 +139,22 @@ ${H}>.forge-b-header,${H}>.forge-b-status,${H}>.forge-b-hud,${H}>.forge-b-footer
 ${H} .forge-lb-top{grid-row:1;display:flex;align-items:center;gap:10px;min-width:0}
 ${H} .forge-lb-round{width:44px;height:44px;flex:0 0 44px;border-radius:22px;border:1px solid #293346;background:#171e2a;color:#f3f7fc;display:flex;align-items:center;justify-content:center;padding:0}
 ${H} .forge-lb-segs{flex:1;display:flex;gap:4px;min-width:0}
-${H} .forge-lb-segs span{flex:1;height:5px;border-radius:3px;background:#293346}
-${H} .forge-lb-segs span.done{background:rgba(169,242,103,.55)}
-${H} .forge-lb-segs span.partial{background:#405d39}
-${H} .forge-lb-segs span.current{background:${ACC}}
+${H} .forge-lb-segs span{flex:1;height:6px;border-radius:3px;background:#293346;position:relative;overflow:hidden}
+${H} .forge-lb-segs span.current{background:#3a4556}
+${H} .forge-lb-segs span i{position:absolute;inset:0 auto 0 0;width:0;border-radius:3px;background:rgba(169,242,103,.55);transition:width .5s cubic-bezier(.2,.8,.2,1)}
+${H} .forge-lb-segs span.current i{background:${ACC}}
+${H} .forge-lb-segs span.done i{width:100%}
+${H} .forge-lb-main{position:relative}
+${H} .forge-lb-main.fx-pop{animation:forgeLbPop .42s cubic-bezier(.3,1.6,.5,1)}
+${H} .forge-lb-main.fx-pop::after{content:"";position:absolute;inset:0;border-radius:inherit;border:2px solid ${ACC};animation:forgeLbRing .5s ease-out forwards;pointer-events:none}
+${H} .forge-lb-main.fx-pop svg path{stroke-dasharray:24;stroke-dashoffset:24;animation:forgeLbDraw .3s .08s ease-out forwards}
+${H} .forge-lb-chip{position:relative}
+${H} .forge-lb-chip.fx-done{animation:forgeLbPop .42s cubic-bezier(.3,1.6,.5,1)}
+${H} .forge-lb-chip.fx-done::after{content:"";position:absolute;inset:-1px;border-radius:inherit;border:2px solid ${ACC};animation:forgeLbRing .5s ease-out forwards;pointer-events:none}
+@keyframes forgeLbPop{0%{transform:scale(1)}40%{transform:scale(.9)}100%{transform:scale(1)}}
+@keyframes forgeLbRing{0%{transform:scale(1);opacity:.9}100%{transform:scale(1.25,1.6);opacity:0}}
+@keyframes forgeLbDraw{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){${H} .forge-lb-main.fx-pop,${H} .forge-lb-chip.fx-done,${H} .forge-lb-segs span i{animation:none!important;transition:none!important}${H} .forge-lb-main.fx-pop::after,${H} .forge-lb-chip.fx-done::after{display:none}${H} .forge-lb-main.fx-pop svg path{animation:none!important;stroke-dashoffset:0}}
 ${H} .forge-lb-clock{height:34px;padding:0 11px;border-radius:17px;background:#171e2a;border:1px solid #293346;color:#f3f7fc;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
 ${H} .forge-lb-clock i{width:7px;height:7px;border-radius:4px;background:${ACC};display:block}
 ${H} .forge-lb-clock.paused i{background:#ffb547}
@@ -192,7 +214,21 @@ body.forge-layout-b.forge-compact-typing #workout.forge-lb-live #forgePremiumShe
 body.forge-layout-b.forge-compact-typing #workout.forge-lb-live.forge-premium-layout #forgePremiumShell.forge-b-shell.forge-b-shell{grid-template-rows:46px 0 50px auto 0 minmax(178px,1fr) 74px!important}
 /* Satzpause */
 ${H} .forge-lb-rest{position:absolute;inset:0;z-index:20;display:none;flex-direction:column;background:#0b1018;padding:16px 16px 10px;box-sizing:border-box}
-${S}.forge-lb-resting:not(.forge-lb-rest-min) #forgePremiumShell.forge-b-shell .forge-lb-rest{display:flex}
+${S}.forge-lb-resting:not(.forge-lb-rest-min) #forgePremiumShell.forge-b-shell .forge-lb-rest{display:flex;animation:forgeLbRestIn .22s ease-out both}
+${H} .forge-lb-rest-check{position:relative;width:36px;height:36px;flex:0 0 36px;border-radius:18px;background:${ACC};color:#142016;display:flex;align-items:center;justify-content:center;animation:forgeLbPopIn .45s .05s cubic-bezier(.3,1.6,.5,1) both}
+${H} .forge-lb-rest-check svg{width:20px;height:20px}
+${H} .forge-lb-rest-kick{display:flex;align-items:center;gap:10px}
+@media (max-height:720px){${H} .forge-lb-rest-check{width:26px;height:26px;flex-basis:26px}${H} .forge-lb-rest-check svg{width:15px;height:15px}}
+@media (max-height:700px){${H} .forge-lb-rest-kick{display:none}}
+${H} .forge-lb-rest-check svg path{stroke-dasharray:24;stroke-dashoffset:24;animation:forgeLbDraw .3s .2s ease-out forwards}
+${H} .forge-lb-rest-check::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid ${ACC};opacity:0;animation:forgeLbRing2 .6s .15s ease-out}
+${H} .forge-lb-rest-bar{height:6px;border-radius:3px;background:#202a38;margin:10px 6px 0;overflow:hidden}
+${H} .forge-lb-rest-bar i{display:block;height:100%;border-radius:3px;background:${ACC};transform-origin:left;transform:scaleX(var(--to,0));animation:forgeLbGrow .6s .3s cubic-bezier(.2,.8,.2,1) both}
+@keyframes forgeLbRestIn{from{opacity:.6}to{opacity:1}}
+@keyframes forgeLbPopIn{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
+@keyframes forgeLbRing2{0%{transform:scale(1);opacity:.9}100%{transform:scale(2);opacity:0}}
+@keyframes forgeLbGrow{from{transform:scaleX(var(--from,0))}to{transform:scaleX(var(--to,0))}}
+@media (prefers-reduced-motion:reduce){${S} .forge-lb-rest,${H} .forge-lb-rest-check,${H} .forge-lb-rest-check svg path,${H} .forge-lb-rest-bar i{animation:none!important}${H} .forge-lb-rest-check svg path{stroke-dashoffset:0}${H} .forge-lb-rest-check::after{display:none}}
 ${H} .forge-lb-rest-head{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:#95a3b7;padding:6px 6px 0}
 ${H} .forge-lb-rest-mid{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
 ${H} .forge-lb-rest-kicker{font-size:13px;color:${ACC};font-weight:700;text-transform:uppercase;letter-spacing:2px}
@@ -314,7 +350,7 @@ function build(shell){
  const swap=el('button','forge-lb-side');swap.type='button';swap.innerHTML=SVG.swap+'<span>Tauschen</span>';
  swap.addEventListener('click',()=>{const f=focus();if(f)window.ForgeExerciseSwap?.openForSession?.(f.i);});
  const main=el('button','forge-lb-main');main.type='button';main.innerHTML=SVG.check+'<span>Satz fertig</span>';
- main.addEventListener('click',()=>{const warm=$('forgePremiumShell')?.classList.contains('forge-v91-warming');(warm?$('forgeV91WarmDone'):document.querySelector('#forgeQuickWorkout .forge-primary-action'))?.click();});
+ main.addEventListener('click',()=>{fxPop(main);const warm=$('forgePremiumShell')?.classList.contains('forge-v91-warming');(warm?$('forgeV91WarmDone'):document.querySelector('#forgeQuickWorkout .forge-primary-action'))?.click();});
  const next=el('button','forge-lb-side');next.type='button';next.innerHTML=SVG.next+'<span>Nächste</span>';
  next.addEventListener('click',()=>{
   if(next.dataset.mode==='finish'){confirmFinish();return;}
@@ -336,7 +372,10 @@ function placeHeroExtras(){
 }
 function buildRest(){
  const root=el('div','forge-lb-rest');root.setAttribute('role','region');root.setAttribute('aria-label','Satzpause');
- const head=el('div','forge-lb-rest-head');const saved=el('span');const net=el('span');head.append(saved,net);
+ const head=el('div','forge-lb-rest-head');const saved=el('span');const net=el('span');
+ const check=el('i','forge-lb-rest-check');check.innerHTML=SVG.check;check.setAttribute('aria-hidden','true');
+ head.append(saved,net);
+ const bar=el('div','forge-lb-rest-bar');bar.setAttribute('role','progressbar');bar.setAttribute('aria-valuemin','0');bar.setAttribute('aria-valuemax','100');const fill=el('i');bar.append(fill);
  const mid=el('div','forge-lb-rest-mid');
  const kicker=el('div','forge-lb-rest-kicker','Satzpause');
  const ring=el('div','forge-lb-ring');
@@ -350,15 +389,16 @@ function buildRest(){
  const adjust=el('button','forge-lb-pill','Werte anpassen');adjust.type='button';
  adjust.addEventListener('click',()=>{$('workout')?.classList.add('forge-lb-rest-min');});
  row.append(add,pause,adjust);
- mid.append(kicker,ring,row);
+ const kick=el('div','forge-lb-rest-kick');kick.append(check,kicker);
+ mid.append(kick,ring,row);
  const foot=el('div','forge-lb-rest-foot');
  const card=el('div','forge-lb-nextcard');const cs=el('small','','Als Nächstes');const cb=el('b','','');card.append(cs,cb);
  const go=el('button','forge-lb-rest-go','Zum nächsten Satz');go.type='button';
  go.addEventListener('click',()=>{if(typeof window.forge130RestSkip==='function')window.forge130RestSkip();setTimeout(tick,0);});
  const note=el('div','forge-lb-rest-note','Automatische Satzpause · Dauer in den Einstellungen');
  foot.append(card,go,note);
- root.append(head,mid,foot);
- return {root,saved,net,big,of,arc:ring.querySelector('.forge-lb-arc'),ring,pauseText:pause.querySelector('span'),nextText:cb,total:0,last:null};
+ root.append(head,bar,mid,foot);
+ return {root,bar,fill,barTo:null,saved,net,big,of,arc:ring.querySelector('.forge-lb-arc'),ring,pauseText:pause.querySelector('span'),nextText:cb,total:0,last:null};
 }
 
 /* ---------- actions ---------- */
@@ -462,6 +502,14 @@ function bindSwipe(shell){
 
 /* ---------- render ---------- */
 let lastKey='';
+let lastDone=null;
+function reducedMotion(){try{return window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){return false;}}
+function fxPop(b){
+ if(!b)return;b.classList.remove('fx-pop');void b.offsetWidth;b.classList.add('fx-pop');
+ clearTimeout(b._fx);b._fx=setTimeout(()=>b.classList.remove('fx-pop'),600);
+ if(!reducedMotion())try{navigator.vibrate&&navigator.vibrate(12);}catch(e){}
+}
+function fxMark(b){b.classList.add('fx-done');setTimeout(()=>b.classList.remove('fx-done'),600);}
 function renderLive(){
  const s=live(),p=plan(),f=focus();
  if(!s||!p||!nodes)return;
@@ -472,11 +520,14 @@ function renderLive(){
  // progress segments (plan order as shown by the core)
  const order=typeof window.forge142Order==='function'?window.forge142Order(p):ex.map((_,k)=>k);
  const st=exerciseStates(draft,i);
- const segKey=order.map(k=>st[k]).join(',');
- if(nodes.segs.dataset.key!==segKey){
-  nodes.segs.dataset.key=segKey;nodes.segs.replaceChildren(...order.map(k=>{const x=el('span',st[k]||'open');return x;}));
-  nodes.segs.setAttribute('aria-label','Übung '+(order.indexOf(i)+1)+' von '+order.length);
+ const prog=exerciseProgress(draft);
+ const segKey=order.join(',');
+ if(nodes.segs.dataset.key!==segKey||nodes.segs.children.length!==order.length){
+  nodes.segs.dataset.key=segKey;nodes.segs.replaceChildren(...order.map(()=>{const x=el('span');x.append(el('i'));return x;}));
  }
+ order.forEach((k,n)=>{const x=nodes.segs.children[n];if(!x)return;const c=st[k]||'open';if(x.className!==c)x.className=c;const w=Math.round((prog[k]||0)*100)+'%';const fill=x.firstChild;if(fill&&fill.style.width!==w)fill.style.width=w;});
+ const allSets=ex.reduce((a,e)=>a+((e&&e.sets)||[]).length,0),doneSets=ex.reduce((a,e)=>a+((e&&e.sets)||[]).filter(x=>x&&x.done).length,0);
+ nodes.segs.setAttribute('aria-label','Übung '+(order.indexOf(i)+1)+' von '+order.length+' · '+doneSets+' von '+allSets+' Sätzen erledigt');
  // clock
  const digits=$('workoutDigitalClock')?.textContent||'';
  const sec=parseClock(digits);
@@ -494,6 +545,9 @@ function renderLive(){
  const key=i+'|'+JSON.stringify(chips);
  if(key!==lastKey){
   lastKey=key;
+  const doneNow=sets.map(x=>!!(x&&x.done));
+  const fresh=lastDone&&lastDone.i===i?newlyDone(lastDone.d,doneNow):[];
+  lastDone={i,d:doneNow};
   nodes.strip.replaceChildren(...chips.map(c=>{
    const b=el('button','forge-lb-chip '+(c.current?'current':c.done?'done':c.kind==='warm-add'?'warm-add':'open'));
    b.type='button';b.append(el('b','',c.label),el('span','',c.sub));
@@ -501,6 +555,7 @@ function renderLive(){
    else if(c.kind==='warm-add'){b.setAttribute('aria-label','Aufwärmsatz hinzufügen');b.addEventListener('click',()=>$('forgeV91WarmAdd')?.click());}
    else {b.setAttribute('aria-label','Aufwärmsatz bearbeiten');b.addEventListener('click',()=>{const e=$('forgeV91WarmEdit');(e&&!e.hidden?e:$('forgeV91WarmAdd'))?.click();});}
    if(c.current)b.setAttribute('aria-current','step');
+   if(c.kind==='set'&&fresh.includes(c.j))fxMark(b);
    return b;
   }));
   const curChip=nodes.strip.querySelector('.current');
@@ -561,6 +616,14 @@ function renderRest(s,p,draft,i,j,cur){
  }
  const done=(cur.sets||[]).filter(x=>x&&x.done).length;
  setText(R.saved,(cur.name||'Übung')+' · '+done+' von '+(cur.sets||[]).length+' Sätzen');
+ const all=(draft?.exercises||[]).reduce((a,e)=>a+((e&&e.sets)||[]).length,0),fin=(draft?.exercises||[]).reduce((a,e)=>a+((e&&e.sets)||[]).filter(x=>x&&x.done).length,0);
+ const to=all?Math.round(fin/all*1000)/1000:0;
+ if(R.barTo!==to){
+  const from=R.barTo==null?Math.max(0,to-(all?1/all:0)):R.barTo;
+  R.fill.style.setProperty('--from',String(from));R.fill.style.setProperty('--to',String(to));R.barTo=to;
+  R.fill.style.animation='none';void R.fill.offsetWidth;R.fill.style.animation='';
+  R.bar.setAttribute('aria-valuenow',String(Math.round(to*100)));R.bar.setAttribute('aria-label','Training: '+fin+' von '+all+' Sätzen erledigt');
+ }
  setText(R.net,'Training '+(nodes.clockText.textContent||''));
  const paused=!!s.activeWorkout.forgePausedAt;
  setText(R.pauseText,paused?'Training fortsetzen':'Training pausieren');
