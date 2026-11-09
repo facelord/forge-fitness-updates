@@ -119,6 +119,7 @@ function statusText(){
  return 'Aktiv · Ordner „'+folder+'“ · Letzte automatische Sicherung: '+formatTime(Number(meta.lastAuto)||0)+'. Die letzten 14 Sicherungen bleiben erhalten.';
 }
 function render(){
+ try{window.dispatchEvent(new CustomEvent('forge:backup-changed'));}catch(e){}
  const card=backupCard();
  if(!card)return;
  const notice=card.querySelector('p.notice');
@@ -198,6 +199,16 @@ function init(){
  setTimeout(()=>run(false),4000);
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')run(false);else render();});
 }
-window.ForgeAutoBackup={run,render,shouldRun,needsReminder,fingerprint,fileName,META_KEY,MIN_GAP,REMIND_AFTER};
+/* Status for Layout B's Datensicherung (no DOM). */
+function status(){
+ const meta=readMeta(),a=native(),folder=folderName(),at=now();
+ return {native:!!a,folder,active:!!(a&&folder),pending,lastError,
+  lastAuto:Number(meta.lastAuto)||0,lastManual:Number(meta.lastManual)||0,lastBackup:lastBackup(meta),
+  hasData:hasData(appState()),reminder:needsReminder(meta,at,!!folder,hasData(appState())),text:statusText(),formatTime};
+}
+function chooseFolder(){const a=native();if(a)a.chooseBackupFolder();return !!a;}
+function clearFolder(){const a=native();if(a&&typeof a.clearBackupFolder==='function')a.clearBackupFolder();return !!a;}
+function snooze(){writeMeta({snoozeUntil:now()+SNOOZE});renderReminder();render();}
+window.ForgeAutoBackup={run,render,shouldRun,needsReminder,fingerprint,fileName,META_KEY,MIN_GAP,REMIND_AFTER,status,chooseFolder,clearFolder,snooze};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();

@@ -63,6 +63,8 @@ ${B}.forge-lb-update .forge-lb-dot{display:block}
 .forge-lb-x{width:44px;height:44px;flex:0 0 44px;border-radius:22px;border:1px solid #293346;background:#171e2a;color:#f3f7fc;display:flex;align-items:center;justify-content:center;padding:0}
 .forge-lb-mcard{display:flex;align-items:center;gap:12px;background:#171e2a;border:1px solid #293346;border-radius:18px;padding:14px;color:#f3f7fc;text-align:left;width:100%;box-sizing:border-box;font:inherit}
 .forge-lb-mcard.hi{background:#1a2a22;border-color:#405d39}
+.forge-lb-mcard.warn{background:#211c12;border-color:#6b5426}
+.forge-lb-mcard.warn i{background:#3a2e14;color:#ffb547}
 .forge-lb-mcard i{width:40px;height:40px;flex:0 0 40px;border-radius:12px;background:#1a2a22;color:${ACC};display:flex;align-items:center;justify-content:center}
 .forge-lb-mcard.hi i{background:${ACC};color:#142016}
 .forge-lb-mcard span{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -146,8 +148,12 @@ function openMenu(btn){
  const head=el('div','forge-lb-sheet-head');const ht=el('div');ht.append(el('strong','','FORGE'));
  const x=el('button','forge-lb-x');x.type='button';x.innerHTML=ICON.x;x.setAttribute('aria-label','Menü schließen');x.addEventListener('click',closeSheet);
  head.append(ht,x);
- const status=el('div','forge-lb-mcard');const si=el('i');si.innerHTML=ICON.shield;const st=el('span');
- st.append(el('b','','Lokal gespeichert'),el('small','','Deine Daten bleiben auf diesem Gerät.'));status.append(si,st);
+ const bk=typeof window.forgeOpenBackup==='function';
+ let sm={tone:'muted',title:'Lokal gespeichert',text:'Deine Daten bleiben auf diesem Gerät.'};
+ try{if(bk&&window.ForgeLayoutBBackup&&window.ForgeAutoBackup?.status)sm=window.ForgeLayoutBBackup.summary(window.ForgeAutoBackup.status());}catch(e){}
+ const status=el(bk?'button':'div','forge-lb-mcard'+(sm.tone==='warn'?' warn':''));if(bk){status.type='button';status.addEventListener('click',()=>{closeSheet();window.forgeOpenBackup();});}
+ const si=el('i');si.innerHTML=ICON.shield;const st=el('span');
+ st.append(el('b','',sm.title),el('small','',sm.text));status.append(si,st);
  const upd=el('button','forge-lb-mcard'+(hasUpdate()?' hi':''));upd.type='button';const ui=el('i');ui.innerHTML=ICON.down;const ut=el('span');
  ut.append(el('b','',hasUpdate()?'Update installieren':'Nach Updates suchen'),el('small','',hasUpdate()?'Eine neue FORGE-Version liegt bereit':'Prüft, ob eine neue Version bereitliegt'));
  upd.append(ui,ut);upd.addEventListener('click',()=>{closeSheet();updateTrigger()?.click();});
@@ -157,8 +163,8 @@ function openMenu(btn){
  if(pageId==='nutrition'&&food)row(ICON.page,'Tagesziele & eigene Lebensmittel',()=>window.ForgeLayoutBFoodOpen('goals'));
  else if(PAGE_ROW[pageId]&&btn&&btn.classList.contains('forge-b-pagehead-action'))row(ICON.page,PAGE_ROW[pageId],()=>openPageTarget(pageId,btn));
  row(ICON.gear,'Einstellungen',()=>$('forgeSettingsToggle')?.click());
- row(ICON.file,'Backup als Datei exportieren',()=>{if(typeof window.exportData==='function')window.exportData();});
- row(ICON.file,'Datensicherung',()=>{if(food){window.ForgeLayoutBFoodOpen('backup');return;}if(typeof window.go==='function')window.go('nutrition');const n=$('nutrition');n?.classList.remove('forge-lb-home');window.ForgeNutritionSlim?.openPart?.('backup');});
+ if(bk)row(ICON.file,'Datensicherung',()=>window.forgeOpenBackup());
+ else row(ICON.file,'Datensicherung',()=>{if(food){window.ForgeLayoutBFoodOpen('backup');return;}if(typeof window.go==='function')window.go('nutrition');const n=$('nutrition');n?.classList.remove('forge-lb-home');window.ForgeNutritionSlim?.openPart?.('backup');});
  const v=versionText();
  if(v){const b=el('button');b.type='button';b.innerHTML=ICON.info;b.append(el('span','','Version'),el('em','',v));b.disabled=true;list.append(b);}
  s.append(el('div','forge-lb-handle'),head,status,upd,list,el('div','forge-lb-mnote','FORGE speichert lokal. Vor einem Gerätewechsel ein Backup exportieren.'));

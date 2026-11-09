@@ -39,6 +39,47 @@ function captureRecovery(){
  try{localStorage.setItem(RECOVERY_KEY,snapshot);return true;}
  catch(_){return false;}
 }
+/* Dialog-free building blocks (used by Layout B's Datensicherung). */
+async function readBackupFile(file){
+ try{
+  if(!file)return {ok:false,error:'Keine Datei gewählt.'};
+  if(typeof normalizeBackup!=='function')return {ok:false,error:'FORGE ist noch nicht vollständig geladen.'};
+  if(Number(file.size)>MAX_BYTES)return {ok:false,error:'Die Datei ist zu groß (maximal 20 MB).'};
+  let content;
+  try{content=JSON.parse((await file.text()).replace(/^\uFEFF/,''));}
+  catch(_){return {ok:false,error:'Die Datei ist kein gültiges JSON-Backup.'};}
+  const examination=inspect(content);
+  if(!examination.ok)return {ok:false,error:examination.error};
+  const c=examination.counts;
+  return {ok:true,data:normalizeBackup(examination.data),counts:c,
+   description:c.workouts+' Trainings, '+c.plans+' Trainingstage und '+c.meals+' Mahlzeiten'};
+ }catch(err){return {ok:false,error:String(err?.message||err)};}
+}
+function replaceState(next){
+ const previous=state;
+ try{
+  state=next;save();
+  if(typeof load==='function'&&JSON.stringify(load())!==JSON.stringify(next))
+   throw new Error('Die Daten wurden im Gerätespeicher nicht bestätigt.');
+  render();
+  return {ok:true};
+ }catch(err){
+  state=previous;try{save();render();}catch(_){}
+  return {ok:false,error:'Der vorherige Stand wurde wiederhergestellt. '+String(err?.message||err)};
+ }
+}
+function applyImport(prepared){
+ if(typeof state==='undefined'||!prepared)return {ok:false,error:'Keine Daten zum Import.'};
+ if(!captureRecovery())return {ok:false,error:'Es konnte keine Sicherheitskopie im lokalen Speicher erstellt werden. Bitte zuerst ein Backup exportieren und Speicherplatz freigeben.'};
+ return replaceState(prepared);
+}
+function applyRecovery(){
+ if(typeof state==='undefined'||typeof normalizeBackup!=='function')return {ok:false,error:'FORGE ist noch nicht vollständig geladen.'};
+ let result;
+ try{result=inspect(JSON.parse(localStorage.getItem(RECOVERY_KEY)||'null'));}catch(_){result={ok:false};}
+ if(!result?.ok)return {ok:false,error:'Keine gültige lokale Wiederherstellungskopie vorhanden.'};
+ return replaceState(normalizeBackup(result.data));
+}
 function restoreRecovery(){
  if(typeof state==='undefined'||typeof normalizeBackup!=='function')return false;
  let result;
@@ -100,7 +141,7 @@ async function guardedImport(event){
  }finally{if(target)target.value='';}
 }
 let installed=false;
-window.ForgeBackupGuard=Object.freeze({unwrap,inspect,recoveryAvailable,restoreRecovery,guardedImport,isInstalled:()=>installed});
+window.ForgeBackupGuard=Object.freeze({unwrap,inspect,recoveryAvailable,restoreRecovery,guardedImport,readBackupFile,applyImport,applyRecovery,isInstalled:()=>installed});
 function install(){
  if(installed)return;
  if(typeof window.importData!=='function'||typeof state==='undefined'||typeof normalizeBackup!=='function')return;

@@ -760,7 +760,7 @@ function drawGoals(){
  inner.append(el('div','fs-label','Ebenfalls hier'));
  const nav=el('div','fs-box');
  const r1=btn('fs-nav','',()=>openSheet({view:'mine'}));const r1s=el('span');r1s.append(document.createTextNode('Eigene Lebensmittel verwalten'),el('small','',customFoods().length+' gespeichert'));r1.append(r1s);r1.insertAdjacentHTML('beforeend',ICON.chev);
- const r2=btn('fs-nav','',()=>openSheet({view:'backup'}));const r2s=el('span');r2s.append(document.createTextNode('Datensicherung & Export'),el('small','','Backup als Datei, wiederherstellen'));r2.append(r2s);r2.insertAdjacentHTML('beforeend',ICON.chev);
+ const r2=btn('fs-nav','',()=>{if(typeof window.forgeOpenBackup==='function'){closeSheet();window.forgeOpenBackup();}else openSheet({view:'backup'});});const r2s=el('span');r2s.append(document.createTextNode('Datensicherung & Export'),el('small','','Backup als Datei, wiederherstellen'));r2.append(r2s);r2.insertAdjacentHTML('beforeend',ICON.chev);
  nav.append(r1,r2);inner.append(nav);
  const spacer=el('div');spacer.style.flex='1';inner.append(spacer);
  const err=el('p','fs-hint');inner.append(err);
@@ -808,7 +808,7 @@ function drawBackup(){
 function install(){
  if(!document.body||!enabled())return false;
  wrapBridge();setTimeout(wrapBridge,1500);
- window.ForgeLayoutBFoodOpen=(what,arg)=>{if(!enabled())return false;ensureCss();if(what==='goals')openGoals();else if(what==='backup')openSheet({view:'backup',push:false});else if(what==='mine')openSheet({view:'mine',push:false});else openAdd(arg);return true;};
+ window.ForgeLayoutBFoodOpen=(what,arg)=>{if(!enabled())return false;ensureCss();if(what==='goals')openGoals();else if(what==='backup'){if(typeof window.forgeOpenBackup==='function')window.forgeOpenBackup();else openSheet({view:'backup',push:false});}else if(what==='mine')openSheet({view:'mine',push:false});else openAdd(arg);return true;};
  return true;
 }
 window.ForgeLayoutBFoodMount=mount;

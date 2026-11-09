@@ -132,6 +132,11 @@ function open(){
  }else progress.append(make('p','forge-settings-hint','Statistiken werden nach dem ersten Training verfügbar.'));
  sheet.append(progress);
  const data=section('Deine Daten');
+ if(typeof window.forgeOpenBackup==='function'){
+  const one=make('button','forge-settings-action','Datensicherung');
+  one.type='button';one.addEventListener('click',()=>{dismiss();window.forgeOpenBackup();});
+  data.append(one,make('p','forge-settings-hint','Automatische Sicherung, Export, Wiederherstellen – alles an einer Stelle.'));
+ }else{
  const backup=make('button','forge-settings-action','Backup als Datei exportieren');
  backup.type='button';
  backup.addEventListener('click',()=>{dismiss();if(typeof window.exportData==='function')window.exportData();});
@@ -151,6 +156,7 @@ function open(){
   data.append(recovery);
  }
  data.append(make('p','forge-settings-hint','FORGE speichert lokal. Vor einem Gerätewechsel oder einer Deinstallation ein Backup exportieren.'));
+ }
  sheet.append(data);
  const updates=make('button','forge-settings-action alt','App-Updates prüfen');
  updates.type='button';updates.addEventListener('click',()=>{dismiss();$('forge-updates-root')?.querySelector('button')?.click();});
