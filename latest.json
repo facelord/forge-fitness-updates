@@ -1,7 +1,7 @@
 {
-  "versionCode": 10609,
-  "versionName": "14.13.609",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.609/FORGE-Fitness-14.13.609.apk",
-  "sha256": "2089d42106f13297b94b1bf48dbba61ffaa314696df110e1dc7eaad57eb390ea",
-  "notes": "FORGE V12: Alle 52 Kraft-Übungstafeln in der Übungsbibliothek auf die freigegebenen WebP-Bilder umgestellt. Die 40 alten SVG-Übungstafeln und Anatomie-Overlays aus dem aktiven Übungstafel-Ordner entfernt. Drei Zusatzbildvarianten für die spätere Katalogerweiterung vorbereitet. Das übrige FORGE-Training und die Planfunktionen bleiben erhalten."
+  "versionCode": 10613,
+  "versionName": "14.13.613",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.613/FORGE-Fitness-14.13.613.apk",
+  "sha256": "035f84f005c49101aa57ec586ecfd04ba22c26292158cf9793354faad7d4f139",
+  "notes": "Neues Design (Layout B): Blau-Schwarz mit Inter, Navigation Plan · Workout · Essen · Erfolge mit Wischen, neuer Workout-Ablauf mit Tagesform, großen +/−-Feldern, Satzpause-Bildschirm und Abschluss-Übersicht, neue Plan-Übersicht mit Trainingswoche, neue Essen- und Erfolge-Übersicht, aufgeräumte Kopfzeile mit Menü, Technik-Blatt, Bestätigung vor dem Beenden. Zurück zum alten Aussehen: Einstellungen > Darstellung. Updates werden bei GitHub-Aussetzern jetzt automatisch erneut versucht."
 }
