@@ -2,7 +2,8 @@
  * - Vor dem Start: Tagesform 1–5 als große Auswahl
  * - Satz erfassen: Fortschritt je Übung, Uhr, Übungsbild mit Technik,
  *   Satzleiste (A · 1 ✓ · Satz 2 jetzt · 3 offen), Tagesform/zuletzt,
- *   große +/−-Karten für kg und Wdh., unten Tauschen · Satz fertig · Nächste
+ *   große +/−-Karten für kg und Wdh., unten Zurück · Satz fertig · Nächste,
+ *   Tauschen als Chip oben rechts im Bild
  * - Wischen auf dem Übungsbild = vorige/nächste Übung
  * - Satzpause als eigener Bildschirm mit Ring, „Zum nächsten Satz“
  * Presentation only: every action is delegated to the existing native
@@ -120,6 +121,7 @@ const SVG={
  list:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>',
  swap:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>',
  check:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M5 12l5 5L19 7"/></svg>',
+ prev:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>',
  next:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>',
  flag:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>',
  up:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>',
@@ -168,6 +170,9 @@ ${H} .forge-lb-target{font-size:13px;color:#c3cddb;margin-top:3px;font-weight:50
 ${H} .forge-lb-tech{position:absolute;right:12px;bottom:12px;z-index:3;height:36px;border-radius:18px;border:0;background:rgba(243,247,252,.16);color:#f3f7fc;font-size:12px;font-weight:700;padding:0 12px;display:flex;align-items:center;gap:6px;backdrop-filter:blur(6px)}
 /* Übersicht (☰): nur Sätze – Aufwärmen steht im Satz-Streifen, Technik hinter dem Bild. */
 ${S} #workoutExercises .forge140-exercise-warmup,${S} #workoutExercises .forge-strength-guide{display:none!important}
+${H} .forge-lb-swapchip{position:absolute;right:12px;top:12px;z-index:3;height:36px;border-radius:18px;border:0;background:rgba(11,16,24,.72);color:#f3f7fc;font-size:12px;font-weight:700;padding:0 12px;display:flex;align-items:center;gap:6px;backdrop-filter:blur(6px)}
+${H} .forge-lb-swapchip svg{width:16px;height:16px}
+${H} .forge-lb-side:disabled{opacity:.35}
 ${H} .forge-lb-strip{grid-row:3;display:flex;gap:6px;min-width:0;overflow-x:auto;scrollbar-width:none}
 ${H} .forge-lb-strip::-webkit-scrollbar{display:none}
 ${H} .forge-lb-chip{flex:1 0 64px;min-width:64px;height:48px;border-radius:14px;background:#171e2a;border:1px solid #293346;color:#95a3b7;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0;font-size:12px;line-height:1.25}
@@ -349,7 +354,9 @@ function build(shell){
  const info=el('div','forge-lb-info');
 
  const bottom=el('div','forge-lb-bottom');
- const swap=el('button','forge-lb-side');swap.type='button';swap.innerHTML=SVG.swap+'<span>Tauschen</span>';
+ const prev=el('button','forge-lb-side');prev.type='button';prev.innerHTML=SVG.prev+'<span>Zurück</span>';prev.setAttribute('aria-label','Vorherige Übung');
+ prev.addEventListener('click',()=>{if(!prev.disabled)goBack();});
+ const swap=el('button','forge-lb-swapchip');swap.type='button';swap.innerHTML=SVG.swap+'<span>Tauschen</span>';swap.setAttribute('aria-label','Übung tauschen');
  swap.addEventListener('click',()=>{const f=focus();if(f)window.ForgeExerciseSwap?.openForSession?.(f.i);});
  const main=el('button','forge-lb-main');main.type='button';main.innerHTML=SVG.check+'<span>Satz fertig</span>';
  main.addEventListener('click',()=>{fxPop(main);const warm=$('forgePremiumShell')?.classList.contains('forge-v91-warming');(warm?$('forgeV91WarmDone'):document.querySelector('#forgeQuickWorkout .forge-primary-action'))?.click();});
@@ -358,17 +365,18 @@ function build(shell){
   if(next.dataset.mode==='finish'){confirmFinish();return;}
   heroArrow(1);
  });
- bottom.append(swap,main,next);
+ bottom.append(prev,main,next);
 
  const rest=buildRest();
  shell.append(top,strip,info,bottom,rest.root);
- nodes={shell,top,segs,clock,clockText:clock.querySelector('span'),tech,target,strip,info,bottom,swap,main,mainText:main.querySelector('span'),next,nextText:next.querySelector('span'),rest};
+ nodes={shell,top,segs,clock,clockText:clock.querySelector('span'),tech,target,strip,info,bottom,swap,prev,main,mainText:main.querySelector('span'),next,nextText:next.querySelector('span'),rest};
  placeHeroExtras();
  bindSwipe(shell);
 }
 function placeHeroExtras(){
  const media=nodes.shell.querySelector('.forge-b-media');
  if(media&&nodes.tech.parentNode!==media)media.append(nodes.tech);
+ if(media&&nodes.swap.parentNode!==media)media.append(nodes.swap);
  const stack=nodes.shell.querySelector('.forge-b-title-stack');
  if(stack&&nodes.target.parentNode!==stack)stack.append(nodes.target);
 }
@@ -407,6 +415,18 @@ function buildRest(){
 function heroArrow(dir){
  const b=document.querySelectorAll('#forgePremiumShell .forge-b-media-arrows button')[dir<0?0:1];
  if(b)b.click();
+}
+/* Previous exercise, landing on its first open set (not on its last set). */
+function goBack(){
+ const before=focus();heroArrow(-1);
+ setTimeout(()=>{
+  const f=focus(),s=live(),p=plan();if(!f||!s||!p||(before&&f.i===before.i))return;
+  const draft=s.workoutDraft&&String(s.workoutDraft.planId)===String(p.id)?s.workoutDraft:null;
+  const sets=draft?.exercises?.[f.i]?.sets||[];if(!sets.length)return;
+  let t=sets.findIndex(x=>!(x&&x.done));if(t<0)t=sets.length-1;
+  if(t!==f.j)stepTo(t);
+  try{renderLive();}catch(e){}
+ },0);
 }
 function openOverview(){$('forgeCompactExercises')?.click();}
 /* ---------- Blätter: Technik (B2-5) und Training beenden (N5) ---------- */
@@ -498,7 +518,7 @@ function bindSwipe(shell){
  shell.addEventListener('touchend',e=>{
   if(!t)return;const s=t;t=null;const c=e.changedTouches[0];if(!c)return;
   const dx=c.clientX-s.x,dy=c.clientY-s.y;
-  if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5&&Date.now()-s.at<700)heroArrow(dx<0?1:-1);
+  if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5&&Date.now()-s.at<700)(dx<0?heroArrow(1):goBack());
  },{passive:true});
 }
 
@@ -593,6 +613,7 @@ function renderLive(){
  // last exercise -> finish
  const pos=order.indexOf(i),lastEx=pos===order.length-1;
  const mode=lastEx?'finish':'next';
+ nodes.prev.disabled=pos<=0;
  if(nodes.next.dataset.mode!==mode){
   nodes.next.dataset.mode=mode;
   nodes.next.innerHTML=(lastEx?SVG.flag:SVG.next)+'<span>'+(lastEx?'Beenden':'Nächste')+'</span>';
