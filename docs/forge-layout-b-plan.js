@@ -52,7 +52,7 @@ const ICON={
 
 const P='body.forge-layout-b #plan';
 const CSS=`
-${P}.forge-lb-plan-home>:not(.forge-lb-plan):not(.forge-b-pagehead){display:none!important}
+${P}.forge-lb-plan-home>:not(.forge-lb-plan):not(.forge-b-pagehead):not(.forge-lb-brand){display:none!important}
 ${P}.forge-lb-plan-home>.forge-b-pagehead{margin-bottom:0!important}
 ${P}:not(.forge-lb-plan-home)>.forge-lb-plan>:not(.forge-lb-plan-back){display:none!important}
 ${P}.forge-lb-plan-home>.forge-lb-plan>.forge-lb-plan-back{display:none!important}

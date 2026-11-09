@@ -97,6 +97,11 @@ ${B} .forge-settings-action.alt{background:#171e2a!important;color:#f3f7fc!impor
 /* Wochenziel kommt aus dem Plan */
 ${B} #progress details.forge-lb-goal-dup{display:none!important}
 ${B} #progress details:has(> .disclosure-body > .card #forgeWeeklyGoal),${B} #progress details:has(> .forge144-targets){display:none!important}
+/* Marke + Slogan über jeder Hauptseite */
+${B} .page>.forge-lb-brand{display:flex;flex-direction:column;justify-content:center;gap:1px;margin:6px 0 4px;padding:0 6px;font-family:Inter,system-ui,sans-serif;pointer-events:none}
+${B} .page>.forge-lb-brand b{font-size:15px;font-weight:900;letter-spacing:.22em;color:${ACC};line-height:1.1}
+${B} .page>.forge-lb-brand span{font-size:12px;color:#95a3b7;letter-spacing:.02em;line-height:1.2}
+${B} #workout.forge-lb-live>.forge-lb-brand,${B} #workout.forge-compact-live>.forge-lb-brand,${B}.forge-compact-typing .page>.forge-lb-brand{display:none}
 /* Workout vor dem Start */
 ${B} #workout>.forge-lb-wohead{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 2px 4px 6px}
 ${B} #workout>.forge-lb-wohead h2{margin:0;font-size:32px;font-weight:800;letter-spacing:-.02em;color:#f3f7fc}
@@ -180,6 +185,16 @@ function decorateMenuButtons(){
 }
 
 /* ---------- workout pre-start head ---------- */
+const BRAND_PAGES=['plan','workout','nutrition','progress'];
+const SLOGAN='Schmiede, was in dir steckt';
+function brand(){
+ for(const id of BRAND_PAGES){
+  const page=$(id);if(!page)continue;
+  let b=page.querySelector(':scope > .forge-lb-brand');
+  if(!b){b=el('div','forge-lb-brand');b.setAttribute('aria-label','FORGE – '+SLOGAN);b.append(el('b','','FORGE'),el('span','',SLOGAN));}
+  if(page.firstElementChild!==b)page.prepend(b);
+ }
+}
 function workoutHead(){
  const w=$('workout');if(!w||w.querySelector(':scope > .forge-lb-wohead'))return;
  const h=el('div','forge-lb-wohead');h.append(el('h2','','Workout'));
@@ -243,7 +258,7 @@ function watchErrors(){
 /* ---------- lifecycle ---------- */
 function tick(){
  if(!enabled())return;
- decorateMenuButtons();workoutHead();syncGoal();
+ decorateMenuButtons();workoutHead();brand();syncGoal();
 }
 function install(){
  if(!document.body||!enabled())return false;

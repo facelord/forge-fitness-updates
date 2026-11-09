@@ -84,7 +84,7 @@ function shortDate(d){return d.toLocaleDateString('de-DE',{weekday:'short',day:'
 
 const B='body.forge-layout-b';
 const CSS=`
-${B} :is(#nutrition,#progress).forge-lb-home>:not(.forge-lb-pg):not(.forge-b-pagehead){display:none!important}
+${B} :is(#nutrition,#progress).forge-lb-home>:not(.forge-lb-pg):not(.forge-b-pagehead):not(.forge-lb-brand){display:none!important}
 ${B} :is(#nutrition,#progress):not(.forge-lb-home)>.forge-lb-pg>:not(.forge-lb-pg-back){display:none!important}
 ${B} :is(#nutrition,#progress).forge-lb-home>.forge-lb-pg>.forge-lb-pg-back{display:none!important}
 ${B} :is(#nutrition,#progress):not(.forge-lb-home){padding-bottom:150px!important}

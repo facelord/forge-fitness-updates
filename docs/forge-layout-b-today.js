@@ -121,7 +121,7 @@ ${W}.forge-lb-today-alt #forgeSlimWorkoutExtras>summary,${W}.forge-lb-today-alt 
 ${W}.forge-lb-today-alt #forgeSlimWorkoutExtras .forge149-workout-section{border:0!important;background:transparent!important;padding:0!important;margin:0!important}
 ${W}.forge-lb-today-alt #forgeSlimWorkoutExtras .forge149-workout-section>.card{border:0!important;background:transparent!important;padding:0!important;box-shadow:none!important;margin:0!important}
 ${W}:not(.forge-lb-today-on)>${T}{display:none!important}
-${W}.forge-lb-today-on>:not(.forge-lb-wohead):not(#forge150WorkoutModes):not(${T}):not(.forge-lb-td-classic):not(#forgeWorkoutUndoBanner):not(style):not(script){display:none!important}
+${W}.forge-lb-today-on>:not(.forge-lb-brand):not(.forge-lb-wohead):not(#forge150WorkoutModes):not(${T}):not(.forge-lb-td-classic):not(#forgeWorkoutUndoBanner):not(style):not(script){display:none!important}
 ${W} #forge150WorkoutModes{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px!important;height:48px;border-radius:24px;background:#171e2a;border:1px solid #293346;padding:4px!important;box-sizing:border-box;margin:6px 0 12px!important}
 ${W} #forge150WorkoutModes>button{border:0!important;border-radius:20px!important;background:transparent!important;color:#95a3b7!important;font:inherit!important;font-size:14px!important;font-weight:600!important;display:flex!important;align-items:center;justify-content:center;gap:6px;min-height:0!important;height:100%!important;padding:0 4px!important;box-shadow:none!important;flex:none!important}
 ${W} #forge150WorkoutModes>button[aria-pressed="true"]{background:${ACC}!important;color:#142016!important;font-weight:800!important}
