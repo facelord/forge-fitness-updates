@@ -1,7 +1,7 @@
 {
-  "versionCode": 10613,
-  "versionName": "14.13.613",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.613/FORGE-Fitness-14.13.613.apk",
-  "sha256": "035f84f005c49101aa57ec586ecfd04ba22c26292158cf9793354faad7d4f139",
-  "notes": "FORGE V12.1: Bildzuordnungen der Übungsbibliothek korrigiert (Ausfallschritte, Bankdrücken, Beinpresse, Bizepscurls, Dips Trizepsfokus, Glute Bridge, Kniebeugen, Rudern am Kabelzug, Schulterdrücken sowie Klimmzüge breiter und enger Griff). Neue V12-WebP-Bilder werden bevorzugt und dank versionsabhängiger URLs frisch geladen. Beim engen Klimmzug-Griff ist bis zur eigenen Tafel die vorhandene Obergriff-Illustration mit Hinweis hinterlegt."
+  "versionCode": 10615,
+  "versionName": "14.13.615",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.615/FORGE-Fitness-14.13.615.apk",
+  "sha256": "2ad84d9be1337f06d84339d97cec37069e74895e680bf377db98e092b020ca5d",
+  "notes": "Neues Design (Layout B): Blau-Schwarz mit Inter, Navigation Plan · Workout · Essen · Erfolge mit Wischen, neuer Workout-Ablauf mit Tagesform, großen +/−-Feldern, Satzpause-Bildschirm und Abschluss-Übersicht, neue Plan-Übersicht mit Trainingswoche, neue Essen- und Erfolge-Übersicht, aufgeräumte Kopfzeile mit Menü, Technik-Blatt, Bestätigung vor dem Beenden. Zurück zum alten Aussehen: Einstellungen > Darstellung. Updates werden bei GitHub-Aussetzern jetzt automatisch erneut versucht."
 }
