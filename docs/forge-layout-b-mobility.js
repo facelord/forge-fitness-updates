@@ -103,6 +103,11 @@ ${K} .ms-th img{width:100%;height:100%;object-fit:cover;display:block}
 ${K} .ms-row b{flex:1;font-size:14px;font-weight:600;min-width:0;overflow-wrap:anywhere;hyphens:auto}
 ${K} .ms-row em{flex:0 0 auto;font-style:normal;font-size:12px;color:#95a3b7;white-space:nowrap}
 ${K} .ms-go{height:60px;border-radius:30px;border:0;background:${TEAL};color:#062420;font:inherit;font-size:18px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:10px}
+${K} .ms-label{font-size:12px;color:#95a3b7;text-transform:uppercase;letter-spacing:1.3px;margin-top:4px}
+${K} .ms-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+${K} .ms-tile{min-height:72px;border-radius:18px;border:1px solid #293346;background:#0f1620;color:#f3f7fc;font:inherit;text-align:left;padding:10px 12px;display:flex;flex-direction:column;justify-content:center;gap:2px}
+${K} .ms-tile b{font-size:15px;font-weight:700;overflow-wrap:anywhere}
+${K} .ms-tile span{font-size:12px;color:#95a3b7}
 ${K} .ms-sec{height:46px;border-radius:23px;border:1px solid #2f6a62;background:transparent;color:#f3f7fc;font:inherit;font-size:14px;font-weight:700}
 ${K} .ms-meta{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 ${K} .ms-meta span{font-size:12px;border-radius:12px;background:#0f1620;color:#c3cddb;padding:5px 0;text-align:center}
@@ -171,8 +176,26 @@ function renderCard(){
  card.replaceChildren();
  const c=cfg(),r=routine();
  if(!c.enabled||!r){
-  card.append(el('div','ms-kick','Mobilität'),el('h3','','Noch kein Mobilitätsplan'),el('div','ms-sub','Eine kurze Routine an Ruhetagen oder direkt nach dem Krafttraining – automatisch oder mit deinen eigenen Übungen.'));
-  card.append(btn('ms-go','Mobilitätsplan erstellen',()=>{if(typeof window.ForgeLayoutBWizardOpen==='function')window.ForgeLayoutBWizardOpen('mobility');}));
+  // W5: start a routine right away – a plan is optional.
+  const all=routines(),keys=Object.keys(all).filter(k=>all[k]&&Array.isArray(all[k].items)&&all[k].items.length);
+  const first=keys.includes('gentle')?'gentle':keys[0];
+  if(!first){
+   card.append(el('div','ms-kick','Mobilität'),el('h3','','Noch kein Mobilitätsplan'));
+   card.append(btn('ms-go','Mobilitätsplan erstellen',()=>{if(typeof window.ForgeLayoutBWizardOpen==='function')window.ForgeLayoutBWizardOpen('mobility');}));
+   hideLegacy();return;
+  }
+  const fr=all[first];
+  card.append(el('div','ms-kick',run()?'Läuft gerade':'Schnell starten'),el('h3','',run()?(run().name||fr.name):fr.name));
+  card.append(el('div','ms-sub',fr.items.length+' Übungen · '+minutesLabel(totalSeconds(fr.items,lib))+' · geführt mit Timer und Seitenwechsel'));
+  const go=btn('ms-go','',()=>startRun(first));go.innerHTML=ICON.play+'<span>'+(run()?'Mobilität fortsetzen':'Jetzt starten')+'</span>';card.append(go);
+  const others=keys.filter(k=>k!==first);
+  if(others.length){
+   card.append(el('div','ms-label','Andere Routine'));
+   const grid=el('div','ms-grid');
+   others.forEach(k=>{const r=all[k];const b=btn('ms-tile','',()=>startRun(k));b.append(el('b','',r.name),el('span','',r.items.length+' Übungen · '+minutesLabel(totalSeconds(r.items,lib))));grid.append(b);});
+   card.append(grid);
+  }
+  card.append(btn('ms-sec','Mobilitätsplan erstellen',()=>{if(typeof window.ForgeLayoutBWizardOpen==='function')window.ForgeLayoutBWizardOpen('mobility');}));
   hideLegacy();return;
  }
  const today=isToday(c,todayIdx(),trainedToday());
@@ -218,11 +241,13 @@ function remaining(r){
  if(r.running&&r.endsAt)return Math.max(0,(r.endsAt-Date.now())/1000);
  return Math.max(0,Number(r.left)||0);
 }
-function startRun(){
+function startRun(key){
  if(!enabled())return;
  const existing=run();
  if(existing&&Array.isArray(existing.items)&&existing.items.length){openRun();return;}
- const r=routine();if(!r)return;
+ let r=routine();
+ if(typeof key==='string'){const x=routines()[key];if(x&&Array.isArray(x.items)&&x.items.length)r={key,name:x.name,items:x.items};}
+ if(!r)return;
  loadLib().then(()=>{
   const ph=buildPhases(r.items,lib);
   setRun({routine:r.key,name:r.name,items:r.items.map(x=>x.slice()),phase:0,running:true,endsAt:Date.now()+ph[0].secs*1000,left:ph[0].secs,startedAt:Date.now(),pausedMs:0,pausedAt:0});

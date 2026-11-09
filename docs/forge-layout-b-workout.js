@@ -583,7 +583,7 @@ function renderForm(){
  let box=page.querySelector('.forge-lb-form');
  const start=[...page.querySelectorAll('button')].find(b=>/Training starten/.test(b.textContent||'')&&b.offsetParent!==null);
  const canForm=typeof forge144SetEnergy==='function'&&typeof forge144Data==='function'&&typeof forge144LocalDay==='function';
- if(live()||!start||!canForm){if(box)box.hidden=true;return;}
+ if(live()||!start||!canForm||page.classList.contains('forge-lb-today-on')){if(box)box.hidden=true;return;}
  if(!box){
   box=el('div','forge-lb-form');
   const card=el('div','forge-lb-form-card');
