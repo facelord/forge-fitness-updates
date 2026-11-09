@@ -315,6 +315,7 @@ mount('progress',page=>{
  row('Rekorde & Fortschritt',viewOr('records',()=>detail('progress')));
  row('Muskeln & Erholung',viewOr('muscles',()=>detail('progress')));
  row('Körpergewicht',()=>tw.click());
+ row('Körpermaße & Fotos',()=>{if(typeof window.forgeOpenBody==='function')window.forgeOpenBody();});
  row('Alle Challenges',()=>chal.click());
  root.append(back,head,hero,tiles,recs,chal,rows);
  attach(page,root);
