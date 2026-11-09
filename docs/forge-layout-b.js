@@ -2,7 +2,7 @@
  * - Blau-Schwarz-Palette (#0b1018 / #171e2a / #293346, Akzent #a9f267)
  * - Pill-Navigation Plan · Workout · Essen · Erfolge
  * - Seitliches Wischen zwischen den vier Bereichen
- * - Schalter in den Einstellungen zurück zum bisherigen Layout
+ * - Einziges Layout der App (der frühere Umschalter ist entfernt)
  * Presentation only: no state writes, no storage migration, no handler replacement.
  * The palette is applied by remapping colours in existing stylesheets/inline
  * styles, so the ~50 older layout layers keep working unchanged.
@@ -28,11 +28,9 @@ function enabled(){
  // ?forge-layout=legacy shows the previous layout for this page load only
  // (used by the legacy layout regression audits; nothing is stored).
  try{if(/[?&]forge-layout=legacy\b/.test(location.search))return false;}catch(e){}
- try{return localStorage.getItem(PREF_KEY)!=='off';}catch(e){return true;}
+ return true;
 }
-function setEnabled(on){
- try{localStorage.setItem(PREF_KEY,on?'on':'off');}catch(e){}
-}
+function clearOldPreference(){try{localStorage.removeItem(PREF_KEY);}catch(e){}}
 
 /* ---------- colour remapping ---------- */
 function clamp(v,a,b){return Math.min(b,Math.max(a,v));}
@@ -245,30 +243,13 @@ function swipeHint(){
  setTimeout(()=>{h.style.opacity='0';},3600);setTimeout(()=>h.remove(),4100);
 }
 
-/* ---------- settings switch ---------- */
-function settingsRow(){
- const sheet=document.querySelector('.forge-settings-overlay .forge-settings-sheet');
- if(!sheet||sheet.querySelector('#forgeLayoutBToggle'))return;
- const section=sheet.querySelector('.forge-settings-section')||sheet;
- const label=document.createElement('label');label.className='forge-settings-row forge-b-setting';
- const text=document.createElement('span');text.textContent='Neues Design (Layout B)';
- const sub=document.createElement('small');sub.textContent='Aus = bisheriges Aussehen. Deine Daten bleiben unverändert.';
- text.append(sub);
- const input=document.createElement('input');input.type='checkbox';input.id='forgeLayoutBToggle';input.checked=enabled();
- input.addEventListener('change',()=>{setEnabled(input.checked);setTimeout(()=>location.reload(),150);});
- label.append(text,input);
- const heading=section.querySelector('h3');
- if(heading)heading.after(label);else section.append(label);
-}
-
 /* ---------- install ---------- */
 let installed=false;
 function install(){
  if(installed||!document.body)return;
  installed=true;
- // The settings switch is offered in both modes so B can be turned back on.
- new MutationObserver(()=>settingsRow()).observe(document.body,{childList:true});
  if(!enabled())return;
+ clearOldPreference();
  document.body.classList.add('forge-layout-b');
  installStyles();
  sweep(document.documentElement);

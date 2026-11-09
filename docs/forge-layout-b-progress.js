@@ -239,6 +239,7 @@ ${R} .pr-item>span:not(.pr-date):not(.pr-badge){flex:1;min-width:0}
 ${R} .pr-item b.t{display:block;font-size:15px;overflow-wrap:anywhere}
 ${R} .pr-item small{font-size:12px;color:#95a3b7}
 ${R} .pr-badge{font-size:11px;font-weight:800;color:#142016;background:${ACC};border-radius:10px;padding:4px 7px;white-space:nowrap}
+${R} .pr-log{width:100%;margin:10px 0 2px}
 ${R} .pr-more{min-height:48px;border-radius:24px;border:1px solid #3a4556;background:transparent;color:#f3f7fc;font:inherit;font-size:15px;font-weight:700;flex:0 0 auto}
 ${R} .pr-empty{font-size:14px;color:#95a3b7;text-align:center;padding:28px 12px;line-height:1.5}
 ${R} .pr-card{flex:0 0 auto;background:#171e2a;border:1px solid #293346;border-radius:22px;padding:14px;display:flex;flex-direction:column;gap:10px}
@@ -342,6 +343,7 @@ function open(view){
  document.body.append(root);document.addEventListener('keydown',onKey,true);
  render();return true;
 }
+window.addEventListener('forge:workout-logged',()=>{if(root&&ui)render();});
 function close(){closeSheet();if(root){root.remove();root=null;ui=null;document.removeEventListener('keydown',onKey,true);}}
 function onKey(e){if(e.key!=='Escape')return;e.preventDefault();e.stopPropagation();if(sheet)closeSheet();else close();}
 function toast(text){if(!root)return;root.querySelector('.pr-toast')?.remove();const t=el('div','pr-toast',text);t.setAttribute('role','status');root.append(t);setTimeout(()=>t.remove(),2400);}
@@ -371,6 +373,7 @@ function renderHistory(body){
  const all=historyItems(st,prs,routineName);
  const items=ui.filter==='all'?all:all.filter(x=>x.kind===ui.filter);
  body.append(seg([['all','Alle'],['strength','Kraft'],['mobility','Mobilität'],['cardio','Cardio']],ui.filter,v=>{ui.filter=v;ui.limit=40;render();},'Filter'));
+ if(typeof window.forgeOpenLogWorkout==='function')body.append(btn('pr-more pr-log','+ Training nachtragen',()=>window.forgeOpenLogWorkout()));
  if(!items.length){body.append(el('div','pr-empty',ui.filter==='all'?'Noch keine Einheiten gespeichert. Nach deinem ersten Training erscheint es hier.':'Für diesen Filter gibt es noch keine Einheiten.'));return;}
  for(const g of weekGroups(items.slice(0,ui.limit),new Date())){
   const h=el('div','pr-group');h.append(el('span','',g.label),el('span','',g.items.length+(g.items.length===1?' Einheit':' Einheiten')+(g.ms?' · '+fmtDur(g.ms):'')));body.append(h);

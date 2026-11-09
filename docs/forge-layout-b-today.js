@@ -7,7 +7,7 @@
  *    trotzdem trainieren.
  *  - W3 Andere Einheit (nur für heute) + Freies Training aus dem Katalog.
  *  - W4 Anpassen: Einheit bearbeiten, andere Einheit, freies Training,
- *    klassische Optionen (z. B. ohne Timer nachtragen), Plan.
+ *    Training nachtragen (forge-layout-b-log.js), Plan.
  * Starten läuft über startWorkout(); Tagesform über forge144SetEnergy().
  * Freies Training ist eine vorübergehende Einheit (forgeFree, ohne
  * Wochentag), die nach dem Training wieder aus dem Plan entfernt wird.
@@ -121,7 +121,7 @@ ${W}.forge-lb-today-alt #forgeSlimWorkoutExtras>summary,${W}.forge-lb-today-alt 
 ${W}.forge-lb-today-alt #forgeSlimWorkoutExtras .forge149-workout-section{border:0!important;background:transparent!important;padding:0!important;margin:0!important}
 ${W}.forge-lb-today-alt #forgeSlimWorkoutExtras .forge149-workout-section>.card{border:0!important;background:transparent!important;padding:0!important;box-shadow:none!important;margin:0!important}
 ${W}:not(.forge-lb-today-on)>${T}{display:none!important}
-${W}.forge-lb-today-on>:not(.forge-lb-brand):not(.forge-lb-wohead):not(#forge150WorkoutModes):not(${T}):not(.forge-lb-td-classic):not(#forgeWorkoutUndoBanner):not(style):not(script){display:none!important}
+${W}.forge-lb-today-on>:not(.forge-lb-brand):not(.forge-lb-wohead):not(#forge150WorkoutModes):not(${T}):not(#forgeWorkoutUndoBanner):not(style):not(script){display:none!important}
 ${W} #forge150WorkoutModes{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px!important;height:48px;border-radius:24px;background:#171e2a;border:1px solid #293346;padding:4px!important;box-sizing:border-box;margin:6px 0 12px!important}
 ${W} #forge150WorkoutModes>button{border:0!important;border-radius:20px!important;background:transparent!important;color:#95a3b7!important;font:inherit!important;font-size:14px!important;font-weight:600!important;display:flex!important;align-items:center;justify-content:center;gap:6px;min-height:0!important;height:100%!important;padding:0 4px!important;box-shadow:none!important;flex:none!important}
 ${W} #forge150WorkoutModes>button[aria-pressed="true"]{background:${ACC}!important;color:#142016!important;font-weight:800!important}
@@ -171,7 +171,6 @@ ${T} .td-opt b{display:block;font-size:15px}
 ${T} .td-opt small{font-size:12px;color:#95a3b7}
 ${T} .td-sec{min-height:52px;border-radius:26px;border:1px solid #3a4556;background:transparent;color:#f3f7fc;font:inherit;font-size:15px;font-weight:700;padding:0 16px}
 ${T} button:focus-visible{outline:2px solid ${ACC};outline-offset:2px}
-.forge-lb-td-classic{display:flex;align-items:center;gap:6px;min-height:44px;border-radius:22px;border:1px solid #293346;background:#171e2a;color:#f3f7fc;font:inherit;font-size:14px;font-weight:700;padding:0 16px 0 12px;margin:0 0 12px}
 .forge-lb-td-shade{position:fixed;inset:0;z-index:2147480500;background:#05080dcc;display:flex;flex-direction:column;justify-content:flex-end;font-family:Inter,system-ui,sans-serif;color:#f3f7fc}
 .forge-lb-td-sheet{background:#111723;border-top:1px solid #3a4556;border-radius:28px 28px 0 0;padding:10px 16px calc(20px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px;max-width:560px;width:100%;margin:0 auto;box-sizing:border-box;max-height:calc(100% - 30px - env(safe-area-inset-top))}
 .forge-lb-td-sheet .h{width:44px;height:5px;border-radius:3px;background:#3a4556;align-self:center;flex:0 0 auto}
@@ -210,7 +209,7 @@ ${T} button:focus-visible{outline:2px solid ${ACC};outline-offset:2px}
 function ensureCss(){if(!$('forgeLayoutBTodayCss')){const s=el('style');s.id='forgeLayoutBTodayCss';s.textContent=CSS;document.head.append(s);}}
 
 /* ---------- state of the card ---------- */
-let card=null,key='',chosenId=null,chosenDay='',classic=false,classicBar=null,expanded=false;
+let card=null,key='',chosenId=null,chosenDay='',expanded=false;
 function chosen(){
  const st=S();if(!st||chosenDay!==today())return null;
  return realUnits(st.plan).find(p=>String(p.id)===String(chosenId))||null;
@@ -418,19 +417,11 @@ function openAdjust(u){
  list.append(row('Übungen dieser Einheit bearbeiten','Tauschen, weglassen, hinzufügen, Sätze ändern',()=>{closeSheet();try{if(typeof window.forgeOpenActivePlanDay==='function')window.forgeOpenActivePlanDay(u.id);}catch(e){console.error(e);}}));
  list.append(row('Andere Einheit wählen','Nur für heute – dein Plan bleibt gleich',()=>{closeSheet();openUnits();}));
  list.append(row('Freies Training','Übungen selbst aus dem Katalog wählen',()=>{closeSheet();openFree();}));
- list.append(row('Training nachtragen','Schon trainiert? Ohne Timer erfassen (klassische Ansicht)',()=>{closeSheet();openClassic(u);}));
+ list.append(row('Training nachtragen','Schon trainiert? Tag, Sätze und Gewichte erfassen',()=>{closeSheet();if(typeof window.forgeOpenLogWorkout==='function')window.forgeOpenLogWorkout(u&&u.id);}));
  list.append(row('Plan bearbeiten','Dauerhaft ändern – öffnet den Plan',()=>{closeSheet();if(typeof window.go==='function')window.go('plan');}));
  s.append(list);
  s.append(el('p','note','Aufwärmsätze und die Reihenfolge für heute änderst du direkt im Training.'));
 }
-function openClassic(u){
- classic=true;
- const ws=$('workoutSelect');
- if(ws&&u&&[...ws.options].some(o=>o.value===String(u.id))&&!live()){ws.value=String(u.id);try{if(typeof forgeWorkoutSelectionChanged==='function')forgeWorkoutSelectionChanged();}catch(e){}}
- tick();
- setTimeout(()=>{const b=[...document.querySelectorAll('#forgeCompactIdleActions button')].find(x=>/Weitere Optionen/.test(x.textContent||''));b?.click();window.scrollTo(0,0);},60);
-}
-
 /* ---------- lifecycle ---------- */
 function modeIcons(){
  document.querySelectorAll('#forge150WorkoutModes button[data-mode]').forEach(b=>{
@@ -458,18 +449,15 @@ function tick(){
  ensureCss();modeIcons();headDate();
  const idle=!live();
  const m=mode();
- const on=idle&&m==='strength'&&!classic;
+ const on=idle&&m==='strength';
  page.classList.toggle('forge-lb-today-on',on);
  page.classList.toggle('forge-lb-today-alt',idle&&m!=='strength');
- if(!idle||m!=='strength'||!page.classList.contains('active'))classic=false;
  if(!card||!page.contains(card)){
   card=el('section','forge-lb-today');card.setAttribute('aria-label','Heutiges Training');key='';
   place(page);
  }else place(page);
- if(classic&&idle){
-  if(!classicBar||!page.contains(classicBar)){classicBar=btn('forge-lb-td-classic','',()=>{classic=false;tick();window.scrollTo(0,0);});classicBar.innerHTML=ICON.back+'<span>Zur neuen Ansicht</span>';}
-  if(classicBar.previousElementSibling!==card)card.after(classicBar);
- }else if(classicBar){classicBar.remove();}
+ // Undo after saving lives in the core workout card; keep it reachable at page level.
+ const undo=$('forgeWorkoutUndoBanner');if(undo&&undo.previousElementSibling!==card)card.after(undo);
  if(on&&page.classList.contains('active'))render(false);
 }
 function install(){
