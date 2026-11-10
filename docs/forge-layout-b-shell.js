@@ -30,6 +30,7 @@ if(typeof document==='undefined')return;
 function enabled(){return !!(document.body&&document.body.classList.contains('forge-layout-b'));}
 function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;}
 const ICON={
+ heart:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/><path d="M5.5 12h3l1.5-2.5 2 5 1.5-2.5h5"/></svg>',
  bell:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>',
  dots:'<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>',
  x:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
@@ -164,6 +165,7 @@ function openMenu(btn){
  if(pageId==='nutrition'&&food)row(ICON.page,'Tagesziele & eigene Lebensmittel',()=>window.ForgeLayoutBFoodOpen('goals'));
  else if(PAGE_ROW[pageId]&&btn&&btn.classList.contains('forge-b-pagehead-action'))row(ICON.page,PAGE_ROW[pageId],()=>openPageTarget(pageId,btn));
  if(typeof window.forgeOpenReminders==='function')row(ICON.bell,'Erinnerungen',()=>window.forgeOpenReminders());
+ if(typeof window.forgeOpenHealth==='function'&&window.forgeHealthAvailable&&window.forgeHealthAvailable())row(ICON.heart,'Health Connect',()=>window.forgeOpenHealth());
  row(ICON.gear,'Einstellungen',()=>$('forgeSettingsToggle')?.click());
  if(bk)row(ICON.file,'Datensicherung',()=>window.forgeOpenBackup());
  else row(ICON.file,'Datensicherung',()=>{if(food){window.ForgeLayoutBFoodOpen('backup');return;}if(typeof window.go==='function')window.go('nutrition');const n=$('nutrition');n?.classList.remove('forge-lb-home');window.ForgeNutritionSlim?.openPart?.('backup');});

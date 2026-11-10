@@ -316,6 +316,7 @@ mount('progress',page=>{
  row('Muskeln & Erholung',viewOr('muscles',()=>detail('progress')));
  row('Körpergewicht',()=>tw.click());
  row('Körpermaße & Fotos',()=>{if(typeof window.forgeOpenBody==='function')window.forgeOpenBody();});
+ if(window.ForgeAndroid&&typeof window.ForgeAndroid.healthStatus==='function')row('Schritte & Health Connect',()=>{if(typeof window.forgeOpenHealth==='function')window.forgeOpenHealth();});
  root.append(back,head,hero,tiles,recs,chal,rows);
  attach(page,root);
  let key='';
