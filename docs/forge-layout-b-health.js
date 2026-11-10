@@ -4,6 +4,9 @@
  * Gewichtseinträge der letzten 12 Monate. Gewichte werden in den Verlauf
  * übernommen (ein Wert pro Tag, eigene Einträge haben Vorrang), Schritte
  * erscheinen in Erfolge. Abgleich beim Öffnen der App, höchstens alle 30 Min.
+ * Schritt 2: Läufe, Radfahrten usw. von der Uhr werden als Cardio übernommen
+ * (mit Puls und Strecke), und FORGE-Krafttrainings bekommen den Puls aus
+ * genau ihrer Trainingszeit (Ø / max).
  * Daten: state.healthSteps={updated,days:[{date,count}]},
  *        übernommene Gewichte in state.weights mit source:'health'.
  */
@@ -37,7 +40,41 @@ function stepsSummary(days,todayIso){
  const known=last7.filter(d=>d.count!==null&&d.date!==todayIso);
  return {today:map.has(todayIso)?map.get(todayIso):null,avg7:known.length?Math.round(known.reduce((a,d)=>a+d.count,0)/known.length):null,last7};
 }
-window.ForgeLayoutBHealth=Object.freeze({mergeWeights,stepsSummary,isoLocal});
+const SPORT_NAMES={running:'Joggen',cycling:'Radfahren',walking:'Spazieren',hiking:'Wandern',swimming:'Schwimmen',rowing:'Rudern',elliptical:'Crosstrainer',tennis:'Tennis',badminton:'Badminton',tabletennis:'Tischtennis',football:'Fußball',basketball:'Basketball',volleyball:'Volleyball'};
+/* Time windows of FORGE workouts in the last 30 days (pure, tested). */
+function workoutWindows(workouts,now){
+ const t0=(now||new Date()).getTime()-30*864e5,out=[];
+ (Array.isArray(workouts)?workouts:[]).forEach(w=>{
+  const end=Date.parse(w&&w.date),ms=Number(w&&(w.durationMs||w.strengthDurationMs));
+  if(!w||!w.id||!Number.isFinite(end)||end<t0||!(ms>=5*60000)||ms>6*3600000)return;
+  out.push({id:String(w.id),start:new Date(end-ms).toISOString(),end:new Date(end).toISOString()});
+ });
+ return out.slice(-40);
+}
+/* Cardio sessions from the watch → FORGE cardio log; skips ones already logged in FORGE (pure, tested). */
+function importSessions(logs,sessions){
+ const list=(Array.isArray(logs)?logs:[]).slice();let added=0,updated=0;
+ const spans=list.filter(x=>x&&x.date).map(x=>{const e=Date.parse(x.date),d=Number(x.durationMs)||0;return [e-d,e];});
+ (Array.isArray(sessions)?sessions:[]).forEach(se=>{
+  const st=Date.parse(se&&se.start),en=Date.parse(se&&se.end);if(!Number.isFinite(st)||!(en>st)||!SPORT_NAMES[se.sport])return;
+  const id='hc-'+st;const rec={id,date:new Date(en).toISOString(),sport:se.sport,title:se.title&&String(se.title).trim()||SPORT_NAMES[se.sport],
+   durationMs:en-st,km:se.meters>0?Math.round(se.meters/10)/100:null,steps:null,avgHr:se.hrAvg>0?Math.round(se.hrAvg):null,maxHr:se.hrMax>0?Math.round(se.hrMax):null,
+   kcalEstimate:null,met:null,weightKg:null,intensity:'',note:'Von der Uhr (Health Connect)',source:'health'};
+  const at=list.findIndex(x=>x&&x.id===id);
+  if(at>=0){list[at]={...list[at],...rec};updated++;return;}
+  if(spans.some(([a,b])=>Math.min(b,en)-Math.max(a,st)>Math.min(en-st,b-a)/2))return; // already logged (in FORGE or before)
+  list.push(rec);spans.push([st,en]);added++;
+ });
+ list.sort((a,b)=>String(a&&a.date).localeCompare(String(b&&b.date)));
+ return {list,added,updated};
+}
+/* Heart rate per FORGE workout (pure, tested). */
+function applyHeartRate(workouts,windows){
+ let n=0;const map=new Map((Array.isArray(windows)?windows:[]).filter(w=>w&&w.id&&w.hrAvg>0).map(w=>[String(w.id),w]));
+ (Array.isArray(workouts)?workouts:[]).forEach(w=>{const h=w&&map.get(String(w.id));if(!h)return;w.hr={avg:Math.round(h.hrAvg),max:Math.round(h.hrMax)||null,source:'health'};n++;});
+ return n;
+}
+window.ForgeLayoutBHealth=Object.freeze({mergeWeights,stepsSummary,isoLocal,workoutWindows,importSessions,applyHeartRate,SPORT_NAMES});
 if(typeof document==='undefined')return;
 
 const $=id=>document.getElementById(id);
@@ -56,6 +93,7 @@ function sync(force){
  const h=S().healthSteps;if(!force&&h&&Date.now()-Number(h.updated||0)<SYNC_GAP)return false;
  syncing=true;draw();
  try{a.readHealth(60);}catch(e){syncing=false;draw();return false;}
+ try{if(typeof a.readHealthSessions==='function')a.readHealthSessions(JSON.stringify(workoutWindows(S().workouts,new Date())));}catch(e){}
  setTimeout(()=>{if(syncing){syncing=false;draw();}},20000);
  return true;
 }
@@ -73,6 +111,17 @@ window.forgeHealthData=function(json){
  }
  draw();
 };
+window.forgeHealthSessions=function(json){
+ let d=null;try{d=JSON.parse(json);}catch(e){}
+ const st=S();if(!d||!st)return;
+ const im=importSessions(st.cardioLogs,d.sessions);st.cardioLogs=im.list;
+ const hr=applyHeartRate(st.workouts,d.windows);
+ try{persist();}catch(e){}
+ lastSessions={added:im.added,hr,error:d.sessionError||''};
+ try{if(typeof render==='function')render();}catch(e){}
+ draw();
+};
+let lastSessions=null;
 window.forgeHealthPermission=function(){draw();sync(true);};
 
 /* ---------- sheet ---------- */
@@ -134,12 +183,12 @@ function draw(){
  if(st==='web'){sheet.append(el('p','hc-text','Health Connect gibt es in der Android-App. In der Browser- und iPhone-Version kann FORGE diese Daten nicht lesen.'));return;}
  if(st==='unsupported'){sheet.append(el('p','hc-text','Auf diesem Handy ist Health Connect nicht im System eingebaut (dafür braucht FORGE Android 14 oder neuer).'));return;}
  if(st!=='granted'&&st!=='partial'){
-  sheet.append(el('p','hc-text','FORGE kann Schritte und Gewicht aus Health Connect lesen – zum Beispiel von deiner Uhr über die Zepp-App. FORGE liest nur und schreibt nichts zurück.'));
+  sheet.append(el('p','hc-text','FORGE kann Schritte, Gewicht, Puls und Trainings (Laufen, Rad, …) aus Health Connect lesen – zum Beispiel von deiner Uhr über die Zepp-App. FORGE liest nur und schreibt nichts zurück.'));
   const c=el('div','hc-card');c.append(el('div','hc-label','So geht’s'));
   const ol=el('ol');
   const li=(...parts)=>{const l=el('li');parts.forEach(p=>typeof p==='string'?l.append(p):l.append(p));ol.append(l);};
   li('In der Zepp-App: ',el('b','','Profil › Drittanbieter-Konten verknüpfen › Health Connect'),' einschalten.');
-  li('Hier auf ',el('b','','Verbinden'),' tippen und Schritte und Gewicht erlauben.');
+  li('Hier auf ',el('b','','Verbinden'),' tippen und alles erlauben.');
   c.append(ol);sheet.append(c);
   sheet.append(btn('hc-main','Verbinden',()=>{try{native().requestHealthPermissions();}catch(e){}}));
   return;
@@ -156,13 +205,19 @@ function draw(){
  const w=el('div','hc-card');w.append(el('div','hc-label','Gewicht'));
  w.append(el('p','hc-text',wc?wc+(wc===1?' Gewichtswert':' Gewichtswerte')+' aus Health Connect im Verlauf (Erfolge › Körpergewicht). Eigene Einträge haben Vorrang.':'Noch keine Gewichtswerte aus Health Connect. Sobald Zepp oder deine Waage welche liefert, erscheinen sie im Verlauf.'));
  sheet.append(w);
+ const watch=(S().cardioLogs||[]).filter(x=>x&&x.source==='health').length,hrN=(S().workouts||[]).filter(x=>x&&x.hr&&x.hr.source==='health').length;
+ const wc2=el('div','hc-card');wc2.append(el('div','hc-label','Von der Uhr'));
+ wc2.append(el('p','hc-text',(watch?watch+(watch===1?' Einheit':' Einheiten')+' (Laufen, Rad, …) als Cardio übernommen':'Noch keine Läufe oder Radfahrten von der Uhr')+' · '+(hrN?'Puls bei '+hrN+(hrN===1?' Training':' Trainings'):'Puls erscheint nach dem Training, sobald die Uhr synchronisiert hat')+'.'));
+ sheet.append(wc2);
  sheet.append(btn('hc-main',syncing?'Wird abgeglichen …':'Jetzt abgleichen',()=>sync(true)));
  if(syncing)sheet.lastChild.disabled=true;
  if(lastResult){
   if(lastResult.error)sheet.append(el('p','hc-err','Nicht alles konnte gelesen werden: '+lastResult.error));
   else sheet.append(el('p','hc-ok','Abgeglichen'+(lastResult.added?' · '+lastResult.added+' neue Gewichtswerte':'')+'.'));
  }
- if(st==='partial')sheet.append(el('p','hc-note','Nicht alle Berechtigungen sind erteilt – unter „Berechtigungen verwalten“ kannst du Schritte und Gewicht erlauben.'));
+ if(lastSessions&&lastSessions.added)sheet.append(el('p','hc-ok',lastSessions.added+' neue Einheiten von der Uhr übernommen.'));
+ if(st==='partial')sheet.append(el('p','hc-note','Nicht alle Berechtigungen sind erteilt. Für Puls und Läufe von der Uhr tippe auf „Weitere Daten erlauben“.'));
+ if(st==='partial')sheet.append(btn('hc-sec','Weitere Daten erlauben',()=>{try{native().requestHealthPermissions();}catch(e){}}));
  sheet.append(btn('hc-sec','Berechtigungen verwalten',()=>{try{native().openHealthSettings();}catch(e){}}));
  if(h&&h.updated)sheet.append(el('p','hc-note','Zuletzt abgeglichen: '+new Date(h.updated).toLocaleString('de-DE',{weekday:'short',hour:'2-digit',minute:'2-digit'})+' Uhr. Zepp gibt neue Werte oft erst nach dem Synchronisieren der Uhr weiter.'));
 }

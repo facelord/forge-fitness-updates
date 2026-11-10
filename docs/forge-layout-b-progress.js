@@ -72,7 +72,7 @@ function historyItems(st,prs,routineName){
  w.forEach((x,i)=>{const t=Date.parse(x&&x.date);if(!Number.isFinite(t))return;
   const sets=workoutSetCount(x),vol=workoutVolume(x);
   out.push({kind:'strength',key:keyOf(x,i),index:i,t,title:x.title||'Training',
-   sub:[x.durationMs?fmtDur(x.durationMs):'',sets+(sets===1?' Satz':' Sätze'),vol?fmtNum(vol,0)+' kg':''].filter(Boolean).join(' · '),
+   sub:[x.durationMs?fmtDur(x.durationMs):'',sets+(sets===1?' Satz':' Sätze'),vol?fmtNum(vol,0)+' kg':'',x.hr&&x.hr.avg?'♥ '+x.hr.avg:''].filter(Boolean).join(' · '),
    ms:num(x.strengthDurationMs||x.durationMs),prs:(pm.get(keyOf(x,i))||new Set()).size});});
  const logs=Array.isArray(st&&st.mobility&&st.mobility.logs)?st.mobility.logs:[];
  logs.forEach((x,i)=>{const t=Date.parse(x&&x.date);if(!Number.isFinite(t))return;
@@ -86,7 +86,7 @@ function historyItems(st,prs,routineName){
  car.forEach((x,i)=>{const t=Date.parse(x&&x.date);if(!Number.isFinite(t))return;
   const km=x.km!=null&&num(x.km)>0?num(x.km):null,min=num(x.durationMs)/60000;
   out.push({kind:'cardio',key:'c'+i,index:i,t,title:x.title||'Cardio',
-   sub:[x.durationMs?fmtDur(x.durationMs):'',km!=null?fmtNum(km,1)+' km':'',km!=null&&min>0?fmtNum(km/(min/60),1)+' km/h':'',x.steps?fmtNum(x.steps,0)+' Schritte':''].filter(Boolean).join(' · '),
+   sub:[x.durationMs?fmtDur(x.durationMs):'',km!=null?fmtNum(km,1)+' km':'',km!=null&&min>0?fmtNum(km/(min/60),1)+' km/h':'',x.steps?fmtNum(x.steps,0)+' Schritte':'',x.avgHr?'♥ '+x.avgHr:''].filter(Boolean).join(' · '),
    ms:num(x.durationMs),prs:0});});
  return out.sort((a,b)=>b.t-a.t);
 }
@@ -403,6 +403,7 @@ function openWorkout(index){
  const stats=el('div','st');
  [[w.durationMs?String(Math.round(num(w.durationMs)/60000)):'–','Minuten'],[String(workoutSetCount(w)),'Sätze'],[fmtNum(workoutVolume(w),0),'kg Volumen']].forEach(([v,k])=>{const d=el('div');d.append(el('b','',v),el('small','',k));stats.append(d);});
  sh.append(hd,stats);
+ if(w.hr&&w.hr.avg){const hrl=el('p','hr','♥ Puls Ø '+w.hr.avg+(w.hr.max?' · max '+w.hr.max:'')+' bpm'+(w.hr.source==='health'?' · von der Uhr':''));hrl.style.cssText='margin:0 2px 4px;font-size:14px;color:#ffb547;font-weight:700';sh.append(hrl);}
  const entries=(w.entries||[]).filter(e=>e&&e.name);
  const cards=entries.map(e=>{
   const sets=validSets(e);const c=el('div','ex'+(prs.has(e.name)?' pr':''));

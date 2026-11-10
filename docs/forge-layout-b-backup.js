@@ -140,17 +140,19 @@ function draw(){
    body.append(box);
    if(confirmOff)body.append(confirmBox('','Automatische Sicherung ausschalten?',['Bereits gespeicherte Dateien bleiben im Ordner.'],'Ausschalten',()=>{confirmOff=false;auto().clearFolder();draw();},()=>{confirmOff=false;draw();}));
   }else{
-   body.append(el('p','bk-text','Wähle einmal einen Ordner, zum Beispiel „Download“ oder einen Google-Drive-Ordner. FORGE sichert dann automatisch – höchstens einmal täglich und nur bei Änderungen.'));
+   body.append(el('p','bk-text','Wähle einmal einen Ordner, zum Beispiel „Download“ oder „Dokumente“. FORGE sichert dann automatisch – höchstens einmal täglich und nur bei Änderungen.'));
    body.append(btn('bk-main','Ordner wählen und einschalten',()=>auto().chooseFolder()));
   }
   if(st.lastError)body.append(el('p','bk-msg err','Letzter Versuch: '+st.lastError));
+  body.append(el('div','bk-label','Google-Konto'));
+  body.append(el('p','bk-text bk-google','Zusätzlich sichert Android FORGE in deinem Google-Konto, wenn in den Android-Einstellungen unter „Google › Sicherung“ die Sicherung eingeschaltet ist. Android macht das etwa einmal täglich (WLAN, am Ladegerät). Beim Einrichten eines neuen Handys kommen deine Daten damit zurück. FORGE braucht dafür keinen eigenen Server.'));
  }else{
   body.append(el('p','bk-text','In der Browser-Version kann FORGE nicht selbst speichern. Exportiere regelmäßig eine Datei – FORGE erinnert dich nach 14 Tagen.'));
  }
  // Manual file backup
  body.append(el('div','bk-label','Als Datei'));
  const box=el('div','bk-box');
- box.append(row(ICON.down,'Backup als Datei exportieren','JSON mit allen Trainings, Plänen und Essen'+(st&&st.lastManual?' · zuletzt '+ago(st.lastManual):''),()=>{if(typeof window.exportData==='function'){window.exportData();say('Backup wird erstellt.','ok');setTimeout(draw,600);}}));
+ box.append(row(ICON.down,'Backup als Datei exportieren','Alle Trainings, Pläne und Essen als Datei – du kannst sie auch direkt in Google Drive speichern'+(st&&st.lastManual?' · zuletzt '+ago(st.lastManual):''),()=>{if(typeof window.exportData==='function'){window.exportData();say('Backup wird erstellt.','ok');setTimeout(draw,600);}}));
  const file=el('input');file.type='file';file.accept='application/json,.json';file.hidden=true;
  file.addEventListener('change',async()=>{
   const f=file.files&&file.files[0];file.value='';if(!f||!guard()||busy)return;

@@ -1,5 +1,5 @@
 /* FORGE automatic backup.
- * Android: the user chooses one folder once (e.g. Download or a Google Drive folder).
+ * Android: the user chooses one folder once (e.g. Download or Documents; Google Drive does not offer folder access).
  * FORGE then writes the same JSON as "JSON exportieren" at most once a day, only when
  * the data changed, and keeps the newest 14 files. Web/iPhone: a reminder after
  * 14 days without a backup. Training data itself is never modified here.
@@ -114,7 +114,7 @@ function statusText(){
  const meta=readMeta();
  if(!native())return 'In der Browser-Version kann FORGE nicht selbst speichern. Du wirst alle 14 Tage an eine Sicherung erinnert. Letzte Sicherung: '+formatTime(lastBackup(meta))+'.';
  const folder=folderName();
- if(!folder)return 'Aus. Wähle einmal einen Ordner, zum Beispiel „Download“ oder einen Google-Drive-Ordner. FORGE legt dort dann höchstens einmal täglich und nur bei Änderungen eine Sicherung ab und behält die letzten 14.';
+ if(!folder)return 'Aus. Wähle einmal einen Ordner, zum Beispiel „Download“ oder „Dokumente“. FORGE legt dort dann höchstens einmal täglich und nur bei Änderungen eine Sicherung ab und behält die letzten 14.';
  if(pending)return 'Sicherung läuft …';
  return 'Aktiv · Ordner „'+folder+'“ · Letzte automatische Sicherung: '+formatTime(Number(meta.lastAuto)||0)+'. Die letzten 14 Sicherungen bleiben erhalten.';
 }
