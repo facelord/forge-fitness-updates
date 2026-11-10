@@ -308,7 +308,7 @@ mount('progress',page=>{
  recs.addEventListener('click',viewOr('records',()=>detail('progress')));recs.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();recs.click();}});
  const chal=el('button','forge-lb-card forge-lb-link forge-lb-chal');chal.type='button';
  const ci=el('i');ci.innerHTML=ICON.trophy;const ct=el('span');const cb=el('b','','Challenge');const cs=el('small','','');ct.append(cb,cs);chal.append(ci,ct);
- chal.addEventListener('click',()=>detail('progress',()=>{findButton($('progress'),/Challenges/)?.click();}));
+ chal.addEventListener('click',()=>{if(typeof window.forgeOpenChallenge==='function')window.forgeOpenChallenge();else detail('progress',()=>{findButton($('progress'),/Challenges/)?.click();});});
  const rows=el('div','forge-lb-rows');
  const row=(label,fn)=>{const b=el('button','forge-lb-row');b.type='button';b.innerHTML='<span>'+label+'</span>'+ICON.chev;b.addEventListener('click',fn);rows.append(b);};
  row('Trainingsverlauf',viewOr('history',()=>detail('progress',()=>{findButton($('progress'),/Statistiken/)?.click();})));
@@ -316,7 +316,6 @@ mount('progress',page=>{
  row('Muskeln & Erholung',viewOr('muscles',()=>detail('progress')));
  row('Körpergewicht',()=>tw.click());
  row('Körpermaße & Fotos',()=>{if(typeof window.forgeOpenBody==='function')window.forgeOpenBody();});
- row('Alle Challenges',()=>chal.click());
  root.append(back,head,hero,tiles,recs,chal,rows);
  attach(page,root);
  let key='';
@@ -326,8 +325,9 @@ mount('progress',page=>{
   const w=state.workouts||[],mob=state.mobilityVideoSessions||[],car=state.cardioLogs||[],weights=state.weights||[];
   let goal=3;try{goal=typeof forge144Data==='function'?forge144Data().strengthGoal||3:3;}catch(e){}
   const chEl=$('forgeMonthlyChallenge');
+  let chInfo=null;try{chInfo=typeof window.forgeChallengeCard==='function'?window.forgeChallengeCard():null;}catch(e){}
   const chText=chEl?[chEl.querySelector('.head b')?.textContent||'',chEl.querySelector('.foot span')?.textContent||'',chEl.querySelector('.detail')?.textContent||''].join('|'):'';
-  const k=JSON.stringify([localDay(now),w.length,mob.length,car.length,weights.length,goal,chText,weights.slice(-1)]);
+  const k=JSON.stringify([localDay(now),w.length,mob.length,car.length,weights.length,goal,chText,weights.slice(-1),chInfo]);
   if(!force&&k===key)return;key=k;
   setText(month,now.toLocaleDateString('de-DE',{month:'long'}));
   const act=weekActivity(w,mob,car,now);
@@ -350,7 +350,8 @@ mount('progress',page=>{
   const rr=recentRecords(w,3);
   recs.replaceChildren(el('div','forge-lb-label','Bestwerte zuletzt'),...(rr.length?rr.map(r=>{const d=el('div');d.append(el('span','',r.name),el('b','',fmt(r.kg,2)+' kg × '+r.reps));return d;}):[el('div','empty','Neue Bestwerte erscheinen hier nach deinen Trainings.')]));
   
-  if(chEl){const goalTxt=((chEl.querySelector('.detail')?.textContent||'').match(/\d+\s+Einheiten/)||['Monatsziel'])[0];setText(cb,'Challenge: '+goalTxt+' im '+now.toLocaleDateString('de-DE',{month:'long'}));setText(cs,(chEl.querySelector('.foot span')?.textContent||'')+' geschafft');chal.hidden=false;}
+  if(chInfo){chal.hidden=false;setText(cb,chInfo.title);setText(cs,chInfo.sub);}
+  else if(chEl){const goalTxt=((chEl.querySelector('.detail')?.textContent||'').match(/\d+\s+Einheiten/)||['Monatsziel'])[0];setText(cb,'Challenge: '+goalTxt+' im '+now.toLocaleDateString('de-DE',{month:'long'}));setText(cs,(chEl.querySelector('.foot span')?.textContent||'')+' geschafft');chal.hidden=false;}
   else chal.hidden=true;
  };
  return {root,render};
