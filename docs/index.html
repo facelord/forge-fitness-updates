@@ -1105,9 +1105,17 @@ function forgeMobExerciseGuide(item){
  '<p class="forge-ex-tip">Öffnet YouTube-Suchergebnisse; einzelne Videos sind nicht geprüft. Bewege dich schmerzfrei und ohne Schwung.</p></div></details>';
 }
 
-function renderMobilityPreview(){const r=MOB_ROUTINES[mobRoutine.value],total=Math.ceil(r.items.reduce((sum,i)=>sum+i[1],0)/60);mobPreview.innerHTML=`<div class="exercise"><b>${r.name} · ca. ${total} Minuten</b>${`<div class="forge-ex-guide">${r.items.map(forgeMobExerciseGuide).join('')}</div>`}</div>`}
+function forgeMobRoutineOf(key){
+ if(key&&MOB_ROUTINES[key])return MOB_ROUTINES[key];
+ const mix=(typeof state!=='undefined'&&state&&Array.isArray(state.forgeMobCustom))?state.forgeMobCustom:[];
+ if(key==='forge-custom'&&mix.length)return {name:'Mein Mobilitätsmix',items:mix.map(n=>[String(n),45,''])};
+ let saved='';try{saved=typeof mobConfig==='function'?mobConfig().routine:'';}catch(e){}
+ if(saved&&saved!==key)return forgeMobRoutineOf(saved);
+ return MOB_ROUTINES.gentle||Object.values(MOB_ROUTINES)[0];
+}
+function renderMobilityPreview(){const r=forgeMobRoutineOf(mobRoutine.value),total=Math.ceil(r.items.reduce((sum,i)=>sum+i[1],0)/60);mobPreview.innerHTML=`<div class="exercise"><b>${r.name} · ca. ${total} Minuten</b>${`<div class="forge-ex-guide">${r.items.map(forgeMobExerciseGuide).join('')}</div>`}</div>`}
 function renderMobility(){renderMobVideoLibrary();const m=mobConfig();mobRoutine.value=m.routine||'gentle';mobTiming.value=m.timing||'rest';if(mobSelectedDays===null)mobSelectedDays=Array.isArray(m.weekdays)&&m.weekdays.length?m.weekdays.slice():mobRestSuggestion();mobDays.innerHTML=WEEK_NAMES.map((day,i)=>`<label style="background:#202a38;border-radius:10px;padding:8px"><input type="checkbox" ${mobSelectedDays.includes(i)?'checked':''} onchange="toggleMobDay(${i},this.checked)"> ${day.slice(0,2)}</label>`).join('');renderMobilityPreview();mobStatus.innerHTML=m.enabled?`<b style="color:#a9f267">Aktiv:</b> ${esc(MOB_ROUTINES[m.routine]?.name||'Mobilität')} · ${m.timing==='rest'?'Ruhetage':m.timing==='after'?'nach Training':'Ruhetage & nach Training'}`:'Der Mobilitätsplan ist aktuell deaktiviert.';
-const logs=Array.isArray(m.logs)?m.logs:[];mobWorkout.innerHTML=m.enabled?`<p><b>${esc(MOB_ROUTINES[m.routine]?.name||'Mobilität')}</b> · ${m.timing==='rest'?'Ruhetage':m.timing==='after'?'nach dem Training':'beides'}</p>${MOB_ROUTINES[m.routine].items.map(i=>`<div class="exercise"><b>${esc(i[0])}</b><div class="sub">${i[1]} Sek. · ${esc(i[2])}</div></div>`).join('')}<button class="btn" onclick="completeMobility()">Routine abgeschlossen ✓</button><p class="muted">${logs.length} abgeschlossene Mobilitätseinheiten</p>`:'<p class="muted">Optional: Lege im Reiter „Plan“ eine separate Mobilitätsroutine an.</p>';const scheduled=videoAssignments().slice().sort((a,b)=>a.day-b.day);
+const logs=Array.isArray(m.logs)?m.logs:[];mobWorkout.innerHTML=m.enabled?`<p><b>${esc(MOB_ROUTINES[m.routine]?.name||'Mobilität')}</b> · ${m.timing==='rest'?'Ruhetage':m.timing==='after'?'nach dem Training':'beides'}</p>${forgeMobRoutineOf(m.routine).items.map(i=>`<div class="exercise"><b>${esc(i[0])}</b><div class="sub">${i[1]} Sek. · ${esc(i[2])}</div></div>`).join('')}<button class="btn" onclick="completeMobility()">Routine abgeschlossen ✓</button><p class="muted">${logs.length} abgeschlossene Mobilitätseinheiten</p>`:'<p class="muted">Optional: Lege im Reiter „Plan“ eine separate Mobilitätsroutine an.</p>';const scheduled=videoAssignments().slice().sort((a,b)=>a.day-b.day);
 const videoCards=scheduled.length?scheduled.map(a=>{
  const v=videoCandidates(a.goal,a.mins)[a.choice||0];
  const linked=a.timing==='after'&&state.plan.some(p=>p.weekday===a.day);
@@ -1116,7 +1124,7 @@ const videoCards=scheduled.length?scheduled.map(a=>{
 }).join(''):'<p class="muted">Noch keine Videos geplant. Füge im Reiter „Plan“ unter „Video-Wochenplan“ einen Tag hinzu.</p>';
 const routineMarkup=mobWorkout.innerHTML;
 mobWorkout.innerHTML=`<p class="muted">Deine Videos aus dem Video-Wochenplan erscheinen hier automatisch. Bei Direktvideos startet die Uhr beim Öffnen; bei YouTube-Suchen erst über „Timer starten (Video gefunden)“. Bei „Nach Krafttraining“ läuft die gemeinsame Trainingszeit weiter, wenn das passende Krafttraining aktiv ist.</p>${videoCards}${m.enabled?'<h3 style="margin-top:20px">Eigene Mobilitätsübungen</h3>'+routineMarkup:''}`;
-mobDash.innerHTML=m.enabled?`<p class="muted">🧘 ${esc(MOB_ROUTINES[m.routine].name)} · ${m.timing==='after'?'nach dem Krafttraining':(m.weekdays||[]).map(i=>WEEK_NAMES[i].slice(0,2)).join(', ')} · ${logs.length}× erledigt</p>`:''}
+mobDash.innerHTML=m.enabled?`<p class="muted">🧘 ${esc(forgeMobRoutineOf(m.routine).name)} · ${m.timing==='after'?'nach dem Krafttraining':(m.weekdays||[]).map(i=>WEEK_NAMES[i].slice(0,2)).join(', ')} · ${logs.length}× erledigt</p>`:''}
 function toggleMobDay(i,checked){mobSelectedDays=checked?[...new Set([...mobSelectedDays,i])]:mobSelectedDays.filter(d=>d!==i)}
 function saveMobility(){const timing=mobTiming.value;if(timing!=='after'&&!mobSelectedDays.length)return alert('Bitte mindestens einen Wochentag für die Ruhetag-Routine auswählen.');const old=mobConfig();state.mobility={...old,enabled:true,routine:mobRoutine.value,timing,weekdays:mobSelectedDays.slice().sort((a,b)=>a-b),logs:old.logs||[]};save();render();alert('Mobilitätsroutine separat gespeichert. Dein Kraftplan bleibt unverändert.')}
 function disableMobility(){const old=mobConfig();state.mobility={...old,enabled:false};save();render()}
