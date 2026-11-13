@@ -50,16 +50,19 @@ function filterCatalog(items,query){
  });
  return scored.sort((a,b)=>a.s-b.s||a.i-b.i).map(x=>x.it);
 }
-const MUSCLE_CHIPS=Object.freeze([['Alle',''],['Brust','brust'],['Rücken','rucken|latissimus|lat |nacken'],['Beine','bein|oberschenkel|gesass|wade|quadrizeps|hufte'],['Schultern','schulter|delta'],['Arme','bizeps|trizeps|unterarm|arme'],['Rumpf','rumpf|bauch|core|rumpfstabil']]);
+const MUSCLE_CHIPS=Object.freeze([['Alle',''],['Brust','brust'],['Rücken','rucken|latissimus|lat |nacken'],['Beine','bein|oberschenkel|gesass|wade|quadrizeps|hufte'],['Schultern','schulter|delta'],['Arme','bizeps|trizeps|unterarm|arme'],['Rumpf','rumpf|bauch|core|rumpfstabil'],['Ganzkörper','ganzkorper|kondition'],['Band','']]);
+/* Geräte-Filter „Band“: Theraband- und Miniband-Übungen (Kraft und Mobilität). */
+const isBand=name=>/theraband|miniband|^band[- ]/i.test(String(name||''));
 /* Primary muscle group per catalog exercise: every exercise appears in exactly
  * one category (Bankdrücken only under Brust, not also under Arme/Schultern). */
 const PRIMARY=Object.freeze((()=>{const m={};const add=(cat,list)=>list.forEach(n=>{m[normalize(n)]=cat;});
- add('Brust',['Bankdrücken','Brustpresse','Butterfly / Pec Deck','Dips','Kabel-Flys','Liegestütze','Schrägbank Kurzhantel']);
- add('Rücken',['Back Extensions','Brustgestütztes Rudern','Einarmiges Kurzhantelrudern','Gerade-Arme-Pulldown','Klimmzüge','Klimmzüge (breiter Griff)','Klimmzüge (enger Griff)','Latziehen','Rudern am Kabel','Rudern mit Rucksack','Superman Hold','Reverse Snow Angels']);
- add('Beine',['Abduktorenmaschine','Adduktorenmaschine','Ausfallschritte','Beinbeuger','Beinpresse','Beinstrecker','Bulgarian Split Squat','Einbeiniges rumänisches Kreuzheben','Glute Bridge','Hip Thrust','Kniebeuge','Kniebeugen','Kreuzheben','Rumänisches Kreuzheben','Wadenheben']);
- add('Schultern',['Arnold Press','Face Pulls','Pike Push-ups','Reverse Flys','Schulter-Außenrotation','Schulterdrücken','Schulterdrücken mit der Langhantel','Seitheben']);
- add('Arme',['Bizepscurls','Bizepscurls mit Rucksack','Dips (Trizepsfokus)','Enge Liegestütze','Hammer Curls','Trizepsdrücken','Überkopf-Trizepsstrecken']);
- add('Rumpf',['Bird Dog','Dead Bug',"Farmer's Carry",'Hängendes Knieheben','Kabel-Crunches','Pallof Press','Plank']);
+ add('Brust',['Band-Brustpresse','Negatives Bankdrücken','Bankdrücken','Brustpresse','Butterfly / Pec Deck','Dips','Kabel-Flys','Liegestütze','Schrägbank Kurzhantel']);
+ add('Rücken',['Band-Rudern','Pull-Aparts mit Theraband','Back Extensions','Brustgestütztes Rudern','Einarmiges Kurzhantelrudern','Gerade-Arme-Pulldown','Klimmzüge','Klimmzüge (breiter Griff)','Klimmzüge (enger Griff)','Latziehen','Rudern am Kabel','Rudern mit Rucksack','Superman Hold','Reverse Snow Angels']);
+ add('Ganzkörper',['Burpees','Hampelmann']);
+ add('Beine',['Band-Kniebeuge mit Theraband','Monster Walks mit Miniband','Abduktorenmaschine','Adduktorenmaschine','Ausfallschritte','Beinbeuger','Beinpresse','Beinstrecker','Bulgarian Split Squat','Einbeiniges rumänisches Kreuzheben','Glute Bridge','Hip Thrust','Kniebeuge','Kniebeugen','Kreuzheben','Rumänisches Kreuzheben','Wadenheben']);
+ add('Schultern',['Face Pulls mit Theraband','Band-Seitheben mit Theraband','Arnold Press','Face Pulls','Pike Push-ups','Reverse Flys','Schulter-Außenrotation','Schulterdrücken','Schulterdrücken mit der Langhantel','Seitheben']);
+ add('Arme',['Bizeps-Curls mit Theraband','Band-Trizepsdrücken mit Theraband','Bizepscurls','Bizepscurls mit Rucksack','Dips (Trizepsfokus)','Enge Liegestütze','Hammer Curls','Trizepsdrücken','Überkopf-Trizepsstrecken']);
+ add('Rumpf',['Band-Pallof-Press','Bergsteiger','Bird Dog','Dead Bug',"Farmer's Carry",'Hängendes Knieheben','Kabel-Crunches','Pallof Press','Plank']);
  return m;})());
 function primaryGroup(item){
  const name=item&&item.name;const known=PRIMARY[normalize(name)];if(known)return known;
@@ -69,6 +72,7 @@ function primaryGroup(item){
  return '';
 }
 function matchesChip(item,chip){
+ if(chip==='Band')return isBand(item&&item.name);
  const c=MUSCLE_CHIPS.find(x=>x[0]===chip);if(!c||!c[1])return true;
  return primaryGroup(item)===chip;
 }
@@ -134,7 +138,7 @@ function ownExercisesOk(x,catalog,existing){
  if(!names.length||new Set(names).size!==names.length)return false;
  return names.some(n=>!cat.has(n))&&names.every(n=>cat.has(n)||old.has(n));
 }
-window.ForgeLayoutBEditor=Object.freeze({ownExercisesOk,draftUnits,draftSlots,draftCadence,draftIssue,draftPlan,unitLetter,stepValue,doseText,muscleLabel,normalize,splitCatalog,filterCatalog,matchesChip,primaryGroup,MUSCLE_CHIPS,moveItem,unitDirty});
+window.ForgeLayoutBEditor=Object.freeze({ownExercisesOk,draftUnits,draftSlots,draftCadence,draftIssue,draftPlan,unitLetter,stepValue,doseText,muscleLabel,normalize,splitCatalog,filterCatalog,matchesChip,primaryGroup,isBand,MUSCLE_CHIPS,moveItem,unitDirty});
 if(typeof document==='undefined')return;
 
 /* ---------- environment ---------- */
@@ -660,7 +664,7 @@ function openCatalog(opts){
   lab.append(input);s.append(lab);
   const mchips=el('div','cat-chips');mchips.setAttribute('role','group');mchips.setAttribute('aria-label','Mobilität: Kategorie');mchips.hidden=cat.tab!=='mobility';
   cat.mcat=cat.mcat||'Alle';
-  ['Alle','Gelenke','Yoga','Dehnen'].forEach(name=>{const b=btn('',name,()=>{cat.mcat=name;cat.limit=40;mchips.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));fill();});b.setAttribute('aria-pressed',String(name===cat.mcat));mchips.append(b);});
+  ['Alle','Gelenke','Yoga','Dehnen','Band'].forEach(name=>{const b=btn('',name,()=>{cat.mcat=name;cat.limit=40;mchips.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));fill();});b.setAttribute('aria-pressed',String(name===cat.mcat));mchips.append(b);});
   const chips=el('div','cat-chips');chips.setAttribute('role','group');chips.setAttribute('aria-label','Muskelgruppe');chips.hidden=cat.tab!=='strength';
   MUSCLE_CHIPS.forEach(([name])=>{const b=btn('',name,()=>{cat.chip=name;cat.limit=40;chips.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));fill();});b.setAttribute('aria-pressed',String(name===cat.chip));chips.append(b);});
   s.append(chips,mchips);
@@ -676,7 +680,7 @@ function fill(){
  grid.replaceChildren();grid.scrollTop=0;
  if(cat.tab==='mobility'&&!mobLib){grid.append(el('div','cat-none','Mobilitätsübungen werden geladen …'));return;}
  const catOf=n=>{try{return window.ForgeMobilityCatalog?window.ForgeMobilityCatalog.categoryOf(n):'Gelenke';}catch(e){return 'Gelenke';}};
- const items=filterCatalog(catItems(),cat.query).filter(it=>cat.tab==='strength'?matchesChip(it,cat.chip):(!cat.mcat||cat.mcat==='Alle'||catOf(it.name)===cat.mcat));
+ const items=filterCatalog(catItems(),cat.query).filter(it=>cat.tab==='strength'?matchesChip(it,cat.chip):(!cat.mcat||cat.mcat==='Alle'||(cat.mcat==='Band'?isBand(it.name):catOf(it.name)===cat.mcat)));
  const inUnit=new Set(cat.unit?cat.unit.ex.map(e=>e.name):[]);
  const q=String(cat.query||'').trim();
  if(ed&&ed.draft&&cat.unit&&cat.mode!=='browse'&&q.length>=2&&!items.some(it=>normalize(it.name)===normalize(q))&&!inUnit.has(q)){

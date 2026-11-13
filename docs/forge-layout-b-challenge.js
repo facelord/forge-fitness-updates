@@ -15,21 +15,21 @@ const R=(n,moves)=>Array.from({length:n},()=>moves);
  * Only bodyweight exercises from the FORGE catalog (with exercise boards),
  * no equipment needed. */
 const WORKOUTS=Object.freeze([
- {id:'glut',name:'Glut',tag:'Zum Warmwerden ins Jahr',rounds:R(3,[S_('Kniebeuge',15),S_('Liegestütze',10),S_('Glute Bridge',15),S_('Plank',30,'sec')])},
+ {id:'glut',name:'Glut',tag:'Zum Warmwerden ins Jahr',rounds:R(3,[S_('Hampelmann',30),S_('Kniebeuge',15),S_('Liegestütze',10),S_('Bergsteiger',20)])},
  {id:'amboss',name:'Amboss',tag:'Beine und Brust, solide wie Stahl',rounds:R(4,[S_('Kniebeuge',12),S_('Liegestütze',8),S_('Ausfallschritte',10,'side'),S_('Glute Bridge',15)])},
- {id:'funkenflug',name:'Funkenflug',tag:'Kurz, schnell, intensiv',rounds:R(5,[S_('Kniebeuge',15),S_('Liegestütze',10),S_('Wadenheben',20)])},
+ {id:'funkenflug',name:'Funkenflug',tag:'Kurz, schnell, intensiv',rounds:R(5,[S_('Burpees',8),S_('Bergsteiger',20),S_('Hampelmann',20)])},
  {id:'hammerschlag',name:'Hammerschlag',tag:'Absteigende Leiter 15 – 12 – 9 – 6',rounds:[15,12,9,6].map(n=>[S_('Kniebeuge',n),S_('Liegestütze',Math.round(n*0.67)),S_('Dead Bug',Math.round(n*0.67),'side')])},
  {id:'esse',name:'Esse',tag:'Ganzkörper mit Haltephasen',rounds:R(3,[S_('Bulgarian Split Squat',8,'side'),S_('Pike Push-ups',8),S_('Plank',40,'sec'),S_('Glute Bridge',20)])},
  {id:'klinge',name:'Klinge',tag:'Oberkörper und Rumpf',rounds:R(4,[S_('Liegestütze',10),S_('Reverse Snow Angels',12),S_('Enge Liegestütze',6),S_('Superman Hold',30,'sec')])},
- {id:'zunder',name:'Zunder',tag:'Sommer-Zirkel ohne Geräte',rounds:R(5,[S_('Ausfallschritte',10,'side'),S_('Liegestütze',10),S_('Kniebeuge',15),S_('Dead Bug',8,'side')])},
- {id:'blasebalg',name:'Blasebalg',tag:'Beine stark, Rumpf fest',rounds:R(4,[S_('Ausfallschritte',12,'side'),S_('Glute Bridge',15),S_('Wadenheben',20),S_('Plank',30,'sec')])},
+ {id:'zunder',name:'Zunder',tag:'Sommer-Cardio ohne Geräte',rounds:R(5,[S_('Hampelmann',25),S_('Kniebeuge',15),S_('Bergsteiger',20),S_('Burpees',5)])},
+ {id:'blasebalg',name:'Blasebalg',tag:'Puls hoch, Beine stark',rounds:R(4,[S_('Ausfallschritte',12,'side'),S_('Burpees',6),S_('Wadenheben',20),S_('Bergsteiger',20)])},
  {id:'haerte',name:'Härte',tag:'Aufsteigende Leiter 5 – 10 – 15',rounds:[5,10,15].map(n=>[S_('Liegestütze',n),S_('Kniebeuge',n*2),S_('Bird Dog',n,'side')])},
  {id:'meissel',name:'Meißel',tag:'Präzision statt Hektik',rounds:R(3,[S_('Bulgarian Split Squat',10,'side'),S_('Pike Push-ups',10),S_('Dead Bug',10,'side'),S_('Plank',45,'sec')])},
  {id:'stahl',name:'Stahl',tag:'Das große Herbst-Finale',rounds:R(5,[S_('Kniebeuge',15),S_('Liegestütze',10),S_('Glute Bridge',15),S_('Reverse Snow Angels',10)])},
- {id:'schmiedefeuer',name:'Schmiedefeuer',tag:'Zum Jahresende alles geben',rounds:R(4,[S_('Kniebeuge',20),S_('Ausfallschritte',10,'side'),S_('Liegestütze',12),S_('Superman Hold',30,'sec'),S_('Plank',30,'sec')])}
+ {id:'schmiedefeuer',name:'Schmiedefeuer',tag:'Zum Jahresende alles geben',rounds:R(4,[S_('Burpees',8),S_('Ausfallschritte',10,'side'),S_('Liegestütze',12),S_('Hampelmann',30),S_('Plank',30,'sec')])}
 ]);
 /* Exercises a challenge may use: bodyweight, in the catalog, with a board. */
-const ALLOWED=Object.freeze(['Kniebeuge','Liegestütze','Enge Liegestütze','Pike Push-ups','Ausfallschritte','Bulgarian Split Squat','Glute Bridge','Wadenheben','Bird Dog','Dead Bug','Plank','Superman Hold','Reverse Snow Angels']);
+const ALLOWED=Object.freeze(['Kniebeuge','Liegestütze','Enge Liegestütze','Pike Push-ups','Ausfallschritte','Bulgarian Split Squat','Glute Bridge','Wadenheben','Bird Dog','Dead Bug','Plank','Superman Hold','Reverse Snow Angels','Burpees','Hampelmann','Bergsteiger']);
 const LEVELS=Object.freeze({std:{label:'Standard',k:1},easy:{label:'Einsteiger',k:0.6}});
 function monthKey(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
 function workoutFor(d){d=d||new Date();return WORKOUTS[d.getMonth()];}

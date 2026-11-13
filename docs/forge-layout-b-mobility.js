@@ -42,7 +42,7 @@ function totalSeconds(items,lib){return buildPhases(items,lib).filter(p=>p.kind=
  * pos: 1 stehend · 2 sitzend · 3 Vierfüßler/kniend · 4 liegend
  * f: B Beine/Hüfte · S Schultern/Oberkörper · R Rumpf/Wirbelsäule
  * req: zwingend nötige Hilfsmittel · opt: optional (Komfort). */
-const GEN_EQUIP=Object.freeze([['wand','Wand'],['tuer','Türrahmen'],['rolle','Faszienrolle'],['stab','Gymnastikstab'],['ball','Massageball'],['gurt','Dehngurt']]);
+const GEN_EQUIP=Object.freeze([['band','Theraband'],['wand','Wand'],['tuer','Türrahmen'],['rolle','Faszienrolle'],['stab','Gymnastikstab'],['ball','Massageball'],['gurt','Dehngurt']]);
 const GEN_OPTIONAL=Object.freeze({matte:'Matte',wand:'Wand zum Festhalten'});
 const GEN_FOCUS=Object.freeze([['full','Ganzkörper'],['legs','Beine'],['shoulders','Schultern'],['core','Rumpf']]);
 const GEN_MINUTES=Object.freeze([5,10,15,20]);
@@ -60,7 +60,12 @@ const GEN_MOVES=Object.freeze([
  M('Adduktoren-Rockback','B',3,true,[],['matte']),M('Wall Slides','S',1,false,['wand']),M('Cat-Cow','RS',3,false,[],['matte']),
  M('Brustwirbelsäulen-Rotation','SR',3,true,[],['matte']),M('Tiefe Hocke mit Halt','B',1,false,[],['wand']),M('Low Lunge','BR',3,true,[],['matte']),
  M('Krieger II','BS',1,true),M('Sitzende Vorbeuge','BR',2,false,[],['matte']),M('90/90 Hüftwechsel','B',2,false,[],['matte']),
- M('Kindhaltung mit Seitgriff','SR',3,true,[],['matte'])]);
+ M('Kindhaltung mit Seitgriff','SR',3,true,[],['matte']),
+ M('Schulter-Dislocates mit Theraband','S',1,false,['band']),M('Band-Außenrotation','S',1,true,['band']),M('Hamstring-Dehnung mit Theraband','B',4,true,['band'],['matte']),
+ M('Sprunggelenk-Mobilisation mit Theraband','B',3,true,['band'],['matte']),M('Hüftbeuger-Dehnung mit Theraband','BR',3,true,['band'],['matte']),
+ M('Handgelenksmobilisation mit Theraband','S',3,true,['band'],['matte'])]);
+/* Band-Variante und Grundübung nie zusammen in einer Routine. */
+const GEN_TWIN=Object.freeze((()=>{const m={};[['Handgelenksmobilisation mit Theraband','Handgelenksmobilisation'],['Hamstring-Dehnung mit Theraband','Hamstring-Dehnung mit Gurt'],['Hüftbeuger-Dehnung mit Theraband','Hüftbeuger-Dehnung'],['Sprunggelenk-Mobilisation mit Theraband','Sprunggelenk-Mobilisation an der Wand']].forEach(([a,b])=>{m[a]=b;m[b]=a;});return m;})());
 const GEN_FIRST_PREP=5,GEN_PREP=8,GEN_POS_PREP=10,GEN_ROUND_PREP=10,GEN_SIDE_PREP=SIDE_PREP;
 function genRng(seed){let a=(Number(seed)>>>0)||1;return ()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return ((t^(t>>>14))>>>0)/4294967296;};}
 function genShuffle(list,rnd){const a=list.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
@@ -90,7 +95,7 @@ function generateMobility(opts){
  if(pool.length<3)return {ok:false,reason:'Für diese Auswahl gibt es zu wenige passende Übungen. Wähle einen anderen Fokus oder mehr Hilfsmittel.',pool:pool.length};
  const avoid=new Set(o.avoid||[]);
  const fresh=genShuffle(pool.filter(m=>!avoid.has(m.name)),rnd),old=genShuffle(pool.filter(m=>avoid.has(m.name)),rnd);
- const ranked=fresh.concat(old);
+ const twins=new Set();const ranked=fresh.concat(old).filter(m=>{const t=GEN_TWIN[m.name];if(t&&twins.has(t))return false;twins.add(m.name);return true;});
  const target=minutes*60-GEN_FIRST_PREP;
  const nominal=m=>(m.sides?2*genWorkLimits(m)[2]:genWorkLimits(m)[2])+(m.sides?GEN_SIDE_PREP:0)+GEN_PREP;
  const maxOf=m=>(m.sides?2*genWorkLimits(m)[1]:genWorkLimits(m)[1])+(m.sides?GEN_SIDE_PREP:0)+GEN_PREP;
@@ -139,7 +144,7 @@ function generateMobility(opts){
 /* Swap one move for another fitting one (same focus/equipment), keeping times and rounds. */
 function replaceMove(plan,name,seed){
  if(!plan||!plan.ok)return plan;
- const pool=genPool(plan.focus,plan.equip).filter(m=>!plan.moves.includes(m.name));
+ const pool=genPool(plan.focus,plan.equip).filter(m=>!plan.moves.includes(m.name)&&!(GEN_TWIN[m.name]&&GEN_TWIN[m.name]!==name&&plan.moves.includes(GEN_TWIN[m.name])));
  if(!pool.length)return null;
  const old=GEN_MOVES.find(m=>m.name===name);const rnd=genRng(seed||Date.now());
  const same=pool.filter(m=>old&&m.pos===old.pos&&m.sides===old.sides);
@@ -168,7 +173,7 @@ function isToday(cfg,weekday,trainedToday){
 }
 /* ---------- Mobilitätskatalog: Gelenke · Yoga · Dehnen ---------- */
 const CATEGORIES=Object.freeze(['Gelenke','Yoga','Dehnen']);
-const STRETCH=new Set(['90/90-Vorbeuge','Quadrizeps-Dehnung im Stand','Soleus-Dehnung mit gebeugtem Knie','Hamstring-Dehnung mit Gurt','Knie zur Brust in Rückenlage',
+const STRETCH=new Set(['Hamstring-Dehnung mit Theraband','Hüftbeuger-Dehnung mit Theraband','90/90-Vorbeuge','Quadrizeps-Dehnung im Stand','Soleus-Dehnung mit gebeugtem Knie','Hamstring-Dehnung mit Gurt','Knie zur Brust in Rückenlage',
  'Hüftbeuger-Dehnung','Figure-Four-Dehnung','Türrahmen-Brustdehnung','Waden-Dehnung']);
 const YOGA=new Set(['Kindhaltung','Herabschauender Hund','Liegender Twist']);
 function categoryOf(name){return YOGA.has(name)?'Yoga':STRETCH.has(name)?'Dehnen':'Gelenke';}
@@ -177,10 +182,20 @@ const EXTRA_DEFS=Object.freeze([
  ['Kindhaltung','Rücken','static',60,false],['Herabschauender Hund','Ganzkörper','static',45,false],['Liegender Twist','Wirbelsäule','static',45,true],
  ['Hüftbeuger-Dehnung','Hüfte','static',45,true],['Figure-Four-Dehnung','Gesäß','static',45,true],['Türrahmen-Brustdehnung','Brust','static',45,true],
  ['Waden-Dehnung','Waden','static',45,true],['Adduktoren-Rockback','Hüfte','dynamic',60,true],['Wall Slides','Schultern','dynamic',60,false]]);
+/* Theraband-Mobilität (Freitag 13.11.): eigene freigegebene Übungstafeln + Anleitung. */
+const BAND_DEFS=Object.freeze([
+ ['Schulter-Dislocates mit Theraband','Schultern','dynamic',40,false,'band-schulter-dislocates',['Band weit greifen, Arme vor dem Oberkörper.','Arme langsam und nahezu gestreckt über den Kopf nach hinten führen.','Nur so weit, wie es schmerzfrei geht, und kontrolliert zurück.'],'Griff breiter wählen, wenn die Schultern zwicken; Rumpf stabil, kein Hohlkreuz.'],
+ ['Band-Außenrotation','Schultern','dynamic',40,true,'band-aussenrotation',['Band seitlich auf Ellbogenhöhe sicher befestigen.','Ellbogen im 90°-Winkel am Körper, Unterarm langsam nach außen drehen.','Kontrolliert zurückführen und Seiten wechseln.'],'Ellbogen bleibt am Körper; kleine, saubere Bewegung.'],
+ ['Hamstring-Dehnung mit Theraband','Hinterer Oberschenkel','static',30,true,'band-hamstring-dehnung',['Auf den Rücken legen und das Band um einen Fuß führen.','Bein mit beiden Bandenden langsam gestreckt anheben.','Dehnung 20–30 Sekunden ruhig halten, dann Seite wechseln.'],'Becken und anderes Bein bleiben am Boden; nicht ruckartig ziehen.'],
+ ['Sprunggelenk-Mobilisation mit Theraband','Sprunggelenk','dynamic',35,true,'band-sprunggelenk-mobilisation',['Band tief vor dem Sprunggelenk anlegen und hinten sicher befestigen.','Im halben Kniestand das vordere Knie langsam über die Zehen nach vorn schieben.','Ferse bleibt am Boden; zurück und Seite wechseln.'],'Ohne Federn bewegen, nur im schmerzfreien Bereich.'],
+ ['Hüftbeuger-Dehnung mit Theraband','Hüfte','static',30,true,'band-hueftbeuger-dehnung',['Band hoch um die Hüfte des hinteren Beins legen und hinten sicher befestigen.','Im halben Kniestand Gesäß anspannen und Becken leicht nach hinten kippen.','Hüfte sanft nach vorn schieben, 20–30 Sekunden halten, Seite wechseln.'],'Kein Hohlkreuz; Oberkörper bleibt aufrecht.'],
+ ['Handgelenksmobilisation mit Theraband','Handgelenke','dynamic',35,true,'band-handgelenksmobilisation',['Leichtes Band knapp oberhalb des Handgelenks anlegen und sicher befestigen.','Im Vierfüßlerstand die Handfläche flach aufsetzen.','Oberkörper langsam vor und zurück verlagern, dann Seite wechseln.'],'Ellbogen ruhig halten; nur schmerzfrei bewegen.']]);
+const BAND_IMAGES=Object.freeze(Object.fromEntries(BAND_DEFS.map(d=>[d[0],'./mobility-boards/'+d[5]+'.webp'])));
+function bandExtras(){return BAND_DEFS.map(([name,region,mode,seconds,sides,,steps,tip])=>({name,region,mode,amount:mode==='dynamic'?10:1,seconds,sides,steps:steps.slice(),tip,category:categoryOf(name),source:'band',equipment:'Theraband'}));}
 function extras(guides){
  const g=guides||{};
  return EXTRA_DEFS.map(([name,region,mode,seconds,sides])=>{const x=Array.isArray(g[name])?g[name]:[[],''];
-  return {name,region,mode,amount:mode==='dynamic'?10:1,seconds,sides,steps:Array.isArray(x[0])?x[0].slice():[],tip:String(x[1]||''),category:categoryOf(name),source:'routine'};});
+  return {name,region,mode,amount:mode==='dynamic'?10:1,seconds,sides,steps:Array.isArray(x[0])?x[0].slice():[],tip:String(x[1]||''),category:categoryOf(name),source:'routine'};}).concat(bandExtras());
 }
 function withExtras(list,guides){const have=new Set((list||[]).map(x=>x.name));return (list||[]).concat(extras(guides).filter(x=>!have.has(x.name)));}
 /* ---------- Video-Bibliothek ---------- */
@@ -207,7 +222,10 @@ function assignVideo(assignments,day,v){
  list.push({day,goal:v.area,mins:v.mins,choice:v.idx,timing:'separate'});
  return list.sort((a,b)=>a.day-b.day);
 }
-window.ForgeMobilityCatalog=Object.freeze({CATEGORIES,categoryOf,extras,withExtras});
+window.ForgeMobilityCatalog=Object.freeze({CATEGORIES,categoryOf,extras,withExtras,BAND_IMAGES});
+/* Thumbnails, Katalog und Anleitung fragen forgeMobImage(): Band-Tafeln zuerst. */
+try{const prevMob=typeof window.forgeMobImage==='function'?window.forgeMobImage:null;
+ if(!(prevMob&&prevMob.forgeBand)){const f=function(name){return BAND_IMAGES[name]?[BAND_IMAGES[name]]:(prevMob?prevMob.apply(this,arguments):null);};f.forgeBand=true;window.forgeMobImage=f;}}catch(e){}
 try{if(typeof window.forgePlusRegisterMobility==='function'&&typeof FORGE_EX_GUIDES!=='undefined')window.forgePlusRegisterMobility(extras(FORGE_EX_GUIDES));}catch(e){}
 function registerAutoRoutine(){
  try{const a=typeof state!=='undefined'&&state&&state.forgeMobAuto;
@@ -235,6 +253,7 @@ function guide(name){
  return x?{steps:x.steps||[],tip:x.tip||''}:{steps:[],tip:''};
 }
 function images(name){
+ if(BAND_IMAGES[name])return [BAND_IMAGES[name]];
  try{const m=typeof forgeMobImage==='function'?forgeMobImage(name):null;if(Array.isArray(m)&&m.length)return m.slice(0,2);}catch(e){}
  try{
   const fn=window.forgeExerciseIllustrations||window.forgePublicExercisePictures;
