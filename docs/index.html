@@ -1109,6 +1109,8 @@ function forgeMobRoutineOf(key){
  if(key&&MOB_ROUTINES[key])return MOB_ROUTINES[key];
  const mix=(typeof state!=='undefined'&&state&&Array.isArray(state.forgeMobCustom))?state.forgeMobCustom:[];
  if(key==='forge-custom'&&mix.length)return {name:'Mein Mobilitätsmix',items:mix.map(n=>[String(n),45,''])};
+ const auto=(typeof state!=='undefined'&&state&&state.forgeMobAuto&&Array.isArray(state.forgeMobAuto.items))?state.forgeMobAuto:null;
+ if(key==='forge-auto'&&auto&&auto.items.length)return {name:String(auto.name||'Automatisch'),items:auto.items};
  let saved='';try{saved=typeof mobConfig==='function'?mobConfig().routine:'';}catch(e){}
  if(saved&&saved!==key)return forgeMobRoutineOf(saved);
  return MOB_ROUTINES.gentle||Object.values(MOB_ROUTINES)[0];

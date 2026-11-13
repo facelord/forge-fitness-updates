@@ -39,7 +39,8 @@ function toggleDay(list,day,max){
 function label(list,value){const x=(list||[]).find(e=>e[0]===value);return x?x[1]:'';}
 function ownRhythmText(s){
  if(s.mmode==='interval')return 'Alle '+s.mevery+' '+(s.mevery===1?'Tag':'Tage')+' · '+s.munits+' '+(s.munits===1?'Einheit':'Einheiten im Wechsel');
- return (s.mdays||[]).map(d=>DAYS[d]).join(' · ');
+ const v=Number(s.mvariety)||0,n=(s.mdays||[]).length;
+ return (s.mdays||[]).map(d=>DAYS[d]).join(' · ')+(v>=1&&v<n?' · '+(v===1?'immer Einheit A':v+' Einheiten im Wechsel'):'');
 }
 function everyOptions(current){const base=[2,3,4,5,7];if(Number.isInteger(current)&&current>=1&&current<=14&&!base.includes(current))base.push(current);return base.sort((a,b)=>a-b);}
 function rhythmText(s){
@@ -50,7 +51,7 @@ function strengthSummary(s){
  return [['Ziel',label(GOALS,s.goal)],['Trainingsort',label(PLACES,s.place)],['Erfahrung',label(LEVELS,s.level)],['Aufteilung',label(SPLITS,s.split)],['Rhythmus',rhythmText(s)]];
 }
 function strengthSteps(s){return s.how==='manual'?['how','mdays','mname']:['how','basics','split','rhythm','create'];}
-function mobilitySteps(m){return ['how',m.how==='custom'?'pick':'routine','when','save'];}
+function mobilitySteps(m){return ['how',m.how==='custom'?'pick':'gen','when','save'];}
 function canContinue(kind,step,s){
  if(kind==='strength'){
   if(step==='how')return s.how==='auto'||s.how==='manual';
@@ -62,6 +63,7 @@ function canContinue(kind,step,s){
  }
  if(step==='how')return s.how==='auto'||s.how==='custom';
  if(step==='routine')return !!s.routine;
+ if(step==='gen')return !!(s.gen&&s.gen.ok);
  if(step==='pick')return (s.picked||[]).length>0;
  if(step==='when')return s.timing==='after'||(s.days||[]).length>0;
  return true;
@@ -141,6 +143,15 @@ ${W} .wz-field input,${W} .wz-field select{height:54px;border-radius:16px;border
 ${W} .wz-field input:focus,${W} .wz-field select:focus{outline:2px solid var(--wa);outline-offset:1px}
 ${W} .wz-chips{flex:0 0 auto;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
 ${W} .wz-chips::-webkit-scrollbar{display:none}
+${W} .wz-genlist{display:flex;flex-direction:column;gap:6px}
+${W} .wz-genrow{display:flex;align-items:center;gap:10px;min-height:52px;border-radius:14px;border:1px solid #22303d;background:#17212b;padding:6px 6px 6px 14px}
+${W} .wz-genrow>span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+${W} .wz-genrow b{font-size:14px;font-weight:700;color:#f3f7fc}
+${W} .wz-genrow small{font-size:12px;color:#95a3b7}
+${W} .wz-swap{width:44px;height:44px;flex:0 0 44px;border-radius:22px;border:1px solid #2f6a62;background:#193b39;color:var(--wa);display:flex;align-items:center;justify-content:center;padding:0}
+${W} .wz-regen{display:flex;align-items:center;justify-content:center;gap:8px;border-color:#2f6a62;color:var(--wa);min-height:48px}
+${W} .wz-genlist .wz-label{margin:8px 0 2px}
+${W}.mob .wz-card{background:#17212b;border-color:#22303d}
 ${W} .wz-chip{flex:0 0 auto;height:38px;border-radius:19px;border:1px solid #293346;background:#171e2a;color:#c3cddb;font:inherit;font-size:13px;font-weight:600;padding:0 12px}
 ${W} .wz-chip[aria-pressed="true"]{background:var(--wa);color:var(--won);border-color:var(--wa);font-weight:800}
 ${W} .wz-list{flex:0 0 auto;display:flex;flex-direction:column;gap:8px}
@@ -171,7 +182,7 @@ function defaultsStrength(){
  let cad=null;try{cad=typeof state!=='undefined'&&state.settings&&state.settings.cadence&&state.settings.cadence.mode==='interval'&&state.plan.length?state.settings.cadence:null;}catch(e){}
  const out={kind:'strength',how:'auto',goal:v('goal')||'muscle',place:v('place')||'gym',level:v('level')||'beginner',split:v('split')||'full',
   mode:'weekdays',days,every:3,units:3,anchor:localDate(new Date()),name:'',
-  mdays:days.slice(),mplace:v('place')==='home'?'home':'gym',mmode:'weekdays',mevery:3,munits:3,manchor:localDate(new Date())};
+  mdays:days.slice(),mvariety:0,mplace:v('place')==='home'?'home':'gym',mmode:'weekdays',mevery:3,munits:3,manchor:localDate(new Date())};
  // Keep the rhythm the person already trains with (e.g. every 4 days).
  if(cad&&Number.isInteger(cad.every)){
   const n=Array.isArray(cad.planOrder)?cad.planOrder.length:3;
@@ -184,8 +195,10 @@ function defaultsMobility(){
  let cfg={};try{cfg=typeof mobConfig==='function'?mobConfig():{};}catch(e){}
  let rest=[];try{rest=typeof mobRestSuggestion==='function'?mobRestSuggestion():[];}catch(e){}
  let picked=[];try{picked=typeof window.forgePlusMobilityMixNames==='function'?window.forgePlusMobilityMixNames():[];}catch(e){}
+ let auto={};try{auto=state.forgeMobAuto||{};}catch(e){}
  return {kind:'mobility',how:cfg.routine==='forge-custom'?'custom':'auto',routine:cfg.routine&&cfg.routine!=='forge-custom'?cfg.routine:'gentle',
-  picked,timing:cfg.timing||'rest',days:(cfg.weekdays&&cfg.weekdays.length?cfg.weekdays:rest).slice(),region:'Alle'};
+  picked,timing:cfg.timing||'rest',days:(cfg.weekdays&&cfg.weekdays.length?cfg.weekdays:rest).slice(),region:'Alle',
+  gfocus:auto.focus||'full',gmin:auto.minutes||10,gequip:auto.equip&&auto.equip!=='none'?auto.equip.slice():'none',gpick:Array.isArray(auto.equip)?auto.equip.slice():[],gen:null,gnote:''};
 }
 function steps(){
  if(!flow.kind)return ['type'];
@@ -271,7 +284,7 @@ function createStrength(){
 function openOwnPlan(){
  const s=flow.s;
  if(typeof window.ForgeLayoutBEditorDraft!=='function'){flow.error='Der Plan-Editor ist noch nicht geladen. Bitte erneut versuchen.';render();return;}
- const opened=window.ForgeLayoutBEditorDraft({mode:s.mmode,days:s.mdays,every:s.mevery,units:s.munits,anchor:s.manchor,location:s.mplace,name:s.name});
+ const opened=window.ForgeLayoutBEditorDraft({mode:s.mmode,days:s.mdays,every:s.mevery,units:s.munits,variety:s.mvariety,anchor:s.manchor,location:s.mplace,name:s.name});
  if(opened)close();else{flow.error='Der Plan-Editor konnte nicht geöffnet werden.';render();}
 }
 function saveMobilityPlan(){
@@ -284,7 +297,13 @@ function saveMobilityPlan(){
    m.picked.filter(n=>!now.includes(n)).forEach(n=>window.forgePlusToggleMobilityMix(n));
   }
  }
- const routine=m.how==='custom'?'forge-custom':m.routine;
+ let routine=m.how==='custom'?'forge-custom':m.routine;
+ if(m.how==='auto'&&m.gen&&m.gen.ok){
+  const g=m.gen;
+  state.forgeMobAuto={name:g.name,focus:g.focus,minutes:g.minutes,equip:g.equip,items:g.items.map(x=>x.slice()),moves:g.moves.slice(),need:g.need.slice(),optional:g.optional.slice(),rounds:g.rounds,total:g.total,createdAt:new Date().toISOString()};
+  try{window.ForgeMobilityGenerator?.registerAutoRoutine?.();}catch(e){}
+  routine='forge-auto';
+ }
  try{
   const old=typeof mobConfig==='function'?mobConfig():{logs:[]};
   // Same record as saveMobility(); the separate strength plan stays unchanged.
@@ -295,10 +314,71 @@ function saveMobilityPlan(){
   if(typeof save==='function')save();
   if(typeof window.render==='function')try{window.render();}catch(e){}
   const r=typeof MOB_ROUTINES!=='undefined'?MOB_ROUTINES[routine]:null;
-  flow.done={title:'Mobilitätsplan gespeichert',text:(r?.name||'Mobilität')+' · '+(r?.items?.length||m.picked.length)+' Übungen',
+  const cnt=routine==='forge-auto'&&m.gen?m.gen.moves.length+' Übungen'+(m.gen.rounds>1?' · '+m.gen.rounds+' Runden':'')+' · ca. '+Math.round(m.gen.total/60)+' Min.':(r?.items?.length||m.picked.length)+' Übungen';
+  flow.done={title:'Mobilitätsplan gespeichert',text:(r?.name||'Mobilität')+' · '+cnt,
    rows:[['Wann',label(TIMINGS,m.timing)],...(m.timing==='after'?[]:[['Tage',m.days.map(d=>DAYS[d]).join(' · ')]]),['Krafttraining','bleibt unverändert']]};
  }catch(e){flow.error='Der Mobilitätsplan konnte nicht gespeichert werden.';}
  render();
+}
+
+/* ---------- automatischer Mobilitätsplaner ---------- */
+const GI={swap:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h13l-3-3M20 17H7l3 3"/></svg>',
+ dice:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v4h-4"/></svg>'};
+function regen(s,avoid){
+ const G=window.ForgeMobilityGenerator;if(!G){s.gen={ok:false,reason:'Der Planer wird noch geladen.'};return;}
+ const equip=s.gequip==='none'?'none':s.gpick.slice();
+ const prev=s.gen&&s.gen.ok?s.gen.moves:[];
+ s.gen=G.generateMobility({focus:s.gfocus,minutes:s.gmin,equip,seed:Date.now()+Math.floor(Math.random()*1e6),avoid:avoid?prev:[]});
+ s.gnote='';
+ if(avoid&&s.gen.ok&&prev.length&&s.gen.moves.every(n=>prev.includes(n)))
+  s.gnote='Für diese Auswahl gibt es nur '+s.gen.moves.length+' passende Übungen – die Reihenfolge wurde neu gemischt. Mit Hilfsmitteln oder anderem Fokus gibt es mehr Auswahl.';
+}
+function secLabel(it){return it[3]&&it[3].sides?'je Seite '+it[1]+' Sek.':it[1]+' Sek.';}
+function genStep(s,head,body){
+ const G=window.ForgeMobilityGenerator;
+ head.append(el('h2','','Automatischer Mobilitätsplan'),el('p','','Fokus, Dauer und Hilfsmittel wählen – FORGE stellt kurze Übungen (max. 60 Sek.) in sinnvoller Reihenfolge zusammen.'));
+ if(!G){body.append(el('p','wz-note','Der Planer wird noch geladen …'));return;}
+ if(!s.gen)regen(s,false);
+ const change=fn=>()=>{fn();regen(s,false);render();};
+ body.append(group('Fokus',2,G.GEN_FOCUS.map(([k,t])=>opt(t,s.gfocus===k,change(()=>{s.gfocus=k;}))))); 
+ body.append(group('Gesamtdauer',4,G.GEN_MINUTES.map(m=>opt(m+' Min.',s.gmin===m,change(()=>{s.gmin=m;}),'sm'))));
+ const eq=el('div','wz-card wz-equip');
+ eq.append(el('div','wz-label','Hilfsmittel'));
+ const seg=el('div','wz-seg');seg.setAttribute('role','radiogroup');seg.setAttribute('aria-label','Hilfsmittel');
+ [['none','Ohne Hilfsmittel'],['pick','Hilfsmittel auswählen']].forEach(([v,t])=>{const b=el('button','',t);b.type='button';b.setAttribute('role','radio');
+  const on=v==='none'?s.gequip==='none':s.gequip!=='none';b.setAttribute('aria-checked',String(on));
+  b.addEventListener('click',change(()=>{s.gequip=v==='none'?'none':s.gpick.slice();}));seg.append(b);});
+ eq.append(seg);
+ if(s.gequip!=='none'){
+  const chips=el('div','wz-grid c2');
+  G.GEN_EQUIP.forEach(([k,t])=>{chips.append(opt(t,s.gpick.includes(k),change(()=>{s.gpick=s.gpick.includes(k)?s.gpick.filter(x=>x!==k):s.gpick.concat(k);s.gequip=s.gpick.slice();}),'sm'));});
+  eq.append(chips,el('p','wz-note','Übungen ohne Geräte bleiben immer dabei. Eine Matte ist nie Pflicht, nur bequemer.'));
+ }else eq.append(el('p','wz-note','Nur Übungen ohne Gegenstände, Wand oder Türrahmen.'));
+ body.append(eq);
+ const g=s.gen;
+ if(!g||!g.ok){body.append(el('p','wz-error',g?g.reason:'Kein Plan.'));return;}
+ const sum=el('div','wz-sum wz-gen');
+ sum.append(el('small','','Dein Plan'));
+ const r1=el('div');r1.append(el('span','','Dauer'),el('b','','ca. '+Math.round(g.total/60)+' Min. · '+g.moves.length+' Übungen'+(g.rounds>1?' · '+g.rounds+' Runden':'')));sum.append(r1);
+ if(s.gequip!=='none'){const r=el('div');r.append(el('span','','Meine Hilfsmittel'),el('b','',s.gpick.length?s.gpick.map(G.equipLabel).join(', '):'keine ausgewählt'));sum.append(r);}
+ const r2=el('div');r2.append(el('span','','Du brauchst'),el('b','',g.need.length?g.need.map(G.equipLabel).join(', '):'Keine Hilfsmittel erforderlich'));sum.append(r2);
+ if(g.optional.length){const r3=el('div');r3.append(el('span','','Optional'),el('b','',g.optional.map(G.equipLabel).join(', ')));sum.append(r3);}
+ body.append(sum);
+ const list=el('div','wz-list wz-genlist');
+ let lastRound=0;
+ g.items.forEach(it=>{
+  const m=it[3]||{};
+  if(g.rounds>1&&m.round!==lastRound){lastRound=m.round;list.append(el('div','wz-label','Runde '+m.round+'/'+g.rounds+(m.round>1?' · umgekehrte Reihenfolge':'')));}
+  const row=el('div','wz-genrow');const t=el('span');t.append(el('b','',it[0]),el('small','',secLabel(it)));
+  row.append(t);
+  if(m.round===1){const b=el('button','wz-swap');b.type='button';b.innerHTML=GI.swap;b.setAttribute('aria-label',it[0]+' ersetzen');
+   b.addEventListener('click',()=>{const n=G.replaceMove(s.gen,it[0],Date.now());if(n){s.gen=n;s.gnote='';}else s.gnote='Für '+it[0]+' gibt es keine weitere passende Übung.';render();});row.append(b);}
+  list.append(row);
+ });
+ body.append(list);
+ if(s.gnote)body.append(el('p','wz-note',s.gnote));
+ const again=el('button','wz-link wz-regen');again.type='button';again.innerHTML=GI.dice+'<span>Neu generieren</span>';
+ again.addEventListener('click',()=>{regen(s,true);render();});body.append(again);
 }
 
 /* ---------- mobility library ---------- */
@@ -355,7 +435,7 @@ function render(){
    body.append(el('p','wz-note','Dein aktueller Plan bleibt aktiv, bis der neue erstellt ist. Danach wird er archiviert.'));
    nextLabel='Weiter';
   }else if(step==='mdays'){
-   head.append(el('h2','','Wann trainierst du?'),el('p','',s.mmode==='interval'?'Die Einheiten wechseln sich ab – die Übungen wählst du gleich selbst.':'Jeder Tag wird eine eigene Einheit – die Übungen wählst du gleich selbst.'));
+   head.append(el('h2','','Wann trainierst du?'),el('p','',s.mmode==='interval'?'Die Einheiten wechseln sich ab – die Übungen wählst du gleich selbst.':'Wähle deine Tage und wie viele verschiedene Einheiten du willst – die Übungen wählst du gleich selbst.'));
    const seg=el('div','wz-seg');seg.setAttribute('role','radiogroup');seg.setAttribute('aria-label','Trainingsrhythmus');
    [['weekdays','Feste Wochentage'],['interval','Alle X Tage']].forEach(([v,t])=>{const x=el('button','',t);x.type='button';x.setAttribute('role','radio');x.setAttribute('aria-checked',String(s.mmode===v));x.addEventListener('click',()=>{s.mmode=v;render();});seg.append(x);});
    body.append(seg);
@@ -369,6 +449,18 @@ function render(){
     const c=el('div','wz-card');c.append(group('Deine Trainingstage',7,DAYS.map((d,i)=>opt(d,s.mdays.includes(i),()=>{s.mdays=s.mdays.includes(i)?s.mdays.filter(x=>x!==i):s.mdays.concat(i).sort((a,b)=>a-b);render();},'day sm'))));
     c.append(el('p','wz-note',s.mdays.length?s.mdays.length+' '+(s.mdays.length===1?'Trainingstag':'Trainingstage')+' pro Woche':'Tippe mindestens einen Tag an.'));
     body.append(c);
+    // How many different units: every day its own, or A / A–B / … alternating.
+    const nd=s.mdays.length;
+    if(nd>=2){
+     if(!(Number(s.mvariety)>=1&&Number(s.mvariety)<nd))s.mvariety=0;
+     const opts=[opt('Jeder Tag anders',!s.mvariety,()=>{s.mvariety=0;render();},'sm')];
+     for(let k=1;k<=Math.min(4,nd-1);k++)opts.push(opt(k===1?'Immer A':'A–'+String.fromCharCode(64+k),s.mvariety===k,()=>{s.mvariety=k;render();},'sm'));
+     const c3=el('div','wz-card');c3.append(group('Verschiedene Einheiten',Math.min(3,opts.length),opts));
+     const v=Number(s.mvariety)||0;
+     const L=i=>String.fromCharCode(65+i);
+     c3.append(el('p','wz-note',v?s.mdays.map((d,i)=>DAYS[d]+' '+L(i%v)).join(' · '):'Jeder Trainingstag bekommt eigene Übungen.'));
+     body.append(c3);
+    }
    }
   }else if(step==='mname'){
    head.append(el('h2','','Wie soll dein Plan heißen?'),el('p','',s.mmode==='interval'?'Danach wählst du für jede Einheit die Übungen aus dem Katalog.':'Danach wählst du für jeden Tag die Übungen aus dem Katalog.'));
@@ -436,6 +528,9 @@ function render(){
     x.addEventListener('click',()=>{s.routine=k;render();});g.append(x);
    });
    body.append(g);
+  }else if(step==='gen'){
+   genStep(s,head,body);
+   nextLabel='Plan übernehmen';
   }else if(step==='pick'){
    head.append(el('h2','','Deine Übungen'),el('p','','Tippe an, was in deinen Mix soll. '+s.picked.length+' ausgewählt.'));
    const chips=el('div','wz-chips');const lst=el('div','wz-list');

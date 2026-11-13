@@ -26,8 +26,9 @@ function buildPhases(items,lib){
  const out=[];
  (items||[]).forEach((it,i)=>{
   const secs=Math.max(5,Math.round(Number(it[1])||30));
-  const sides=hasSides(it,lib);
-  out.push({kind:'prep',ex:i,secs:PREP});
+  const meta=it&&typeof it[3]==='object'&&it[3]?it[3]:null;
+  const sides=meta&&typeof meta.sides==='boolean'?meta.sides:hasSides(it,lib);
+  out.push({kind:'prep',ex:i,secs:meta&&meta.prep>0?Math.round(meta.prep):PREP});
   if(sides){
    out.push({kind:'work',ex:i,secs,side:'Rechts',sideNo:1});
    out.push({kind:'prep',ex:i,secs:SIDE_PREP,sideChange:true});
@@ -37,6 +38,124 @@ function buildPhases(items,lib){
  return out;
 }
 function totalSeconds(items,lib){return buildPhases(items,lib).filter(p=>p.kind==='work').reduce((a,p)=>a+p.secs,0);}
+/* ---------- Automatischer Mobilitätsplaner (Fokus · Dauer · Hilfsmittel · Runden) ----------
+ * pos: 1 stehend · 2 sitzend · 3 Vierfüßler/kniend · 4 liegend
+ * f: B Beine/Hüfte · S Schultern/Oberkörper · R Rumpf/Wirbelsäule
+ * req: zwingend nötige Hilfsmittel · opt: optional (Komfort). */
+const GEN_EQUIP=Object.freeze([['wand','Wand'],['tuer','Türrahmen'],['rolle','Faszienrolle'],['stab','Gymnastikstab'],['ball','Massageball'],['gurt','Dehngurt']]);
+const GEN_OPTIONAL=Object.freeze({matte:'Matte',wand:'Wand zum Festhalten'});
+const GEN_FOCUS=Object.freeze([['full','Ganzkörper'],['legs','Beine'],['shoulders','Schultern'],['core','Rumpf']]);
+const GEN_MINUTES=Object.freeze([5,10,15,20]);
+const M=(name,f,pos,sides,req,opt)=>Object.freeze({name,f,pos,sides,req:req||[],opt:opt||[]});
+const GEN_MOVES=Object.freeze([
+ M('Sprunggelenk-Mobilisation an der Wand','B',1,true,['wand']),M('Fußkreisen','B',1,true),M('Fußsohle mit Ball mobilisieren','B',1,true,['ball']),
+ M('Fersengleiten in Rückenlage','B',4,true,[],['matte']),M('Beinpendel vor und zurück','B',1,true,[],['wand']),M('Seitliches Beinpendel','B',1,true,[],['wand']),
+ M('Hüftkreisen im Stand','BR',1,true),M('90/90-Vorbeuge','B',2,true,[],['matte']),M('Hüftkreise im Vierfüßlerstand','BR',3,true,[],['matte']),
+ M('Quadrizeps-Dehnung im Stand','B',1,true,[],['wand']),M('Soleus-Dehnung mit gebeugtem Knie','B',1,true,[],['wand']),M('Hamstring-Dehnung mit Gurt','B',4,true,['gurt'],['matte']),
+ M('Beckenkippen in Rückenlage','R',4,false,[],['matte']),M('Beckenkreisen im Stand','RB',1,false),M('Knie zur Brust in Rückenlage','RB',4,true,[],['matte']),
+ M('Thread the Needle','SR',3,true,[],['matte']),M('Brustwirbelsäulenstreckung über Foam Roller','SR',4,false,['rolle'],['matte']),M('Schulterkreisen','S',1,false),
+ M('Schulterheben mit Stab','S',1,false,['stab']),M('Handgelenksmobilisation','S',1,true),M('Kindhaltung','RS',3,false,[],['matte']),
+ M('Herabschauender Hund','SBR',3,false,[],['matte']),M('Liegender Twist','R',4,true,[],['matte']),M('Hüftbeuger-Dehnung','BR',3,true,[],['matte']),
+ M('Figure-Four-Dehnung','B',4,true,[],['matte']),M('Türrahmen-Brustdehnung','S',1,true,['tuer']),M('Waden-Dehnung','B',1,true,[],['wand']),
+ M('Adduktoren-Rockback','B',3,true,[],['matte']),M('Wall Slides','S',1,false,['wand']),M('Cat-Cow','RS',3,false,[],['matte']),
+ M('Brustwirbelsäulen-Rotation','SR',3,true,[],['matte']),M('Tiefe Hocke mit Halt','B',1,false,[],['wand']),M('Low Lunge','BR',3,true,[],['matte']),
+ M('Krieger II','BS',1,true),M('Sitzende Vorbeuge','BR',2,false,[],['matte']),M('90/90 Hüftwechsel','B',2,false,[],['matte']),
+ M('Kindhaltung mit Seitgriff','SR',3,true,[],['matte'])]);
+const GEN_FIRST_PREP=5,GEN_PREP=8,GEN_POS_PREP=10,GEN_ROUND_PREP=10,GEN_SIDE_PREP=SIDE_PREP;
+function genRng(seed){let a=(Number(seed)>>>0)||1;return ()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return ((t^(t>>>14))>>>0)/4294967296;};}
+function genShuffle(list,rnd){const a=list.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+const FOCUS_LETTER={legs:'B',shoulders:'S',core:'R'};
+/* equip: 'none' (ohne Hilfsmittel) or a list of available keys. Every required item must be available. */
+function genPool(focus,equip,moves){
+ const have=equip==='none'?[]:(Array.isArray(equip)?equip:[]);
+ const L=FOCUS_LETTER[focus];
+ return (moves||GEN_MOVES).filter(m=>(!L||m.f.includes(L))&&m.req.every(r=>have.includes(r)));
+}
+function genWorkLimits(m){return m.sides?[15,30,25]:[30,60,45];}
+/* Seconds of one round for the given moves and work seconds (prep + work + side change). */
+function genRoundFixed(list){
+ let t=0;list.forEach((m,i)=>{t+=i===0?0:(list[i-1].pos!==m.pos?GEN_POS_PREP:GEN_PREP);if(m.sides)t+=GEN_SIDE_PREP;});return t;
+}
+function genOrder(list,rnd){
+ const byPos=[1,2,3,4].map(p=>genShuffle(list.filter(m=>m.pos===p),rnd));
+ const down=rnd()<.5;return (down?byPos:byPos.reverse()).flat();
+}
+/* Builds a plan for focus/minutes/equipment. avoid: names to leave out if the pool allows (Neu generieren). */
+function generateMobility(opts){
+ const o=opts||{};const minutes=GEN_MINUTES.includes(Number(o.minutes))?Number(o.minutes):10;
+ const focus=GEN_FOCUS.some(f=>f[0]===o.focus)?o.focus:'full';
+ const equip=o.equip==='none'?'none':(Array.isArray(o.equip)?o.equip.slice():'none');
+ const rnd=genRng(o.seed||Date.now());
+ const pool=genPool(focus,equip,o.moves);
+ if(pool.length<3)return {ok:false,reason:'Für diese Auswahl gibt es zu wenige passende Übungen. Wähle einen anderen Fokus oder mehr Hilfsmittel.',pool:pool.length};
+ const avoid=new Set(o.avoid||[]);
+ const fresh=genShuffle(pool.filter(m=>!avoid.has(m.name)),rnd),old=genShuffle(pool.filter(m=>avoid.has(m.name)),rnd);
+ const ranked=fresh.concat(old);
+ const target=minutes*60-GEN_FIRST_PREP;
+ const nominal=m=>(m.sides?2*genWorkLimits(m)[2]:genWorkLimits(m)[2])+(m.sides?GEN_SIDE_PREP:0)+GEN_PREP;
+ const maxOf=m=>(m.sides?2*genWorkLimits(m)[1]:genWorkLimits(m)[1])+(m.sides?GEN_SIDE_PREP:0)+GEN_PREP;
+ // rounds: as few as possible, but a round should not need more moves than the pool has
+ let rounds=1,k=0;
+ for(rounds=1;rounds<=4;rounds++){
+  let acc=0;k=0;while(k<ranked.length&&acc*rounds<target){acc+=nominal(ranked[k]);k++;}
+  if(acc*rounds>=target*0.9||ranked.slice(0,k).reduce((a,m)=>a+maxOf(m),0)*rounds>=target)break;
+ }
+ rounds=Math.min(rounds,4);
+ const chosen=genOrder(ranked.slice(0,Math.max(3,k)),rnd);
+ // fixed time: preps, side changes, round transitions
+ const fixedRound=genRoundFixed(chosen);
+ const fixed=fixedRound*rounds+(rounds-1)*GEN_ROUND_PREP;
+ const budget=Math.max(0,target-fixed);
+ // distribute work seconds proportionally to nominal, within limits, in 5 s steps
+ const units=chosen.map(m=>m.sides?2:1);const nom=chosen.map(m=>genWorkLimits(m)[2]);
+ const nomTotal=chosen.reduce((a,m,i)=>a+nom[i]*units[i],0)*rounds;
+ const scale=nomTotal?budget/nomTotal:1;
+ const secs=chosen.map((m,i)=>{const [lo,hi]=genWorkLimits(m);return Math.min(hi,Math.max(lo,Math.round(nom[i]*scale/5)*5));});
+ // fine-tune in 5 s steps so the honest total lands as close as possible to the chosen duration
+ const fullTarget=minutes*60;
+ const totalOf=()=>GEN_FIRST_PREP+fixed+chosen.reduce((a,m,i)=>a+secs[i]*units[i],0)*rounds;
+ for(let guard=0;guard<400;guard++){
+  const diff=totalOf()-fullTarget;if(Math.abs(diff)<5)break;
+  let best=-1,bestGain=0;
+  chosen.forEach((m,i)=>{const [lo,hi]=genWorkLimits(m);const step=diff>0?-5:5;const nv=secs[i]+step;if(nv<lo||nv>hi)return;
+   const nd=Math.abs(diff+step*units[i]*rounds);const gain=Math.abs(diff)-nd;if(gain>bestGain){bestGain=gain;best=i;}});
+  if(best<0)break;secs[best]+=diff>0?-5:5;
+ }
+ const items=[];
+ for(let r=0;r<rounds;r++){
+  const seq=r%2?chosen.map((m,i)=>[m,secs[i]]).reverse():chosen.map((m,i)=>[m,secs[i]]);
+  seq.forEach(([m,sec],j)=>{
+   const prevM=j?seq[j-1][0]:null;
+   const prep=r===0&&j===0?GEN_FIRST_PREP:j===0?GEN_ROUND_PREP:(prevM.pos!==m.pos?GEN_POS_PREP:GEN_PREP);
+   items.push([m.name,sec,m.sides?'je Seite':'',{prep,sides:m.sides,round:r+1,rounds,pos:m.pos}]);
+  });
+ }
+ const total=items.reduce((a,it)=>a+it[3].prep+(it[3].sides?2*it[1]+GEN_SIDE_PREP:it[1]),0);
+ const need=[...new Set(chosen.flatMap(m=>m.req))];
+ const optional=[...new Set(chosen.flatMap(m=>m.opt))].filter(x=>!need.includes(x));
+ return {ok:true,focus,minutes,equip,rounds,moves:chosen.map(m=>m.name),items,total,need,optional,
+  name:'Automatisch · '+GEN_FOCUS.find(f=>f[0]===focus)[1]+' · '+minutes+' Min.'};
+}
+/* Swap one move for another fitting one (same focus/equipment), keeping times and rounds. */
+function replaceMove(plan,name,seed){
+ if(!plan||!plan.ok)return plan;
+ const pool=genPool(plan.focus,plan.equip).filter(m=>!plan.moves.includes(m.name));
+ if(!pool.length)return null;
+ const old=GEN_MOVES.find(m=>m.name===name);const rnd=genRng(seed||Date.now());
+ const same=pool.filter(m=>old&&m.pos===old.pos&&m.sides===old.sides);
+ const pick=genShuffle(same.length?same:pool,rnd)[0];
+ const items=plan.items.map(it=>{
+  if(it[0]!==name)return it;
+  const [lo,hi]=genWorkLimits(pick);const per=pick.sides===it[3].sides?it[1]:pick.sides?Math.round(it[1]/2/5)*5:it[1]*2;
+  return [pick.name,Math.min(hi,Math.max(lo,per)),pick.sides?'je Seite':'',{...it[3],sides:pick.sides,pos:pick.pos}];
+ });
+ const moves=plan.moves.map(n=>n===name?pick.name:n);
+ const chosen=moves.map(n=>GEN_MOVES.find(m=>m.name===n)).filter(Boolean);
+ const need=[...new Set(chosen.flatMap(m=>m.req))];
+ const total=items.reduce((a,it)=>a+it[3].prep+(it[3].sides?2*it[1]+GEN_SIDE_PREP:it[1]),0);
+ return {...plan,items,moves,need,optional:[...new Set(chosen.flatMap(m=>m.opt))].filter(x=>!need.includes(x)),total};
+}
+function equipLabel(k){const e=GEN_EQUIP.find(x=>x[0]===k);return e?e[1]:GEN_OPTIONAL[k]||k;}
 function minutesLabel(sec){return 'ca. '+Math.max(1,Math.round(sec/60))+' Min.';}
 function clock(sec){sec=Math.max(0,Math.ceil(sec));return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');}
 function firstPhaseOf(phases,ex){const i=phases.findIndex(p=>p.ex===ex);return i<0?phases.length:i;}
@@ -90,6 +209,12 @@ function assignVideo(assignments,day,v){
 }
 window.ForgeMobilityCatalog=Object.freeze({CATEGORIES,categoryOf,extras,withExtras});
 try{if(typeof window.forgePlusRegisterMobility==='function'&&typeof FORGE_EX_GUIDES!=='undefined')window.forgePlusRegisterMobility(extras(FORGE_EX_GUIDES));}catch(e){}
+function registerAutoRoutine(){
+ try{const a=typeof state!=='undefined'&&state&&state.forgeMobAuto;
+  if(typeof MOB_ROUTINES!=='undefined'&&a&&Array.isArray(a.items)&&a.items.length)MOB_ROUTINES['forge-auto']={name:String(a.name||'Automatisch'),items:a.items.map(x=>x.slice())};}catch(e){}
+}
+registerAutoRoutine();
+window.ForgeMobilityGenerator=Object.freeze({registerAutoRoutine,GEN_MOVES,GEN_EQUIP,GEN_FOCUS,GEN_MINUTES,genPool,generateMobility,replaceMove,equipLabel,GEN_PREP,GEN_POS_PREP,GEN_ROUND_PREP});
 window.ForgeLayoutBMobility=Object.freeze({hasSides,buildPhases,totalSeconds,minutesLabel,clock,firstPhaseOf,isToday,PREP,SIDE_PREP,
  categoryOf,extras,withExtras,videoList,filterVideos,plannable,assignVideo,VIDEO_AREAS,VIDEO_MINS});
 if(typeof document==='undefined')return;
@@ -290,7 +415,8 @@ function renderCard(){
  const done=logs.some(l=>l&&l.date&&localDay(new Date(l.date))===localDay(new Date()));
  card.append(el('div','ms-kick',done?'Heute erledigt ✓':today?'Heute dran':'Deine Mobilitätsroutine'));
  card.append(el('h3','',r.name));
- card.append(el('div','ms-sub',r.items.length+' Übungen · '+minutesLabel(totalSeconds(r.items,lib))+' · '+(c.timing==='after'?'nach dem Krafttraining':c.timing==='both'?'Ruhetage & nach dem Training':'an Ruhetagen')));
+ const rounds=Math.max(1,...r.items.map(it=>it&&it[3]&&it[3].rounds||1));const uniq=r.items.filter(it=>!(it&&it[3]&&it[3].round>1));
+ card.append(el('div','ms-sub',uniq.length+' Übungen'+(rounds>1?' · '+rounds+' Runden':'')+' · '+minutesLabel(rounds>1||r.items.some(it=>it&&it[3])?buildPhases(r.items,lib).reduce((a,p)=>a+p.secs,0):totalSeconds(r.items,lib))+' · '+(c.timing==='after'?'nach dem Krafttraining':c.timing==='both'?'Ruhetage & nach dem Training':'an Ruhetagen')));
  if(c.timing!=='after'){
   const meta=el('div','ms-meta');['Mo','Di','Mi','Do','Fr','Sa','So'].forEach((d,i)=>{const s=el('span',(c.weekdays||[]).includes(i)?'on':'',d);meta.append(s);});card.append(meta);
  }
@@ -300,7 +426,7 @@ function renderCard(){
  card.append(tog);
  if(showList){
   const list=el('div','ms-list');
-  r.items.forEach(it=>{const row=el('div','ms-row');row.append(thumb(it[0]),el('b','',it[0]),el('em','',it[1]+' Sek.'+(hasSides(it,lib)?' je Seite':'')));list.append(row);});
+  r.items.filter(it=>!(it&&it[3]&&it[3].round>1)).forEach(it=>{const row=el('div','ms-row');row.append(thumb(it[0]),el('b','',it[0]),el('em','',it[1]+' Sek.'+(hasSides(it,lib)?' je Seite':'')));list.append(row);});
   card.append(list);
  }
  if(logs.length)card.append(el('div','ms-sub',logs.length+'× erledigt'));
@@ -510,7 +636,7 @@ function render(){
  if(imgs.length)imgs.forEach(src=>{const i=el('img');i.src=src;i.alt=item[0];media.append(i);});else{media.classList.add('none');media.innerHTML=ICON.flow.replace('width="22" height="22"','width="64" height="64"');}
  if(p.side)media.append(el('span','mr-badge','Seite '+p.sideNo+' von 2 · '+p.side));
  inner.append(media);
- const nm=el('div','mr-name');const t=el('div');t.append(el('h2','',item[0]),el('small','',item[1]+' Sek.'+(hasSides(item,lib)?' je Seite':'')+(item[2]?' · '+item[2]:'')));
+ const nm=el('div','mr-name');const t=el('div');t.append(el('h2','',item[0]),el('small','',(item[3]&&item[3].rounds>1?'Runde '+item[3].round+'/'+item[3].rounds+' · ':'')+item[1]+' Sek.'+(hasSides(item,lib)?' je Seite':'')+(item[2]&&!(item[3]&&item[2]==='je Seite')?' · '+item[2]:'')));
  nm.append(t,btn('mr-how','Anleitung',()=>howSheet(item)));inner.append(nm);
  const tm=el('div','mr-timer');
  const ring=el('div','mr-ring');

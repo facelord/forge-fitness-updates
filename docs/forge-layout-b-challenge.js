@@ -11,21 +11,25 @@
 'use strict';
 const S_=(name,reps,unit)=>({name,reps,unit:unit||'reps'});
 const R=(n,moves)=>Array.from({length:n},()=>moves);
-/* Twelve FORGE workouts, one per calendar month (index 0 = January). */
+/* Twelve FORGE workouts, one per calendar month (index 0 = January).
+ * Only bodyweight exercises from the FORGE catalog (with exercise boards),
+ * no equipment needed. */
 const WORKOUTS=Object.freeze([
- {id:'glut',name:'Glut',tag:'Zum Warmwerden ins Jahr',rounds:R(3,[S_('Hampelmann',30),S_('Kniebeuge',15),S_('Liegestütze',10),S_('Bergsteiger',20)])},
+ {id:'glut',name:'Glut',tag:'Zum Warmwerden ins Jahr',rounds:R(3,[S_('Kniebeuge',15),S_('Liegestütze',10),S_('Glute Bridge',15),S_('Plank',30,'sec')])},
  {id:'amboss',name:'Amboss',tag:'Beine und Brust, solide wie Stahl',rounds:R(4,[S_('Kniebeuge',12),S_('Liegestütze',8),S_('Ausfallschritte',10,'side'),S_('Glute Bridge',15)])},
- {id:'funkenflug',name:'Funkenflug',tag:'Kurz, schnell, intensiv',rounds:R(5,[S_('Burpees',8),S_('Bergsteiger',20),S_('Hampelmann',20)])},
+ {id:'funkenflug',name:'Funkenflug',tag:'Kurz, schnell, intensiv',rounds:R(5,[S_('Kniebeuge',15),S_('Liegestütze',10),S_('Wadenheben',20)])},
  {id:'hammerschlag',name:'Hammerschlag',tag:'Absteigende Leiter 15 – 12 – 9 – 6',rounds:[15,12,9,6].map(n=>[S_('Kniebeuge',n),S_('Liegestütze',Math.round(n*0.67)),S_('Dead Bug',Math.round(n*0.67),'side')])},
  {id:'esse',name:'Esse',tag:'Ganzkörper mit Haltephasen',rounds:R(3,[S_('Bulgarian Split Squat',8,'side'),S_('Pike Push-ups',8),S_('Plank',40,'sec'),S_('Glute Bridge',20)])},
  {id:'klinge',name:'Klinge',tag:'Oberkörper und Rumpf',rounds:R(4,[S_('Liegestütze',10),S_('Reverse Snow Angels',12),S_('Enge Liegestütze',6),S_('Superman Hold',30,'sec')])},
- {id:'zunder',name:'Zunder',tag:'Sommer-Cardio ohne Geräte',rounds:R(5,[S_('Hampelmann',25),S_('Kniebeuge',15),S_('Bergsteiger',20),S_('Burpees',5)])},
- {id:'blasebalg',name:'Blasebalg',tag:'Puls hoch, Beine stark',rounds:R(4,[S_('Ausfallschritte',12,'side'),S_('Burpees',6),S_('Wadenheben',20),S_('Bergsteiger',20)])},
+ {id:'zunder',name:'Zunder',tag:'Sommer-Zirkel ohne Geräte',rounds:R(5,[S_('Ausfallschritte',10,'side'),S_('Liegestütze',10),S_('Kniebeuge',15),S_('Dead Bug',8,'side')])},
+ {id:'blasebalg',name:'Blasebalg',tag:'Beine stark, Rumpf fest',rounds:R(4,[S_('Ausfallschritte',12,'side'),S_('Glute Bridge',15),S_('Wadenheben',20),S_('Plank',30,'sec')])},
  {id:'haerte',name:'Härte',tag:'Aufsteigende Leiter 5 – 10 – 15',rounds:[5,10,15].map(n=>[S_('Liegestütze',n),S_('Kniebeuge',n*2),S_('Bird Dog',n,'side')])},
  {id:'meissel',name:'Meißel',tag:'Präzision statt Hektik',rounds:R(3,[S_('Bulgarian Split Squat',10,'side'),S_('Pike Push-ups',10),S_('Dead Bug',10,'side'),S_('Plank',45,'sec')])},
- {id:'stahl',name:'Stahl',tag:'Das große Herbst-Finale',rounds:R(5,[S_('Kniebeuge',15),S_('Liegestütze',10),S_('Glute Bridge',15),S_('Bergsteiger',20)])},
- {id:'schmiedefeuer',name:'Schmiedefeuer',tag:'Zum Jahresende alles geben',rounds:R(4,[S_('Burpees',8),S_('Ausfallschritte',10,'side'),S_('Liegestütze',12),S_('Hampelmann',30),S_('Plank',30,'sec')])}
+ {id:'stahl',name:'Stahl',tag:'Das große Herbst-Finale',rounds:R(5,[S_('Kniebeuge',15),S_('Liegestütze',10),S_('Glute Bridge',15),S_('Reverse Snow Angels',10)])},
+ {id:'schmiedefeuer',name:'Schmiedefeuer',tag:'Zum Jahresende alles geben',rounds:R(4,[S_('Kniebeuge',20),S_('Ausfallschritte',10,'side'),S_('Liegestütze',12),S_('Superman Hold',30,'sec'),S_('Plank',30,'sec')])}
 ]);
+/* Exercises a challenge may use: bodyweight, in the catalog, with a board. */
+const ALLOWED=Object.freeze(['Kniebeuge','Liegestütze','Enge Liegestütze','Pike Push-ups','Ausfallschritte','Bulgarian Split Squat','Glute Bridge','Wadenheben','Bird Dog','Dead Bug','Plank','Superman Hold','Reverse Snow Angels']);
 const LEVELS=Object.freeze({std:{label:'Standard',k:1},easy:{label:'Einsteiger',k:0.6}});
 function monthKey(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
 function workoutFor(d){d=d||new Date();return WORKOUTS[d.getMonth()];}
@@ -39,8 +43,8 @@ function steps(w,level){
 function doseText(s){return s.unit==='sec'?s.reps+' Sek.':s.unit==='side'?s.reps+' je Seite':String(s.reps);}
 function clock(ms){const t=Math.max(0,Math.round((Number(ms)||0)/1000));const h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;return (h?h+':'+String(m).padStart(2,'0'):String(m))+':'+String(s).padStart(2,'0');}
 /* Results of one month and level, best first plus attempts in order (pure, tested). */
-function standing(results,month,level){
- const list=(Array.isArray(results)?results:[]).filter(r=>r&&r.month===month&&(r.level||'std')===level&&Number(r.ms)>0);
+function standing(results,month,level,wid){
+ const list=(Array.isArray(results)?results:[]).filter(r=>r&&(month==null||r.month===month)&&(!wid||r.wid===wid)&&(r.level||'std')===level&&Number(r.ms)>0);
  const byDate=list.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
  const best=list.reduce((b,r)=>!b||r.ms<b.ms?r:b,null);
  return {best,attempts:byDate,count:list.length,firstMs:byDate.length?byDate[0].ms:null};
@@ -55,7 +59,7 @@ function archive(results,currentMonth){
  return [...map.values()].sort((a,b)=>b.month.localeCompare(a.month)||(a.level||'std').localeCompare(b.level||'std'));
 }
 function daysLeft(d){d=d||new Date();const end=new Date(d.getFullYear(),d.getMonth()+1,0);return end.getDate()-d.getDate()+1;}
-window.ForgeLayoutBChallenge=Object.freeze({WORKOUTS,LEVELS,monthKey,workoutFor,steps,doseText,clock,standing,archive,daysLeft,scale});
+window.ForgeLayoutBChallenge=Object.freeze({WORKOUTS,ALLOWED,LEVELS,monthKey,workoutFor,steps,doseText,clock,standing,archive,daysLeft,scale});
 if(typeof document==='undefined')return;
 
 /* ---------- DOM ---------- */
@@ -109,6 +113,12 @@ const CSS=`
 .forge-lb-ch .ch-att:first-of-type{border-top:0}
 .forge-lb-ch .ch-att b{font-size:16px;font-variant-numeric:tabular-nums}
 .forge-lb-ch .ch-att em{font-style:normal;font-size:12px;font-weight:800;color:${GOLD};margin-left:8px}
+.forge-lb-ch .ch-cat{width:100%;background:transparent;border:0;border-top:1px solid #222b3a;color:#f3f7fc;font:inherit;text-align:left;min-height:56px;padding:8px 2px}
+.forge-lb-ch .ch-cat:first-of-type{border-top:0}
+.forge-lb-ch .ch-cat b{display:block;font-size:15px}
+.forge-lb-ch .ch-cat small{display:block;font-size:12px;color:#95a3b7}
+.forge-lb-ch .ch-cat.on b{color:${GOLD}}
+.forge-lb-ch .ch-cat-t{font-weight:800;font-variant-numeric:tabular-nums;color:#c3cddb}
 .forge-lb-ch .ch-empty{font-size:14px;color:#95a3b7;line-height:1.5;margin:0}
 .forge-lb-ch .ch-foot{padding:10px 14px 14px;border-top:1px solid #1d2532;max-width:560px;width:100%;margin:0 auto}
 .forge-lb-ch .ch-main{width:100%;height:58px;border-radius:29px;border:0;background:${GOLD};color:#2a1d05;font:inherit;font-size:18px;font-weight:900}
@@ -159,15 +169,22 @@ function open(){
 }
 function setLevel(l){ui.level=l;const st=S();if(!st.forgeChallenge)st.forgeChallenge={results:[]};st.forgeChallenge.level=l;try{persist();}catch(e){}drawOverview();}
 function drawOverview(){
- stopTimer();root.className='forge-lb-ch';root.textContent='';
- const now=new Date(),w=workoutFor(now),mk=monthKey(now),st=standing(results(),mk,ui.level);
- const head=el('div','ch-head');const x=btn('ch-x','×',close);x.setAttribute('aria-label','Zurück');const t=el('div');t.append(el('small','','Erfolge'),el('h1','','Monats-Challenge'));head.append(x,t);
+ stopTimer();ui.mode='overview';ui.confirmQuit=false;root.className='forge-lb-ch';root.textContent='';
+ const now=new Date(),cur=workoutFor(now),mk=monthKey(now);
+ const w=WORKOUTS.find(x=>x.id===ui.wid)||cur,isCur=w.id===cur.id,wMonth=WORKOUTS.indexOf(w);
+ const st=isCur?standing(results(),mk,ui.level,w.id):standing(results(),null,ui.level,w.id);
+ const head=el('div','ch-head');
+ const x=btn('ch-x','×',()=>{if(isCur)close();else{ui.wid=null;drawOverview();}});x.setAttribute('aria-label',isCur?'Zurück':'Zur Monats-Challenge');
+ const t=el('div');t.append(el('small','',isCur?'Erfolge':'Challenge-Katalog'),el('h1','',isCur?'Monats-Challenge':w.name));head.append(x,t);
  const body=el('div','ch-body');
  const hero=el('div','ch-hero');
- hero.append(el('small','',now.toLocaleDateString('de-DE',{month:'long',year:'numeric'})+' · auf Zeit'),el('h2','',w.name),el('p','',w.tag+'. Alle Runden so schnell wie möglich – saubere Ausführung zählt. Du hast den ganzen Monat, um deine Bestzeit zu schlagen.'));
+ const monthName=new Date(2026,wMonth,1).toLocaleDateString('de-DE',{month:'long'});
+ hero.append(el('small','',isCur?now.toLocaleDateString('de-DE',{month:'long',year:'numeric'})+' · auf Zeit':'Challenge im '+monthName+' · auf Zeit'),el('h2','',w.name),
+  el('p','',w.tag+'. Alle Runden so schnell wie möglich – saubere Ausführung zählt.'+(isCur?' Du hast den ganzen Monat, um deine Bestzeit zu schlagen.':' Jederzeit als freies Training – zählt nicht zur aktuellen Monats-Challenge.')));
  const stats=el('div','ch-stats');
  const stat=(l,v)=>{const d=el('div');d.append(el('small','',l),el('b','',v));stats.append(d);};
- stat('Bestzeit',st.best?clock(st.best.ms):'–');stat('Versuche',String(st.count));stat('Noch',daysLeft(now)+(daysLeft(now)===1?' Tag':' Tage'));
+ stat('Bestzeit',st.best?clock(st.best.ms):'–');stat('Versuche',String(st.count));
+ if(isCur)stat('Noch',daysLeft(now)+(daysLeft(now)===1?' Tag':' Tage'));else stat('Runden',String(w.rounds.length));
  hero.append(stats);body.append(hero);
  const seg=el('div','ch-seg');seg.setAttribute('role','group');seg.setAttribute('aria-label','Stufe');
  Object.entries(LEVELS).forEach(([k,v])=>{const b=btn('',v.label,()=>setLevel(k));b.setAttribute('aria-pressed',String(ui.level===k));seg.append(b);});
@@ -178,23 +195,34 @@ function drawOverview(){
  roundsToShow.forEach((moves,r)=>{const box=el('div','ch-round');box.append(el('b','',allSame?w.rounds.length+' × hintereinander':'Runde '+(r+1)));
   moves.forEach(m=>{const s={...m,reps:scale(m.reps,ui.level)};const row=el('div','ch-move');row.append(el('span','',m.name),el('span','',doseText(s)));box.append(row);});plan.append(box);});
  body.append(plan);
- const att=el('div','ch-card');att.append(el('div','ch-label','Deine Versuche im '+now.toLocaleDateString('de-DE',{month:'long'})));
+ const att=el('div','ch-card');att.append(el('div','ch-label',isCur?'Deine Versuche im '+now.toLocaleDateString('de-DE',{month:'long'}):'Deine Versuche'));
  if(st.attempts.length){st.attempts.slice().reverse().forEach(a=>{const r=el('div','ch-att');const l=el('span','',new Date(a.date).toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'}));const v=el('b','',clock(a.ms));if(st.best&&a.id===st.best.id)v.append(el('em','','BESTZEIT'));r.append(l,v);att.append(r);});
   if(st.count>1&&st.best&&st.firstMs>st.best.ms)att.append(el('p','ch-note','Seit deinem ersten Versuch '+clock(st.firstMs-st.best.ms)+' schneller.'));}
- else att.append(el('p','ch-empty','Noch kein Versuch. Starte einmal, um deine Zeit zu setzen – danach jagst du sie den ganzen Monat.'));
+ else att.append(el('p','ch-empty',isCur?'Noch kein Versuch. Starte einmal, um deine Zeit zu setzen – danach jagst du sie den ganzen Monat.':'Noch kein Versuch mit diesem Workout.'));
  body.append(att);
- const arc=archive(results(),mk);
+ // Challenge catalog: all twelve FORGE workouts, browsable any time.
+ const cat=el('div','ch-card');cat.append(el('div','ch-label','Challenge-Katalog · '+WORKOUTS.length+' Workouts'));
+ WORKOUTS.forEach((wo,i)=>{
+  const b=standing(results(),null,ui.level,wo.id).best;
+  const row=btn('ch-att ch-cat'+(wo.id===w.id?' on':''),'',()=>{ui.wid=wo.id===cur.id?null:wo.id;drawOverview();body.scrollTop=0;});
+  const l=el('span');l.append(el('b','',wo.name),el('small','',new Date(2026,i,1).toLocaleDateString('de-DE',{month:'long'})+(wo.id===cur.id?' · aktuell':'')));
+  row.append(l,el('span','ch-cat-t',b?clock(b.ms):'–'));
+  row.setAttribute('aria-label',wo.name+(b?', Bestzeit '+clock(b.ms):', noch kein Versuch'));
+  cat.append(row);
+ });
+ body.append(cat);
+ const arc=isCur?archive(results(),mk):[];
  if(arc.length){const c=el('div','ch-card');c.append(el('div','ch-label','Vergangene Monate'));
   arc.slice(0,12).forEach(a=>{const [y,m]=a.month.split('-').map(Number);const wo=WORKOUTS[m-1];const r=el('div','ch-att');r.append(el('span','',new Date(y,m-1,1).toLocaleDateString('de-DE',{month:'long',year:'numeric'})+' · '+(wo?wo.name:'')+((a.level||'std')==='easy'?' (Einsteiger)':'')),el('b','',clock(a.ms)));c.append(r);});
   body.append(c);}
- const foot=el('div','ch-foot');foot.append(btn('ch-main',st.count?'Bestzeit jagen':'Challenge starten',startLive));
+ const foot=el('div','ch-foot');foot.append(btn('ch-main',isCur?(st.count?'Bestzeit jagen':'Challenge starten'):'Workout starten',startLive));
  foot.append(el('p','ch-note','Tipp: kurz aufwärmen. Die Uhr läuft nach einem 3-2-1-Countdown, nach jeder Übung tippst du auf „Geschafft“.'));
  root.append(head,body,foot);x.focus({preventScroll:true});
 }
 /* ---------- live ---------- */
 function startLive(){
- const w=workoutFor(new Date());
- ui={mode:'live',level:ui.level,w,month:monthKey(new Date()),list:steps(w,ui.level),i:0,start:0,paused:false,pausedAt:0,pausedMs:0,count:3,confirmQuit:false};
+ const w=WORKOUTS.find(x=>x.id===ui.wid)||workoutFor(new Date());
+ ui={mode:'live',level:ui.level,wid:ui.wid,w,month:monthKey(new Date()),list:steps(w,ui.level),i:0,start:0,paused:false,pausedAt:0,pausedMs:0,count:3,confirmQuit:false};
  root.className='forge-lb-ch live';root.textContent='';
  drawLive();
  const tick=()=>{if(!ui||ui.mode!=='live')return;
@@ -240,12 +268,13 @@ function advance(){
 function finish(){
  const ms=elapsed();stopTimer();
  const st=S();if(!st.forgeChallenge)st.forgeChallenge={results:[]};if(!Array.isArray(st.forgeChallenge.results))st.forgeChallenge.results=[];
- const before=standing(st.forgeChallenge.results,ui.month,ui.level);
+ const isCur=ui.w.id===workoutFor(new Date()).id;
+ const before=standing(st.forgeChallenge.results,isCur?ui.month:null,ui.level,ui.w.id);
  const rec={id:newId(),wid:ui.w.id,month:ui.month,level:ui.level,ms,date:new Date().toISOString()};
  st.forgeChallenge.results.push(rec);
  let saved=true;try{persist();}catch(e){saved=false;st.forgeChallenge.results.pop();}
- const level=ui.level,w=ui.w;
- ui={mode:'result',level};
+ const level=ui.level,w=ui.w,wid=ui.wid;
+ ui={mode:'result',level,wid};
  root.className='forge-lb-ch';root.textContent='';
  const box=el('div','ch-result');
  const pr=!before.best||ms<before.best.ms;
@@ -254,13 +283,13 @@ function finish(){
  else if(!before.best)box.append(el('span','ch-pr','Deine erste Zeit!'),el('p','','Jetzt hast du den Monat Zeit, sie zu schlagen.'));
  else if(pr)box.append(el('span','ch-pr','Neue Bestzeit!'),el('p','',clock(before.best.ms-ms)+' schneller als vorher.'));
  else box.append(el('p','',clock(ms-before.best.ms)+' über deiner Bestzeit von '+clock(before.best.ms)+'. Nächstes Mal!'));
- const foot=el('div','ch-foot');foot.append(btn('ch-main','Fertig',()=>{ui={mode:'overview',level};drawOverview();}));
+ const foot=el('div','ch-foot');foot.append(btn('ch-main','Fertig',()=>{ui={mode:'overview',level,wid};drawOverview();}));
  root.append(box,foot);
  try{window.dispatchEvent(new CustomEvent('forge:challenge-changed'));}catch(e){}
 }
 /* Summary for the Erfolge card. */
 function cardInfo(){
- const now=new Date(),w=workoutFor(now),lvl=(S()&&S().forgeChallenge&&S().forgeChallenge.level)||'std',st=standing(results(),monthKey(now),lvl);
+ const now=new Date(),w=workoutFor(now),lvl=(S()&&S().forgeChallenge&&S().forgeChallenge.level)||'std',st=standing(results(),monthKey(now),lvl,w.id);
  return {title:'Challenge '+now.toLocaleDateString('de-DE',{month:'long'})+' · '+w.name,
   sub:st.best?'Bestzeit '+clock(st.best.ms)+' · '+st.count+(st.count===1?' Versuch':' Versuche'):'Noch kein Versuch · '+daysLeft(now)+' Tage Zeit'};
 }

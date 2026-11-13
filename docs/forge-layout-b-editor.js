@@ -51,10 +51,26 @@ function filterCatalog(items,query){
  return scored.sort((a,b)=>a.s-b.s||a.i-b.i).map(x=>x.it);
 }
 const MUSCLE_CHIPS=Object.freeze([['Alle',''],['Brust','brust'],['Rücken','rucken|latissimus|lat |nacken'],['Beine','bein|oberschenkel|gesass|wade|quadrizeps|hufte'],['Schultern','schulter|delta'],['Arme','bizeps|trizeps|unterarm|arme'],['Rumpf','rumpf|bauch|core|rumpfstabil']]);
+/* Primary muscle group per catalog exercise: every exercise appears in exactly
+ * one category (Bankdrücken only under Brust, not also under Arme/Schultern). */
+const PRIMARY=Object.freeze((()=>{const m={};const add=(cat,list)=>list.forEach(n=>{m[normalize(n)]=cat;});
+ add('Brust',['Bankdrücken','Brustpresse','Butterfly / Pec Deck','Dips','Kabel-Flys','Liegestütze','Schrägbank Kurzhantel']);
+ add('Rücken',['Back Extensions','Brustgestütztes Rudern','Einarmiges Kurzhantelrudern','Gerade-Arme-Pulldown','Klimmzüge','Klimmzüge (breiter Griff)','Klimmzüge (enger Griff)','Latziehen','Rudern am Kabel','Rudern mit Rucksack','Superman Hold','Reverse Snow Angels']);
+ add('Beine',['Abduktorenmaschine','Adduktorenmaschine','Ausfallschritte','Beinbeuger','Beinpresse','Beinstrecker','Bulgarian Split Squat','Einbeiniges rumänisches Kreuzheben','Glute Bridge','Hip Thrust','Kniebeuge','Kniebeugen','Kreuzheben','Rumänisches Kreuzheben','Wadenheben']);
+ add('Schultern',['Arnold Press','Face Pulls','Pike Push-ups','Reverse Flys','Schulter-Außenrotation','Schulterdrücken','Schulterdrücken mit der Langhantel','Seitheben']);
+ add('Arme',['Bizepscurls','Bizepscurls mit Rucksack','Dips (Trizepsfokus)','Enge Liegestütze','Hammer Curls','Trizepsdrücken','Überkopf-Trizepsstrecken']);
+ add('Rumpf',['Bird Dog','Dead Bug',"Farmer's Carry",'Hängendes Knieheben','Kabel-Crunches','Pallof Press','Plank']);
+ return m;})());
+function primaryGroup(item){
+ const name=item&&item.name;const known=PRIMARY[normalize(name)];if(known)return known;
+ // Own / unknown exercises: decide by the name, then by the FIRST muscle of the label only.
+ const first=String(item&&item.label||'').split(/\s*·\s*|[,;]/)[0]||'';
+ for(const src of [name,first]){const hay=' '+normalize(src)+' ';const c=MUSCLE_CHIPS.find(x=>x[1]&&new RegExp(x[1]).test(hay));if(c)return c[0];}
+ return '';
+}
 function matchesChip(item,chip){
  const c=MUSCLE_CHIPS.find(x=>x[0]===chip);if(!c||!c[1])return true;
- const hay=' '+normalize(item.name+' '+(item.label||''))+' ';
- return new RegExp(c[1]).test(hay);
+ return primaryGroup(item)===chip;
 }
 function moveItem(list,from,to){
  const a=list.slice();if(from<0||from>=a.length||to<0||to>=a.length)return a;
@@ -66,10 +82,18 @@ function unitDirty(x){
 }
 const DAY_SHORT=Object.freeze(['Mo','Di','Mi','Do','Fr','Sa','So']);
 const DAY_FULL=Object.freeze(['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag']);
-/* Own plan from scratch: one unit per chosen weekday. */
-function draftUnits(days,location){
- return [...new Set(days||[])].filter(d=>Number.isInteger(d)&&d>=0&&d<=6).sort((a,b)=>a-b)
-  .map(d=>({id:'draft-'+d,weekday:d,label:DAY_FULL[d],short:DAY_SHORT[d],title:DAY_FULL[d],location:location==='home'?'home':'gym',ex:[]}));
+/* Own plan from scratch: one unit per chosen weekday – or, with `variety`
+ * (1–4, fewer than the days), that many units A, B, … alternating over the
+ * weekdays (e.g. Mo/Mi/Fr with 2 units → A · B · A). */
+function draftUnits(days,location,variety){
+ const list=[...new Set(days||[])].filter(d=>Number.isInteger(d)&&d>=0&&d<=6).sort((a,b)=>a-b);
+ const loc=location==='home'?'home':'gym';
+ const n=Math.round(Number(variety)||0);
+ if(n>=1&&n<list.length&&n<=4){
+  return Array.from({length:n},(_,i)=>{const own=list.filter((_,k)=>k%n===i);
+   return {id:'draft-u'+i,weekday:own[0],days:own,label:'Einheit '+unitLetter(i)+' · '+own.map(d=>DAY_SHORT[d]).join(', '),short:unitLetter(i),title:'Einheit '+unitLetter(i),location:loc,ex:[]};});
+ }
+ return list.map(d=>({id:'draft-'+d,weekday:d,label:DAY_FULL[d],short:DAY_SHORT[d],title:DAY_FULL[d],location:loc,ex:[]}));
 }
 /* Rolling plan („alle X Tage“): ordered units A, B, C … instead of weekdays. */
 function draftSlots(count,location){
@@ -97,7 +121,9 @@ function draftIssue(units){
 /* Same shape as the app's own manualSavePlan(). */
 function draftPlan(units,name,idFn){
  const label=String(name||'').trim().slice(0,70)||'Mein individueller Trainingsplan';
- return units.slice().sort((a,b)=>a.weekday-b.weekday).map(u=>({id:idFn(),weekday:u.weekday,type:'full',title:label+' · '+(u.label||DAY_FULL[u.weekday]),location:u.location==='home'?'home':'gym',
+ // Units shared by several weekdays become one plan entry per weekday (same exercises).
+ const rows=[];units.forEach(u=>{(Array.isArray(u.days)&&u.days.length?u.days:[u.weekday]).forEach(d=>rows.push({u,d,shared:Array.isArray(u.days)}));});
+ return rows.sort((a,b)=>a.d-b.d).map(({u,d,shared})=>({id:idFn(),weekday:d,type:'full',title:label+' · '+(shared?u.title:(u.label||DAY_FULL[d])),location:u.location==='home'?'home':'gym',
   ex:u.ex.map(e=>({name:String(e.name).trim(),sets:Number(e.sets),reps:Number(e.reps),unit:e.unit||'auto',...(Number.isInteger(Number(e.rest))&&Number(e.rest)>=15&&Number(e.rest)<=600?{rest:Number(e.rest)}:{})}))}));
 }
 /* Own exercises (not in the catalog) that a plan already contains may stay when
@@ -108,7 +134,7 @@ function ownExercisesOk(x,catalog,existing){
  if(!names.length||new Set(names).size!==names.length)return false;
  return names.some(n=>!cat.has(n))&&names.every(n=>cat.has(n)||old.has(n));
 }
-window.ForgeLayoutBEditor=Object.freeze({ownExercisesOk,draftUnits,draftSlots,draftCadence,draftIssue,draftPlan,unitLetter,stepValue,doseText,muscleLabel,normalize,splitCatalog,filterCatalog,matchesChip,MUSCLE_CHIPS,moveItem,unitDirty});
+window.ForgeLayoutBEditor=Object.freeze({ownExercisesOk,draftUnits,draftSlots,draftCadence,draftIssue,draftPlan,unitLetter,stepValue,doseText,muscleLabel,normalize,splitCatalog,filterCatalog,matchesChip,primaryGroup,MUSCLE_CHIPS,moveItem,unitDirty});
 if(typeof document==='undefined')return;
 
 /* ---------- environment ---------- */
@@ -293,7 +319,7 @@ function openDraft(opts){
  if(interval){
   try{window.ForgeCadenceCore?.validate({mode:'interval',every:Number(opts.every),anchor:opts.anchor,planOrder:['x']});}catch(e){return false;}
  }
- const units=interval?draftSlots(opts.units,opts.location):draftUnits(opts&&opts.days,opts&&opts.location);
+ const units=interval?draftSlots(opts.units,opts.location):draftUnits(opts&&opts.days,opts&&opts.location,opts&&opts.variety);
  if(!units.length)return false;
  ensureCss();closeEditor(true);
  ed={unit:units[0].id,open:0,staged:new Map(),status:'',tone:'',draft:{units,name:String(opts.name||''),mode:interval?'interval':'weekdays',every:Number(opts.every)||0,anchor:String(opts.anchor||'')}};

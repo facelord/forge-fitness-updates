@@ -102,9 +102,21 @@ ${B} .forge-settings-action.alt{background:#171e2a!important;color:#f3f7fc!impor
 ${B} #progress details.forge-lb-goal-dup{display:none!important}
 ${B} #progress details:has(> .disclosure-body > .card #forgeWeeklyGoal),${B} #progress details:has(> .forge144-targets){display:none!important}
 /* Marke + Slogan über jeder Hauptseite */
-${B} .page>.forge-lb-brand{display:flex;flex-direction:column;justify-content:center;gap:1px;margin:6px 0 4px;padding:0 6px;font-family:Inter,system-ui,sans-serif;pointer-events:none}
-${B} .page>.forge-lb-brand b{font-size:15px;font-weight:900;letter-spacing:.22em;color:${ACC};line-height:1.1}
-${B} .page>.forge-lb-brand span{font-size:12px;color:#95a3b7;letter-spacing:.02em;line-height:1.2}
+@font-face{font-family:'FORGE Exo 2';src:url('./fonts/Exo2-ExtraBold-FORGE.woff') format('woff');font-weight:800;font-style:normal;font-display:block}
+${B} :is(#plan,#workout,#nutrition,#progress){position:relative}
+${B} .page>.forge-lb-brand{display:flex;flex-direction:column;justify-content:center;gap:2px;min-height:44px;margin:6px 0 6px;padding:0 58px 0 6px;font-family:Inter,system-ui,sans-serif;pointer-events:none}
+${B} .page>.forge-lb-brand b{font-family:'FORGE Exo 2',Inter,system-ui,sans-serif;font-size:clamp(18px,5.2vw,20px);font-weight:800;letter-spacing:.08em;color:${ACC};line-height:1.05}
+${B} .page>.forge-lb-brand span{font-size:clamp(13px,3.6vw,14px);color:#a3b0c2;letter-spacing:.01em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+${B} .page>.forge-lb-brand.forge-lb-reveal>*{animation:forgeLbReveal .45s cubic-bezier(.2,.7,.2,1) both}
+${B} .page>.forge-lb-brand.forge-lb-reveal>span{animation-delay:.06s}
+@keyframes forgeLbReveal{from{clip-path:inset(0 100% 0 0);opacity:.2}to{clip-path:inset(0 0 0 0);opacity:1}}
+@media(prefers-reduced-motion:reduce){${B} .page>.forge-lb-brand.forge-lb-reveal>*{animation:none}}
+/* ⋯ sitzt oben rechts auf Höhe der Marke – nie über Karten oder Werten */
+${B} :is(#plan,#nutrition,#progress).page.page>.forge-b-pagehead{position:absolute!important;top:var(--forge-lb-head-top,6px)!important;right:4px!important;left:auto!important;width:44px!important;height:44px!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;z-index:9!important}
+${B} :is(#plan,#nutrition,#progress).page.page>.forge-b-pagehead .forge-b-pagehead-action{position:absolute!important;top:0!important;right:0!important}
+${B} :is(#plan,#nutrition,#progress).page.page>.forge-b-pagehead .forge-b-pagehead-logo{display:none!important}
+${B} :is(#plan,#nutrition,#progress).forge-unified>h1{padding-right:0!important}
+${B} #workout>.forge-lb-wohead .forge-lb-menu-btn{position:absolute;top:var(--forge-lb-head-top,6px);right:4px;z-index:9}
 ${B} #workout.forge-lb-live>.forge-lb-brand,${B} #workout.forge-compact-live>.forge-lb-brand,${B}.forge-compact-typing .page>.forge-lb-brand{display:none}
 /* Workout vor dem Start */
 ${B} #workout>.forge-lb-wohead{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 2px 4px 6px}
@@ -203,7 +215,23 @@ function brand(){
   let b=page.querySelector(':scope > .forge-lb-brand');
   if(!b){b=el('div','forge-lb-brand');b.setAttribute('aria-label','FORGE – '+SLOGAN);b.append(el('b','','FORGE'),el('span','',SLOGAN));}
   if(page.firstElementChild!==b)page.prepend(b);
+  if(!b.offsetParent)continue;
+  const top=(b.offsetTop+Math.max(0,(b.offsetHeight-44)/2))+'px';if(page.style.getPropertyValue('--forge-lb-head-top')!==top)page.style.setProperty('--forge-lb-head-top',top);
  }
+}
+/* Marke + Slogan beim Tabwechsel einmal von links enthüllen */
+let lastPage='';
+function reveal(){
+ const page=document.querySelector('.page.active');const id=page?.id||'';
+ if(id===lastPage)return;const first=!lastPage;lastPage=id;
+ if(first||!BRAND_PAGES.includes(id))return;
+ const b=page.querySelector(':scope > .forge-lb-brand');if(!b)return;
+ b.classList.remove('forge-lb-reveal');void b.offsetWidth;b.classList.add('forge-lb-reveal');
+}
+function watchTabs(){
+ const mo=new MutationObserver(reveal);
+ BRAND_PAGES.forEach(id=>{const p=$(id);if(p)mo.observe(p,{attributes:true,attributeFilter:['class']});});
+ reveal();
 }
 function workoutHead(){
  const w=$('workout');if(!w||w.querySelector(':scope > .forge-lb-wohead'))return;
@@ -275,7 +303,7 @@ function install(){
  if(!$('forgeLayoutBShellStyle')){const st=el('style');st.id='forgeLayoutBShellStyle';st.textContent=CSS;document.head.append(st);}
  document.addEventListener('click',interceptMenu,true);
  try{watchErrors();}catch(e){}
- tick();setInterval(()=>{if(document.visibilityState!=='hidden')tick();},800);
+ tick();try{watchTabs();}catch(e){}setInterval(()=>{if(document.visibilityState!=='hidden')tick();},800);
  return true;
 }
 function boot(){if(install())return;let n=0;const t=setInterval(()=>{if(install()||++n>20)clearInterval(t);},250);}
