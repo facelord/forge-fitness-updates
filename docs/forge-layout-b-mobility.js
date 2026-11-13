@@ -44,7 +44,7 @@ function totalSeconds(items,lib){return buildPhases(items,lib).filter(p=>p.kind=
  * req: zwingend nötige Hilfsmittel · opt: optional (Komfort). */
 const GEN_EQUIP=Object.freeze([['band','Theraband'],['wand','Wand'],['tuer','Türrahmen'],['rolle','Faszienrolle'],['stab','Gymnastikstab'],['ball','Massageball'],['gurt','Dehngurt']]);
 const GEN_OPTIONAL=Object.freeze({matte:'Matte',wand:'Wand zum Festhalten'});
-const GEN_FOCUS=Object.freeze([['full','Ganzkörper'],['legs','Beine'],['shoulders','Schultern'],['core','Rumpf']]);
+const GEN_FOCUS=Object.freeze([['full','Ganzkörper'],['legs','Beine'],['shoulders','Schultern'],['core','Rumpf'],['back','Rücken']]);
 const GEN_MINUTES=Object.freeze([5,10,15,20]);
 const M=(name,f,pos,sides,req,opt)=>Object.freeze({name,f,pos,sides,req:req||[],opt:opt||[]});
 const GEN_MOVES=Object.freeze([
@@ -52,16 +52,16 @@ const GEN_MOVES=Object.freeze([
  M('Fersengleiten in Rückenlage','B',4,true,[],['matte']),M('Beinpendel vor und zurück','B',1,true,[],['wand']),M('Seitliches Beinpendel','B',1,true,[],['wand']),
  M('Hüftkreisen im Stand','BR',1,true),M('90/90-Vorbeuge','B',2,true,[],['matte']),M('Hüftkreise im Vierfüßlerstand','BR',3,true,[],['matte']),
  M('Quadrizeps-Dehnung im Stand','B',1,true,[],['wand']),M('Soleus-Dehnung mit gebeugtem Knie','B',1,true,[],['wand']),M('Hamstring-Dehnung mit Gurt','B',4,true,['gurt'],['matte']),
- M('Beckenkippen in Rückenlage','R',4,false,[],['matte']),M('Beckenkreisen im Stand','RB',1,false),M('Knie zur Brust in Rückenlage','RB',4,true,[],['matte']),
- M('Thread the Needle','SR',3,true,[],['matte']),M('Brustwirbelsäulenstreckung über Foam Roller','SR',4,false,['rolle'],['matte']),M('Schulterkreisen','S',1,false),
- M('Schulterheben mit Stab','S',1,false,['stab']),M('Handgelenksmobilisation','S',1,true),M('Kindhaltung','RS',3,false,[],['matte']),
- M('Herabschauender Hund','SBR',3,false,[],['matte']),M('Liegender Twist','R',4,true,[],['matte']),M('Hüftbeuger-Dehnung','BR',3,true,[],['matte']),
+ M('Beckenkippen in Rückenlage','RU',4,false,[],['matte']),M('Beckenkreisen im Stand','RBU',1,false),M('Knie zur Brust in Rückenlage','RBU',4,true,[],['matte']),
+ M('Thread the Needle','SRU',3,true,[],['matte']),M('Brustwirbelsäulenstreckung über Foam Roller','SRU',4,false,['rolle'],['matte']),M('Schulterkreisen','S',1,false),
+ M('Schulterheben mit Stab','S',1,false,['stab']),M('Handgelenksmobilisation','S',1,true),M('Kindhaltung','RSU',3,false,[],['matte']),
+ M('Herabschauender Hund','SBRU',3,false,[],['matte']),M('Liegender Twist','RU',4,true,[],['matte']),M('Hüftbeuger-Dehnung','BR',3,true,[],['matte']),
  M('Figure-Four-Dehnung','B',4,true,[],['matte']),M('Türrahmen-Brustdehnung','S',1,true,['tuer']),M('Waden-Dehnung','B',1,true,[],['wand']),
- M('Adduktoren-Rockback','B',3,true,[],['matte']),M('Wall Slides','S',1,false,['wand']),M('Cat-Cow','RS',3,false,[],['matte']),
- M('Brustwirbelsäulen-Rotation','SR',3,true,[],['matte']),M('Tiefe Hocke mit Halt','B',1,false,[],['wand']),M('Low Lunge','BR',3,true,[],['matte']),
- M('Krieger II','BS',1,true),M('Sitzende Vorbeuge','BR',2,false,[],['matte']),M('90/90 Hüftwechsel','B',2,false,[],['matte']),
- M('Kindhaltung mit Seitgriff','SR',3,true,[],['matte']),
- M('Schulter-Dislocates mit Theraband','S',1,false,['band']),M('Band-Außenrotation','S',1,true,['band']),M('Hamstring-Dehnung mit Theraband','B',4,true,['band'],['matte']),
+ M('Adduktoren-Rockback','B',3,true,[],['matte']),M('Wall Slides','SU',1,false,['wand']),M('Cat-Cow','RSU',3,false,[],['matte']),
+ M('Brustwirbelsäulen-Rotation','SRU',3,true,[],['matte']),M('Tiefe Hocke mit Halt','B',1,false,[],['wand']),M('Low Lunge','BR',3,true,[],['matte']),
+ M('Krieger II','BS',1,true),M('Sitzende Vorbeuge','BRU',2,false,[],['matte']),M('90/90 Hüftwechsel','B',2,false,[],['matte']),
+ M('Kindhaltung mit Seitgriff','SRU',3,true,[],['matte']),
+ M('Schulter-Dislocates mit Theraband','SU',1,false,['band']),M('Band-Außenrotation','S',1,true,['band']),M('Hamstring-Dehnung mit Theraband','B',4,true,['band'],['matte']),
  M('Sprunggelenk-Mobilisation mit Theraband','B',3,true,['band'],['matte']),M('Hüftbeuger-Dehnung mit Theraband','BR',3,true,['band'],['matte']),
  M('Handgelenksmobilisation mit Theraband','S',3,true,['band'],['matte'])]);
 /* Band-Variante und Grundübung nie zusammen in einer Routine. */
@@ -69,7 +69,7 @@ const GEN_TWIN=Object.freeze((()=>{const m={};[['Handgelenksmobilisation mit The
 const GEN_FIRST_PREP=5,GEN_PREP=8,GEN_POS_PREP=10,GEN_ROUND_PREP=10,GEN_SIDE_PREP=SIDE_PREP;
 function genRng(seed){let a=(Number(seed)>>>0)||1;return ()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return ((t^(t>>>14))>>>0)/4294967296;};}
 function genShuffle(list,rnd){const a=list.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-const FOCUS_LETTER={legs:'B',shoulders:'S',core:'R'};
+const FOCUS_LETTER={legs:'B',shoulders:'S',core:'R',back:'U'};
 /* equip: 'none' (ohne Hilfsmittel) or a list of available keys. Every required item must be available. */
 function genPool(focus,equip,moves){
  const have=equip==='none'?[]:(Array.isArray(equip)?equip:[]);
@@ -213,7 +213,7 @@ function videoList(catalog){
 }
 function filterVideos(list,f){
  const q=String(f&&f.q||'').toLocaleLowerCase('de').trim();
- return (list||[]).filter(v=>(!f||!f.area||f.area==='all'||v.area===f.area)&&(!f||!f.mins||v.mins===Number(f.mins))&&(!q||(v.title+' '+v.creator).toLocaleLowerCase('de').includes(q)));
+ return (list||[]).filter(v=>(!f||!f.kind||f.kind==='all'||(f.kind==='yoga'?v.yoga:!v.yoga))&&(!f||!f.area||f.area==='all'||v.area===f.area)&&(!f||!f.mins||v.mins===Number(f.mins))&&(!q||(v.title+' '+v.creator).toLocaleLowerCase('de').includes(q)));
 }
 /* Weekly plan keeps the first two videos per area+duration (legacy videoCandidates). */
 function plannable(v){return !!v&&v.idx<2;}
@@ -323,6 +323,9 @@ ${K} .ms-link{border:0;background:transparent;color:${TEAL};font:inherit;font-si
 .forge-lb-vsheet .vs-back{border:0;background:transparent;color:${TEAL};font:inherit;font-size:14px;font-weight:700;display:flex;align-items:center;gap:4px;padding:0;min-height:44px}
 .forge-lb-vsheet .vs-body{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:4px 0 8px;scrollbar-width:none;overscroll-behavior:contain}
 .forge-lb-vsheet .vs-body::-webkit-scrollbar{display:none}
+.forge-lb-vsheet .vs-kind{display:grid;grid-template-columns:1fr 1fr;gap:4px;height:52px;border-radius:26px;background:#171e2a;border:1px solid #293346;padding:5px;box-sizing:border-box;flex:0 0 auto}
+.forge-lb-vsheet .vs-kind button{border:0;border-radius:21px;background:transparent;color:#95a3b7;font:inherit;font-size:15px;font-weight:700}
+.forge-lb-vsheet .vs-kind button[aria-checked="true"]{background:${TEAL};color:#062420;font-weight:800}
 .forge-lb-vsheet .vs-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:0 0 auto;padding:1px 0}
 .forge-lb-vsheet .vs-chips::-webkit-scrollbar{display:none}
 .forge-lb-vsheet .vs-chips button{flex:0 0 auto;height:40px;border-radius:20px;border:1px solid #293346;background:#171e2a;color:#c3cddb;font:inherit;font-size:14px;font-weight:600;padding:0 14px;white-space:nowrap}
@@ -362,6 +365,7 @@ ${R} .mr-media{flex:1 1 auto;min-height:120px;border-radius:22px;overflow:hidden
 ${R} .mr-media img{min-height:0}
 ${R} .mr-media img{flex:1;min-width:0;height:100%;object-fit:contain;display:block;background:#10161f}
 ${R} .mr-media.none{align-items:center;justify-content:center;color:#2f6a62}
+${R} .mr-ai{position:absolute;right:10px;bottom:10px;font-size:11px;font-weight:600;color:#d8dfdb;background:rgba(5,9,10,.78);border:1px solid rgba(255,255,255,.18);border-radius:7px;padding:3px 7px;pointer-events:none}
 ${R} .mr-badge{position:absolute;left:10px;top:10px;height:28px;border-radius:14px;background:#0b1018d9;color:${TEAL};font-size:12px;font-weight:800;padding:0 12px;display:flex;align-items:center}
 ${R} .mr-name{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
 ${R} .mr-name h2{margin:0;font-size:clamp(21px,6.4vw,26px);font-weight:800;line-height:1.15;overflow-wrap:anywhere}
@@ -475,7 +479,7 @@ function vKey(e){if(e.key!=='Escape')return;e.preventDefault();e.stopPropagation
 function openVideos(){
  if(!enabled())return false;
  ensureCss();closeVideos();
- vstate={area:'all',mins:0,q:'',detail:null,plan:false,toast:''};
+ vstate={kind:'yoga',area:'all',mins:0,q:'',detail:null,plan:false,toast:''};
  vsheet=el('div','forge-lb-vshade');vsheet.addEventListener('click',e=>{if(e.target===vsheet)closeVideos();});
  document.body.append(vsheet);document.addEventListener('keydown',vKey,true);
  renderVideos();return true;
@@ -525,8 +529,11 @@ function renderVideos(){
   sh.setAttribute('aria-label','Video-Bibliothek');
   const top=el('div','vs-top');const h=el('div');h.append(el('h2','','Video-Bibliothek'),el('small','','Yoga & Mobilität · öffnet in YouTube'));top.append(h,x);sh.append(top);
   const body=el('div','vs-body');
-  body.append(chipRow('Bereich',[['all','Alle'],...VIDEO_AREAS],vstate.area,v=>{vstate.area=v;renderVideos();}));
-  body.append(chipRow('Dauer',[[0,'Alle'],...VIDEO_MINS.map(m=>[m,m+' Min.'])],vstate.mins,v=>{vstate.mins=Number(v);renderVideos();}));
+  const kind=el('div','vs-kind');kind.setAttribute('role','radiogroup');kind.setAttribute('aria-label','Art');
+  [['yoga','Yoga'],['mob','Mobilität']].forEach(([k,t])=>{const b=btn('',t,()=>{vstate.kind=k;renderVideos();});b.setAttribute('role','radio');b.setAttribute('aria-checked',String(vstate.kind===k));kind.append(b);});
+  body.append(kind);
+  body.append(el('div','vs-label','Dauer'),chipRow('Dauer',[[0,'Alle'],...VIDEO_MINS.map(m=>[m,m+' Min.'])],vstate.mins,v=>{vstate.mins=Number(v);renderVideos();}));
+  body.append(el('div','vs-label','Schwerpunkt'),chipRow('Schwerpunkt',[['all','Alle'],...VIDEO_AREAS],vstate.area,v=>{vstate.area=v;renderVideos();}));
   const lab=el('label','vs-search');lab.innerHTML=ICON.search;const inp=el('input');inp.type='search';inp.placeholder='Video suchen';inp.value=vstate.q;inp.setAttribute('aria-label','Video suchen');
   inp.addEventListener('input',()=>{vstate.q=inp.value;fillList();});lab.append(inp);body.append(lab);
   const count=el('div','vs-count');const list=el('div','vs-list');body.append(count,list);
@@ -652,7 +659,7 @@ function render(){
  const prog=el('div','mr-prog');r.items.forEach((_,i)=>{const s=el('i',i<p.ex?'done':i===p.ex?'cur':'');prog.append(s);});
  top.append(x,prog,el('div','mr-count',(p.ex+1)+'/'+r.items.length));inner.append(top);
  const media=el('div','mr-media');const imgs=images(item[0]);
- if(imgs.length)imgs.forEach(src=>{const i=el('img');i.src=src;i.alt=item[0];media.append(i);});else{media.classList.add('none');media.innerHTML=ICON.flow.replace('width="22" height="22"','width="64" height="64"');}
+ if(imgs.length){imgs.forEach(src=>{const i=el('img');i.src=src;i.alt=item[0];media.append(i);});if(imgs.some(x=>/mobility-boards\//.test(x))){const ai=el('span','mr-ai','KI-generiert');ai.setAttribute('role','note');media.append(ai);}}else{media.classList.add('none');media.innerHTML=ICON.flow.replace('width="22" height="22"','width="64" height="64"');}
  if(p.side)media.append(el('span','mr-badge','Seite '+p.sideNo+' von 2 · '+p.side));
  inner.append(media);
  const nm=el('div','mr-name');const t=el('div');t.append(el('h2','',item[0]),el('small','',(item[3]&&item[3].rounds>1?'Runde '+item[3].round+'/'+item[3].rounds+' · ':'')+item[1]+' Sek.'+(hasSides(item,lib)?' je Seite':'')+(item[2]&&!(item[3]&&item[2]==='je Seite')?' · '+item[2]:'')));

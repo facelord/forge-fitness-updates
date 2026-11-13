@@ -50,6 +50,8 @@ function styles(){
  .forge-anatomy-v2-bar button{min-width:44px;min-height:44px;border-radius:9px;border:1px solid #4b746f;background:#1b3641;color:white;font-size:22px}
  .forge-anatomy-v2-stage{flex:1;min-width:0;min-height:0;box-sizing:border-box;display:flex;justify-content:center;align-items:center;overflow:hidden;padding:8px 10px;touch-action:none;cursor:grab}
  .forge-anatomy-v2-stage img{display:block;flex:none;min-width:0;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;object-position:center center;pointer-events:none;user-select:none;-webkit-user-drag:none;transform-origin:center center;will-change:transform}
+ .forge-anatomy-v2-stage{position:relative}
+ .forge-ai-badge-zoom{position:absolute;right:10px;bottom:8px;z-index:3;font:600 11px/1.1 Inter,system-ui,sans-serif;color:#d8dfdb;background:rgba(5,9,10,.78);border:1px solid rgba(255,255,255,.18);border-radius:7px;padding:3px 7px;pointer-events:none}
  .forge-anatomy-v2-help{flex:none;text-align:center;padding:4px 8px 6px;font-size:11px;color:#b9d0ca}
  /* Board: fit its complete 4:3 landscape composition without blank vertical space. */
  .forge-anatomy-v2-board-panel{width:min(640px,100%);height:auto;max-height:calc(100dvh - 28px)}
@@ -73,6 +75,8 @@ function zoomOpen(source){
  const img=document.createElement('img');img.src=source.currentSrc||source.src;img.alt=source.alt||'';img.draggable=false;
  // V10.2: every opening starts at 1x fit-to-contain, never at a test zoom.
  img.style.transform='translate(0px, 0px) scale(1)';stage.append(img);
+ // Transparenz: KI-generierte Übungstafeln (Kraft + Band-Mobilität) bleiben auch im Zoom gekennzeichnet.
+ if(boardImage||/(strength|mobility)-boards\//.test(img.src||'')){const ai=document.createElement('span');ai.className='forge-ai-badge forge-ai-badge-zoom';ai.setAttribute('role','note');ai.textContent='KI-generiert';stage.append(ai);}
  const help=document.createElement('div');help.className='forge-anatomy-v2-help';help.textContent='Zwei Finger: Zoom · Tippe daneben zum Schließen';
  const panel=document.createElement('div');panel.className='forge-anatomy-v2-panel'+(boardImage?' forge-anatomy-v2-board-panel':'');panel.append(bar,stage,help);box.append(panel);
  let z=1,x=0,y=0,prior=0;const pointers=new Map(),oldOverflow=document.body.style.overflow,oldFocus=document.activeElement;

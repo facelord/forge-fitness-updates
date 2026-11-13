@@ -729,7 +729,12 @@ function techSheet(name){
   h.querySelector('.sh-x').onclick=()=>openCatalog(back);
   s.append(h);
   const body=el('div','tech-body');
-  if(Array.isArray(mob)&&mob.length){const g=el('div','tech-img');mob.slice(0,2).forEach(src=>{const i=el('img');i.src=src;i.alt=name;i.loading='lazy';g.append(i);});body.append(g);}
+  if(Array.isArray(mob)&&mob.length&&/mobility-boards\//.test(mob[0])){
+   // Theraband-Mobilität: ganze Tafel wie bei Kraftübungen – zoombar und als KI-generiert gekennzeichnet
+   const g=el('div','tech-img tech-board');
+   g.innerHTML='<div class="forge-strength-board"><figure class="forge-strength-board-figure"><span class="forge-sb-frame"><img class="forge-strength-board-image" role="button" tabindex="0" loading="lazy" alt=""><span class="forge-ai-badge" role="note">KI-generiert</span></span><figcaption>Gesamte Übungsübersicht ansehen · Zum Vergrößern tippen</figcaption></figure></div>';
+   const im=g.querySelector('img');im.src=mob[0];im.alt=name+' – Übungstafel. Zum Vergrößern tippen.';body.append(g);}
+  else if(Array.isArray(mob)&&mob.length){const g=el('div','tech-img');mob.slice(0,2).forEach(src=>{const i=el('img');i.src=src;i.alt=name;i.loading='lazy';g.append(i);});body.append(g);}
   else if(pics){const g=el('div','tech-img');g.innerHTML=pics;g.querySelectorAll('img').forEach((x,k)=>{if(k>1)x.remove();});if(!g.querySelector('img'))g.innerHTML='';else body.append(g);}
   const card=(k,txt)=>{const c=el('div','tech-card');c.append(el('small','',k));if(Array.isArray(txt))txt.forEach((t,i)=>c.append(el('span','',(i+1)+'. '+t)));else c.append(el('span','',txt));body.append(c);};
   if(guide){card('Trainiert',guide[0]||'');card('Ausführung',guide.slice(1,4));if(guide[4])card('Tipp',guide[4]);}

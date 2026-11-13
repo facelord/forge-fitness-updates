@@ -82,6 +82,12 @@ ${P} .forge-lb-day b{font-size:15px;color:${ACC}}
 ${P} .forge-lb-day.today{border:2px solid ${ACC}}
 ${P} .forge-lb-day.today span{color:#f3f7fc}
 ${P} .forge-lb-day[aria-expanded="true"]{background:#24402c}
+${P} .forge-lb-day{position:relative}
+${P} .forge-lb-day .forge-lb-rtdot{position:absolute;bottom:6px;width:7px;height:7px;border-radius:4px;background:#5ee0c8}
+${P} .forge-lb-day.rt:not(.train){background:#14262a;color:#c3cddb}
+${P} .forge-lb-daydetail .forge-lb-rtrow{align-items:center}
+${P} .forge-lb-daydetail .forge-lb-rtrow span:first-child{color:#5ee0c8!important;white-space:normal!important}
+${P} .forge-lb-rtgo{min-height:40px;border-radius:20px;border:0;background:#5ee0c8;color:#062420;font:inherit;font-size:13px;font-weight:800;padding:0 14px}
 ${P} .forge-lb-week-hint{font-size:12px;color:#95a3b7}
 ${P} .forge-lb-daydetail[hidden]{display:none!important}
 ${P} .forge-lb-daydetail{background:#141b26;border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
@@ -113,7 +119,7 @@ function build(page){
  const wt=el('div','forge-lb-week-top');const wl=el('small','','Deine Trainingswoche');const wm=el('span','','');wt.append(wl,wm);
  const days=el('div','forge-lb-days');days.setAttribute('role','group');days.setAttribute('aria-label','Trainingswoche');
  const dd=el('div','forge-lb-daydetail');dd.hidden=true;
- const wh=el('div','forge-lb-week-hint','Trainingstag antippen, um Übungen und Sätze anzusehen.');
+ const wh=el('div','forge-lb-week-hint','Tag antippen, um Training oder Routine anzusehen. Türkiser Punkt = Routine.');
  week.append(wt,days,dd,wh);
  const tiles=el('div','forge-lb-tiles');
  const edit=el('button','forge-lb-tile');edit.type='button';edit.innerHTML=ICON.edit+'<span>Plan bearbeiten</span>';
@@ -162,10 +168,13 @@ function render(force){
  let map=null;try{map=typeof window.forge130WeekTrainingMap==='function'?window.forge130WeekTrainingMap():null;}catch(e){}
  const today=mondayIndex(new Date());
  const cells=weekCells(map,plans,today);
+ // Routinen (Yoga · Mobilität · Dehnen) im gemeinsamen Wochenkalender
+ const rtOf=i=>{try{return window.ForgeRoutines?.forDay?.(i)||[];}catch(e){return [];}};
+ const rtKey=cells.map(c=>rtOf(c.index).map(r=>r.id+r.name).join(',')).join('|');
  let cad='Feste Wochentage';
  try{const c=window.ForgeCadenceSchedule?.getActive?.();if(c&&c.every)cad='Alle '+c.every+' '+(c.every===1?'Tag':'Tage');}catch(e){}
  const archived=Array.isArray(state.forgePlanArchive)?state.forgePlanArchive.length:(Array.isArray(state.planArchive)?state.planArchive.length:null);
- const key=JSON.stringify([kicker,title,meta,action,cells.map(c=>c.letter+(c.plan?c.plan.id:'')),cad,openDay,state.activePlanName,plans.length,archived]);
+ const key=JSON.stringify([kicker,title,meta,action,cells.map(c=>c.letter+(c.plan?c.plan.id:'')),cad,openDay,state.activePlanName,plans.length,archived,rtKey]);
  if(!force&&key===ui.key)return;
  ui.key=key;
  setText(ui.sub,state.activePlanName||(plans.length?'Mein Krafttraining':'Noch kein Plan'));
@@ -178,20 +187,28 @@ function render(force){
  ui.shift.hidden=!canShift;ui.acts.classList.toggle('single',!canShift);
  setText(ui.wm,cad);
  ui.days.replaceChildren(...cells.map(c=>{
-  const b=el('button','forge-lb-day'+(c.plan?' train':'')+(c.today?' today':''));b.type='button';
+  const rts=rtOf(c.index);
+  const b=el('button','forge-lb-day'+(c.plan?' train':'')+(c.today?' today':'')+(rts.length?' rt':''));b.type='button';
   b.append(el('span','',c.day));
-  if(c.plan)b.append(el('b','',c.letter));else b.append(el('span','','–'));
-  b.setAttribute('aria-label',c.day+(c.today?' (heute)':'')+(c.plan?': '+(c.plan.title||'Training'):': kein Training'));
-  if(c.plan){b.setAttribute('aria-expanded',String(openDay===c.index));b.addEventListener('click',()=>{openDay=openDay===c.index?-1:c.index;render(true);});}
+  if(c.plan)b.append(el('b','',c.letter));else b.append(el('span','',rts.length?'':'–'));
+  if(rts.length)b.append(el('i','forge-lb-rtdot'));
+  b.setAttribute('aria-label',c.day+(c.today?' (heute)':'')+(c.plan?': '+(c.plan.title||'Training'):': kein Krafttraining')+(rts.length?' · Routine: '+rts.map(r=>r.name).join(', '):''));
+  if(c.plan||rts.length){b.setAttribute('aria-expanded',String(openDay===c.index));b.addEventListener('click',()=>{openDay=openDay===c.index?-1:c.index;render(true);});}
   else b.disabled=true;
   return b;
  }));
  const open=cells[openDay]&&cells[openDay].plan;
- ui.dd.hidden=!open;
- if(open){
-  const rows=[el('strong','',open.title||'Training')];
-  (open.ex||[]).forEach(e=>{const r=el('div');r.append(el('span','',e.name||'Übung'),el('span','',exerciseLine(e)));rows.push(r);});
-  if(!(open.ex||[]).length)rows.push(el('div','','Noch keine Übungen'));
+ const openRts=cells[openDay]?rtOf(cells[openDay].index):[];
+ ui.dd.hidden=!open&&!openRts.length;
+ if(open||openRts.length){
+  const rows=[];
+  if(open){
+   rows.push(el('strong','',open.title||'Training'));
+   (open.ex||[]).forEach(e=>{const r=el('div');r.append(el('span','',e.name||'Übung'),el('span','',exerciseLine(e)));rows.push(r);});
+   if(!(open.ex||[]).length)rows.push(el('div','','Noch keine Übungen'));
+  }
+  openRts.forEach(rt=>{const r=el('div','forge-lb-rtrow');const go=el('button','forge-lb-rtgo','Starten');go.type='button';go.addEventListener('click',()=>{try{window.ForgeRoutines?.start?.(rt.id);}catch(e){}});
+   r.append(el('span','','Routine: '+rt.name),go);rows.push(r);});
   ui.dd.replaceChildren(...rows);
  }
  if(archived!=null)setText(ui.archText,'Archivierte Pläne'+(archived?' ('+archived+')':''));

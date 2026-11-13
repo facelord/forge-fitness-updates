@@ -30,9 +30,10 @@ function render(name){
  const file=has(name)?boards[canonical(name)]:null;
  if(!file)return '';
  return '<div class="forge-strength-board" data-forge-strength-board="'+safe(name)+'">'+
-  '<figure class="forge-strength-board-figure"><img class="forge-strength-board-image"'+
+  '<figure class="forge-strength-board-figure"><span class="forge-sb-frame"><img class="forge-strength-board-image"'+
   ' data-forge-strength-board-image="1" src="'+file+'" role="button" tabindex="0"'+
   ' loading="lazy" decoding="async" alt="'+safe(name)+' – Muskeln, Startposition, Endposition, Ausführung und Tipps. Zum Vergrößern tippen." />'+
+  '<span class="forge-ai-badge" role="note" aria-label="Hinweis: KI-generierte Abbildung">KI-generiert</span></span>'+
   '<figcaption>Gesamte Übungsübersicht ansehen · Zum Vergrößern tippen</figcaption>'+
   '</figure></div>'+(normalized(name)===normalized('Klimmzüge (enger Griff)')?'<p class="forge-v12-variant-note">Technikbild zeigt den Obergriff mit breiterer Griffweite. Für den engen Griff gibt es noch keine eigene Übungstafel.</p>':'');
 }
@@ -71,6 +72,8 @@ function style(){
  tag.id='forge-strength-board-styles';
  tag.textContent=[
  '.forge-strength-board{display:block!important;width:100%;min-width:0;max-width:100%;margin:8px 0 12px}',
+ '.forge-sb-frame{position:relative;display:block}',
+ '.forge-ai-badge{position:absolute;right:1.1%;bottom:.8%;z-index:2;font:600 9px/1.1 Inter,system-ui,sans-serif;letter-spacing:.02em;color:#d8dfdb;background:rgba(5,9,10,.74);border:1px solid rgba(255,255,255,.16);border-radius:6px;padding:2px 5px;pointer-events:none;white-space:nowrap}',
  '.forge-strength-board-figure{display:block!important;min-width:0;margin:0!important;overflow:hidden;border-radius:14px;background:#020908;border:1px solid #315432}',
  '.forge-strength-board-image{display:block!important;width:100%!important;max-width:100%!important;height:auto!important;max-height:none!important;aspect-ratio:1448/1086!important;object-fit:contain!important;object-position:center!important;cursor:zoom-in}',
  '.forge-strength-board-image:focus-visible{outline:3px solid #9eff00;outline-offset:-3px}',
