@@ -63,7 +63,9 @@ const GEN_MOVES=Object.freeze([
  M('Kindhaltung mit Seitgriff','SRU',3,true,[],['matte']),
  M('Schulter-Dislocates mit Theraband','SU',1,false,['band']),M('Band-Außenrotation','S',1,true,['band']),M('Hamstring-Dehnung mit Theraband','B',4,true,['band'],['matte']),
  M('Sprunggelenk-Mobilisation mit Theraband','B',3,true,['band'],['matte']),M('Hüftbeuger-Dehnung mit Theraband','BR',3,true,['band'],['matte']),
- M('Handgelenksmobilisation mit Theraband','S',3,true,['band'],['matte'])]);
+ M('Handgelenksmobilisation mit Theraband','S',3,true,['band'],['matte']),
+ M('Thoraxrotation im Vierfüßlerstand','SRU',3,true,[],['matte']),M('Seitliche Rumpfneigung im Stand','R',1,true),
+ M('Brustwirbelsäulen-Extension im Stand','SRU',1,false),M('Handgelenksmobilisation im Vierfüßlerstand','S',3,false,[],['matte'])]);
 /* Band-Variante und Grundübung nie zusammen in einer Routine. */
 const GEN_TWIN=Object.freeze((()=>{const m={};[['Handgelenksmobilisation mit Theraband','Handgelenksmobilisation'],['Hamstring-Dehnung mit Theraband','Hamstring-Dehnung mit Gurt'],['Hüftbeuger-Dehnung mit Theraband','Hüftbeuger-Dehnung'],['Sprunggelenk-Mobilisation mit Theraband','Sprunggelenk-Mobilisation an der Wand']].forEach(([a,b])=>{m[a]=b;m[b]=a;});return m;})());
 const GEN_FIRST_PREP=5,GEN_PREP=8,GEN_POS_PREP=10,GEN_ROUND_PREP=10,GEN_SIDE_PREP=SIDE_PREP;
@@ -174,14 +176,15 @@ function isToday(cfg,weekday,trainedToday){
 /* ---------- Mobilitätskatalog: Gelenke · Yoga · Dehnen ---------- */
 const CATEGORIES=Object.freeze(['Gelenke','Yoga','Dehnen']);
 const STRETCH=new Set(['Hamstring-Dehnung mit Theraband','Hüftbeuger-Dehnung mit Theraband','90/90-Vorbeuge','Quadrizeps-Dehnung im Stand','Soleus-Dehnung mit gebeugtem Knie','Hamstring-Dehnung mit Gurt','Knie zur Brust in Rückenlage',
- 'Hüftbeuger-Dehnung','Figure-Four-Dehnung','Türrahmen-Brustdehnung','Waden-Dehnung']);
+ 'Hüftbeuger-Dehnung','Figure-Four-Dehnung','Türrahmen-Brustdehnung','Waden-Dehnung','Seitliche Rumpfneigung im Stand']);
 const YOGA=new Set(['Kindhaltung','Herabschauender Hund','Liegender Twist']);
 function categoryOf(name){return YOGA.has(name)?'Yoga':STRETCH.has(name)?'Dehnen':'Gelenke';}
 /* Moves that already live (with photos and guides) in the guided routines; now also in the catalogue. */
 const EXTRA_DEFS=Object.freeze([
  ['Kindhaltung','Rücken','static',60,false],['Herabschauender Hund','Ganzkörper','static',45,false],['Liegender Twist','Wirbelsäule','static',45,true],
  ['Hüftbeuger-Dehnung','Hüfte','static',45,true],['Figure-Four-Dehnung','Gesäß','static',45,true],['Türrahmen-Brustdehnung','Brust','static',45,true],
- ['Waden-Dehnung','Waden','static',45,true],['Adduktoren-Rockback','Hüfte','dynamic',60,true],['Wall Slides','Schultern','dynamic',60,false]]);
+ ['Waden-Dehnung','Waden','static',45,true],['Adduktoren-Rockback','Hüfte','dynamic',60,true],['Wall Slides','Schultern','dynamic',60,false],
+ ['Cat-Cow','Wirbelsäule','dynamic',60,false],['Low Lunge','Hüfte','static',45,true],['90/90 Hüftwechsel','Hüfte','dynamic',60,false]]);
 /* Theraband-Mobilität (Freitag 13.11.): eigene freigegebene Übungstafeln + Anleitung. */
 const BAND_DEFS=Object.freeze([
  ['Schulter-Dislocates mit Theraband','Schultern','dynamic',40,false,'band-schulter-dislocates',['Band weit greifen, Arme vor dem Oberkörper.','Arme langsam und nahezu gestreckt über den Kopf nach hinten führen.','Nur so weit, wie es schmerzfrei geht, und kontrolliert zurück.'],'Griff breiter wählen, wenn die Schultern zwicken; Rumpf stabil, kein Hohlkreuz.'],
@@ -190,12 +193,44 @@ const BAND_DEFS=Object.freeze([
  ['Sprunggelenk-Mobilisation mit Theraband','Sprunggelenk','dynamic',35,true,'band-sprunggelenk-mobilisation',['Band tief vor dem Sprunggelenk anlegen und hinten sicher befestigen.','Im halben Kniestand das vordere Knie langsam über die Zehen nach vorn schieben.','Ferse bleibt am Boden; zurück und Seite wechseln.'],'Ohne Federn bewegen, nur im schmerzfreien Bereich.'],
  ['Hüftbeuger-Dehnung mit Theraband','Hüfte','static',30,true,'band-hueftbeuger-dehnung',['Band hoch um die Hüfte des hinteren Beins legen und hinten sicher befestigen.','Im halben Kniestand Gesäß anspannen und Becken leicht nach hinten kippen.','Hüfte sanft nach vorn schieben, 20–30 Sekunden halten, Seite wechseln.'],'Kein Hohlkreuz; Oberkörper bleibt aufrecht.'],
  ['Handgelenksmobilisation mit Theraband','Handgelenke','dynamic',35,true,'band-handgelenksmobilisation',['Leichtes Band knapp oberhalb des Handgelenks anlegen und sicher befestigen.','Im Vierfüßlerstand die Handfläche flach aufsetzen.','Oberkörper langsam vor und zurück verlagern, dann Seite wechseln.'],'Ellbogen ruhig halten; nur schmerzfrei bewegen.']]);
-const BAND_IMAGES=Object.freeze(Object.fromEntries(BAND_DEFS.map(d=>[d[0],'./mobility-boards/'+d[5]+'.webp'])));
+/* Mobilität V13 (13.11.): freigegebene Ganztafeln. Neue Übungen nur dort, wo es noch keine gibt;
+ * die übrigen Zusatztafeln hängen an der bestehenden Übung (Name, Timer, Pläne bleiben unverändert). */
+const NEW_DEFS=Object.freeze([
+ ['Thoraxrotation im Vierfüßlerstand','Brustwirbelsäule','dynamic',45,true,['Im Vierfüßlerstand Hände unter die Schultern und Knie unter die Hüften stellen.','Eine Hand an den Hinterkopf legen, der Ellbogen zeigt zur Seite.','Oberkörper kontrolliert zur geöffneten Seite aufdrehen, der Blick folgt dem Ellbogen.','Langsam zurück, 8–12 Wiederholungen, dann Seite wechseln.'],'Becken bleibt ruhig und gerade; die Drehung kommt aus der Brustwirbelsäule.'],
+ ['Seitliche Rumpfneigung im Stand','Seitlicher Rumpf','static',30,true,['Aufrecht und hüftbreit hinstellen.','Einen Arm über den Kopf führen und den Oberkörper zur Gegenseite neigen.','Die andere Hand locker am Oberschenkel abgleiten lassen.','20–30 Sekunden ruhig halten, dann Seite wechseln.'],'Nur zur Seite neigen, nicht nach vorn oder hinten kippen.'],
+ ['Brustwirbelsäulen-Extension im Stand','Brustwirbelsäule','dynamic',40,false,['Aufrecht stehen, Füße hüftbreit, Knie leicht gelöst.','Hände in die Hüften oder an den unteren Rücken legen.','Brustkorb sanft anheben und den Blick leicht nach oben richten.','2–3 Sekunden halten und kontrolliert zurück, 8–12 Wiederholungen.'],'Bewegung aus dem oberen Rücken, kein Hohlkreuz im unteren Rücken.'],
+ ['Handgelenksmobilisation im Vierfüßlerstand','Handgelenke','dynamic',35,false,['Im Vierfüßlerstand starten.','Hände flach aufsetzen, die Finger zeigen nach vorn.','Gewicht langsam nach vorn verlagern und wieder zurück.','8–12 ruhige Wiederholungen.'],'Handballen bleiben am Boden; nur so weit, wie es schmerzfrei geht.']]);
+const V13_BOARDS=Object.freeze({
+ 'Sprunggelenk-Mobilisation an der Wand':'v13-01-sprunggelenk-mobilisation-wand','Fußkreisen':'v13-02-fusskreisen','Fußsohle mit Ball mobilisieren':'v13-03-fusssohle-mit-ball',
+ 'Fersengleiten in Rückenlage':'v13-04-fersengleiten-rueckenlage','Beinpendel vor und zurück':'v13-05-beinpendel-vor-zurueck','Seitliches Beinpendel':'v13-06-beinpendel-seitlich',
+ 'Hüftkreisen im Stand':'v13-07-hueftkreisen-stand','90/90-Vorbeuge':'v13-08-90-90-vorbeuge','Hüftkreise im Vierfüßlerstand':'v13-09-hueftkreise-vierfuessler',
+ 'Quadrizeps-Dehnung im Stand':'v13-10-quadrizeps-dehnung-stand','Soleus-Dehnung mit gebeugtem Knie':'v13-11-soleus-dehnung-gebeugtes-knie','Hamstring-Dehnung mit Gurt':'v13-12-hamstring-dehnung-gurt',
+ 'Beckenkippen in Rückenlage':'v13-13-beckenkippen-rueckenlage','Beckenkreisen im Stand':'v13-14-beckenkreisen-stand','Knie zur Brust in Rückenlage':'v13-15-knie-zur-brust-rueckenlage',
+ 'Thread the Needle':'v13-16-thread-the-needle','Brustwirbelsäulenstreckung über Foam Roller':'v13-17-bws-streckung-foam-roller','Schulterkreisen':'v13-18-schulterkreisen',
+ 'Schulterheben mit Stab':'v13-19-schulterheben-stab',
+ 'Cat-Cow':'v13-e01-katzen-kuh-cat-cow','Liegender Twist':'v13-e02-wirbelsaeulenrotation-liegend','Thoraxrotation im Vierfüßlerstand':'v13-e03-thoraxrotation-vierfuessler',
+ 'Seitliche Rumpfneigung im Stand':'v13-e04-seitliche-rumpfneigung-stand','Low Lunge':'v13-e05-hueftoeffner-ausfallschritt','90/90 Hüftwechsel':'v13-e06-90-90-hueftmobilisation-seitenwechsel',
+ 'Brustwirbelsäulen-Extension im Stand':'v13-e07-bws-extension-stand','Figure-Four-Dehnung':'v13-e08-hueftoeffner-figure-four','Handgelenksmobilisation im Vierfüßlerstand':'v13-e09-handgelenk-vierfuessler'});
+/* Diese Tafeln tragen „KI-generiert“ bereits im Bild – dort keine zweite Kennzeichnung. */
+const BOARD_LABELED=Object.freeze(new Set(['v13-10-quadrizeps-dehnung-stand','v13-11-soleus-dehnung-gebeugtes-knie','v13-12-hamstring-dehnung-gurt','v13-13-beckenkippen-rueckenlage',
+ 'v13-14-beckenkreisen-stand','v13-15-knie-zur-brust-rueckenlage','v13-16-thread-the-needle','v13-17-bws-streckung-foam-roller','v13-18-schulterkreisen','v13-19-schulterheben-stab',
+ 'v13-e08-hueftoeffner-figure-four','v13-e09-handgelenk-vierfuessler'].map(b=>'./mobility-boards/'+b+'.webp')));
+const BAND_IMAGES=Object.freeze(Object.assign(Object.fromEntries(Object.entries(V13_BOARDS).map(([n,b])=>[n,'./mobility-boards/'+b+'.webp'])),
+ Object.fromEntries(BAND_DEFS.map(d=>[d[0],'./mobility-boards/'+d[5]+'.webp']))));
+const MOB_BOARDS=BAND_IMAGES;
+function boardLabeled(src){return BOARD_LABELED.has(String(src||''));}
+function boardHtml(name){
+ const src=MOB_BOARDS[name];if(!src)return '';
+ const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ return '<div class="forge-strength-board forge-mob-board" data-forge-mob-board="'+esc(name)+'"><figure class="forge-strength-board-figure"><span class="forge-sb-frame"><img class="forge-strength-board-image" src="'+esc(src)+'" alt="'+esc(name)+' – FORGE Übungstafel; antippen zum Vergrößern" role="button" tabindex="0" loading="lazy" decoding="async">'+
+  (boardLabeled(src)?'':'<span class="forge-ai-badge" role="note" aria-label="Hinweis: KI-generierte Abbildung">KI-generiert</span>')+'</span><figcaption>Gesamte Übungsübersicht ansehen · Zum Vergrößern tippen</figcaption></figure></div>';
+}
+function newExtras(){return NEW_DEFS.map(([name,region,mode,seconds,sides,steps,tip])=>({name,region,mode,amount:mode==='dynamic'?10:1,seconds,sides,steps:steps.slice(),tip,category:categoryOf(name),source:'board'}));}
 function bandExtras(){return BAND_DEFS.map(([name,region,mode,seconds,sides,,steps,tip])=>({name,region,mode,amount:mode==='dynamic'?10:1,seconds,sides,steps:steps.slice(),tip,category:categoryOf(name),source:'band',equipment:'Theraband'}));}
 function extras(guides){
  const g=guides||{};
  return EXTRA_DEFS.map(([name,region,mode,seconds,sides])=>{const x=Array.isArray(g[name])?g[name]:[[],''];
-  return {name,region,mode,amount:mode==='dynamic'?10:1,seconds,sides,steps:Array.isArray(x[0])?x[0].slice():[],tip:String(x[1]||''),category:categoryOf(name),source:'routine'};}).concat(bandExtras());
+  return {name,region,mode,amount:mode==='dynamic'?10:1,seconds,sides,steps:Array.isArray(x[0])?x[0].slice():[],tip:String(x[1]||''),category:categoryOf(name),source:'routine'};}).concat(bandExtras(),newExtras());
 }
 function withExtras(list,guides){const have=new Set((list||[]).map(x=>x.name));return (list||[]).concat(extras(guides).filter(x=>!have.has(x.name)));}
 /* ---------- Video-Bibliothek ---------- */
@@ -222,7 +257,10 @@ function assignVideo(assignments,day,v){
  list.push({day,goal:v.area,mins:v.mins,choice:v.idx,timing:'separate'});
  return list.sort((a,b)=>a.day-b.day);
 }
-window.ForgeMobilityCatalog=Object.freeze({CATEGORIES,categoryOf,extras,withExtras,BAND_IMAGES});
+window.ForgeMobilityCatalog=Object.freeze({CATEGORIES,categoryOf,extras,withExtras,BAND_IMAGES,MOB_BOARDS,NEW_DEFS,boardHtml,boardLabeled});
+/* Katalog/Detail: freigegebene Tafel statt der alten Einzelpanels (letzter Renderer für diese Namen). */
+try{['forgeExerciseIllustrations','forgePublicExercisePictures'].forEach(k=>{const prev=window[k];if(prev&&prev.forgeMobBoards)return;
+ const f=function(name){return MOB_BOARDS[name]?boardHtml(name):(typeof prev==='function'?prev.apply(this,arguments):'');};f.forgeMobBoards=true;window[k]=f;});}catch(e){}
 /* Thumbnails, Katalog und Anleitung fragen forgeMobImage(): Band-Tafeln zuerst. */
 try{const prevMob=typeof window.forgeMobImage==='function'?window.forgeMobImage:null;
  if(!(prevMob&&prevMob.forgeBand)){const f=function(name){return BAND_IMAGES[name]?[BAND_IMAGES[name]]:(prevMob?prevMob.apply(this,arguments):null);};f.forgeBand=true;window.forgeMobImage=f;}}catch(e){}
@@ -659,7 +697,7 @@ function render(){
  const prog=el('div','mr-prog');r.items.forEach((_,i)=>{const s=el('i',i<p.ex?'done':i===p.ex?'cur':'');prog.append(s);});
  top.append(x,prog,el('div','mr-count',(p.ex+1)+'/'+r.items.length));inner.append(top);
  const media=el('div','mr-media');const imgs=images(item[0]);
- if(imgs.length){imgs.forEach(src=>{const i=el('img');i.src=src;i.alt=item[0];media.append(i);});if(imgs.some(x=>/mobility-boards\//.test(x))){const ai=el('span','mr-ai','KI-generiert');ai.setAttribute('role','note');media.append(ai);}}else{media.classList.add('none');media.innerHTML=ICON.flow.replace('width="22" height="22"','width="64" height="64"');}
+ if(imgs.length){imgs.forEach(src=>{const i=el('img');i.src=src;i.alt=item[0];media.append(i);});if(imgs.some(x=>/mobility-boards\//.test(x)&&!boardLabeled(x))){const ai=el('span','mr-ai','KI-generiert');ai.setAttribute('role','note');media.append(ai);}}else{media.classList.add('none');media.innerHTML=ICON.flow.replace('width="22" height="22"','width="64" height="64"');}
  if(p.side)media.append(el('span','mr-badge','Seite '+p.sideNo+' von 2 · '+p.side));
  inner.append(media);
  const nm=el('div','mr-name');const t=el('div');t.append(el('h2','',item[0]),el('small','',(item[3]&&item[3].rounds>1?'Runde '+item[3].round+'/'+item[3].rounds+' · ':'')+item[1]+' Sek.'+(hasSides(item,lib)?' je Seite':'')+(item[2]&&!(item[3]&&item[2]==='je Seite')?' · '+item[2]:'')));

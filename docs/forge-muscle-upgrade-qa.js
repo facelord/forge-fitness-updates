@@ -76,7 +76,7 @@ function zoomOpen(source){
  // V10.2: every opening starts at 1x fit-to-contain, never at a test zoom.
  img.style.transform='translate(0px, 0px) scale(1)';stage.append(img);
  // Transparenz: KI-generierte Übungstafeln (Kraft + Band-Mobilität) bleiben auch im Zoom gekennzeichnet.
- if(boardImage||/(strength|mobility)-boards\//.test(img.src||'')){const ai=document.createElement('span');ai.className='forge-ai-badge forge-ai-badge-zoom';ai.setAttribute('role','note');ai.textContent='KI-generiert';stage.append(ai);}
+ if((boardImage||/(strength|mobility)-boards\//.test(img.src||''))&&!window.ForgeMobilityCatalog?.boardLabeled?.(source.getAttribute('src'))){const ai=document.createElement('span');ai.className='forge-ai-badge forge-ai-badge-zoom';ai.setAttribute('role','note');ai.textContent='KI-generiert';stage.append(ai);}
  const help=document.createElement('div');help.className='forge-anatomy-v2-help';help.textContent='Zwei Finger: Zoom · Tippe daneben zum Schließen';
  const panel=document.createElement('div');panel.className='forge-anatomy-v2-panel'+(boardImage?' forge-anatomy-v2-board-panel':'');panel.append(bar,stage,help);box.append(panel);
  let z=1,x=0,y=0,prior=0;const pointers=new Map(),oldOverflow=document.body.style.overflow,oldFocus=document.activeElement;
