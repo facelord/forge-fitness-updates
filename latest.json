@@ -1,7 +1,7 @@
 {
-  "versionCode": 10662,
-  "versionName": "14.13.662",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.662/FORGE-Fitness-14.13.662.apk",
-  "sha256": "1ec36edea3d5b7819e4542a83871fc0c05f2a93aa2c90bee00217af6b29c3b2a",
-  "notes": "Neues Design (Layout B): Blau-Schwarz mit Inter, Navigation Plan · Workout · Essen · Erfolge mit Wischen, neuer Workout-Ablauf mit Tagesform, großen +/−-Feldern, Satzpause-Bildschirm und Abschluss-Übersicht, neue Plan-Übersicht mit Trainingswoche, neue Essen- und Erfolge-Übersicht, aufgeräumte Kopfzeile mit Menü, Technik-Blatt, Bestätigung vor dem Beenden. Zurück zum alten Aussehen: Einstellungen > Darstellung. Updates werden bei GitHub-Aussetzern jetzt automatisch erneut versucht."
+  "versionCode": 10676,
+  "versionName": "14.13.676",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.676/FORGE-Fitness-14.13.676.apk",
+  "sha256": "09893fec0f71d59a76fa8c9cd3b48e3873afd0619e720fdba4a3698721575f78",
+  "notes": "FORGE 14.13.676 – Änderungen in diesem Update\n• Behoben: Warm-up wartet, bis die gestartete Vorher-Routine geladen ist\n• Behoben: Kalender-Berechtigungsantwort nur im Ergebnis-Callback auswerten\n• Neu: Geräte zuhause im Kraft-Planer auswählen – passende Übungen statt nur Körpergewicht\n• Neu: Kraft-Zirkel – mehrere Zirkel speichern, 10-Sekunden-Wechsel, automatisch weiter\n• Neu: Routinen vor oder nach dem Krafttraining, unabhängig, plus Favoriten\n• Neu: Laufendes Workout sicher abbrechen und Pausen jederzeit anpassen"
 }
