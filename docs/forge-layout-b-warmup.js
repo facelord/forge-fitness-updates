@@ -22,6 +22,8 @@ function shouldOffer(draft){
  if(!draft||typeof draft!=='object')return false;
  const g=draft.warmup&&draft.warmup.general;
  if(g&&(g.decided||g.done||g.skipped))return false;
+ // #75: erst die Routine-Frage „vor dem Krafttraining“ beantworten lassen.
+ if(draft.preRoutine&&!draft.preRoutine.decided)return false;
  const ex=Array.isArray(draft.exercises)?draft.exercises:[];
  if(ex.some(e=>Array.isArray(e&&e.sets)&&e.sets.some(s=>s&&s.done)))return false;
  const w=draft.warmup&&draft.warmup.exercises||{};
@@ -63,6 +65,7 @@ const CSS=`
 .forge-lb-wu .wu-kick{font-size:12px;color:${ACC};font-weight:700;text-transform:uppercase;letter-spacing:1.5px}
 .forge-lb-wu h2{margin:2px 0 0;font-size:clamp(24px,7vw,30px);font-weight:800;line-height:1.15}
 .forge-lb-wu p{margin:0;font-size:14px;color:#c3cddb;line-height:1.45}
+.forge-lb-wu .wu-quit{align-self:center;margin-top:6px;min-height:40px;border:0;background:transparent;color:#a99ba2;font:inherit;font-size:13px;font-weight:600;text-decoration:underline;text-underline-offset:3px}
 .forge-lb-wu .wu-skip{min-height:44px;border-radius:22px;border:2px solid ${ACC};background:transparent;color:${ACC};font:inherit;font-size:15px;font-weight:800;padding:0 18px;white-space:nowrap}
 .forge-lb-wu .wu-label{font-size:12px;color:#95a3b7;text-transform:uppercase;letter-spacing:1.3px;margin:4px 0 -4px 4px}
 .forge-lb-wu .wu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -136,6 +139,7 @@ function render(){
    f.append(el('span','','Minuten:'),inp);inner.append(f);
   }
   const go=btn('wu-go','Warm-up starten · '+clampMinutes(sel.minutes)+' Min.',start);inner.append(go);
+  if(typeof window.ForgeLayoutBDiscardWorkout==='function')inner.append(btn('wu-quit','Workout abbrechen',()=>window.ForgeLayoutBDiscardWorkout()));
   return;
  }
  const left=remaining(t);
@@ -146,6 +150,7 @@ function render(){
  const row=el('div','wu-row');
  row.append(btn('wu-sec',t.running?'Pause':'Weiter',toggle),btn('wu-sec','Fertig',finish));
  inner.append(row);
+ if(typeof window.ForgeLayoutBDiscardWorkout==='function')inner.append(btn('wu-quit','Workout abbrechen',()=>window.ForgeLayoutBDiscardWorkout()));
  if(!timer)timer=setInterval(tick,250);
 }
 function tick(){
@@ -168,7 +173,9 @@ function check(){
  if(!s){if(root)close();return;}
  const pageVisible=$('workout')&&$('workout').classList.contains('active');
  if(s.forgeLbWarmup){if(!root&&pageVisible)open();return;}
- if(!root&&pageVisible&&shouldOffer(s.workoutDraft))open();
+ // #75: Routine „vorher“ wurde gerade gestartet – der Player braucht einen Moment zum Laden.
+ const pr=s.workoutDraft&&s.workoutDraft.preRoutine;const starting=!!(pr&&pr.routine&&pr.at&&Date.now()-pr.at<5000);
+ if(!root&&pageVisible&&!s.forgeLbMobRun&&!starting&&shouldOffer(s.workoutDraft))open();
 }
 function install(){
  if(!document.body||!enabled())return false;

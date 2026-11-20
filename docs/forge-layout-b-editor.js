@@ -73,6 +73,8 @@ function primaryGroup(item){
 }
 function matchesChip(item,chip){
  if(chip==='Band')return isBand(item&&item.name);
+ // #70: nur Übungen, für die die gespeicherten Geräte zuhause reichen (freier Katalog bleibt über „Alle“).
+ if(chip==='Meine Geräte'){const E=typeof window!=='undefined'&&window.ForgeHomeEquipment;return !E||E.fits(item&&item.name,E.saved?E.saved():[])!==false;}
  const c=MUSCLE_CHIPS.find(x=>x[0]===chip);if(!c||!c[1])return true;
  return primaryGroup(item)===chip;
 }
@@ -104,6 +106,19 @@ function draftSlots(count,location){
  // The rotation engine (cadence.js) supports 1–4 units in a rolling plan.
  const n=Math.max(1,Math.min(4,Math.round(Number(count))||1));
  return Array.from({length:n},(_,i)=>({id:'draft-u'+i,weekday:i,slot:true,label:'Einheit '+unitLetter(i),short:unitLetter(i),title:'Einheit '+unitLetter(i),location:location==='home'?'home':'gym',ex:[]}));
+}
+/* Carry exercise choices across the manual picker → setup → picker round trip.
+ * The wizard may change days/unit counts, so align named slots first and then
+ * reuse the same ordinal position; every copied set remains independent. */
+function retainDraftExercises(units,previous){
+ const old=Array.isArray(previous?.draft?.units)?previous.draft.units:[];
+ const used=new Set();
+ (units||[]).forEach((u,i)=>{
+  let k=old.findIndex((x,j)=>!used.has(j)&&x.short===u.short);
+  if(k<0&&old[i]&&!used.has(i))k=i;
+  if(k>=0){used.add(k);u.ex=(old[k].ex||[]).map(e=>({...e}));}
+ });
+ return units;
 }
 /* The cadence object exactly as cadence.js stores it after plan creation. */
 function draftCadence(plan,every,anchor){
@@ -138,7 +153,7 @@ function ownExercisesOk(x,catalog,existing){
  if(!names.length||new Set(names).size!==names.length)return false;
  return names.some(n=>!cat.has(n))&&names.every(n=>cat.has(n)||old.has(n));
 }
-window.ForgeLayoutBEditor=Object.freeze({ownExercisesOk,draftUnits,draftSlots,draftCadence,draftIssue,draftPlan,unitLetter,stepValue,doseText,muscleLabel,normalize,splitCatalog,filterCatalog,matchesChip,primaryGroup,isBand,MUSCLE_CHIPS,moveItem,unitDirty});
+window.ForgeLayoutBEditor=Object.freeze({swipeDirection,ownExercisesOk,draftUnits,draftSlots,retainDraftExercises,draftCadence,draftIssue,draftPlan,unitLetter,stepValue,doseText,muscleLabel,normalize,splitCatalog,filterCatalog,matchesChip,primaryGroup,isBand,MUSCLE_CHIPS,moveItem,unitDirty});
 if(typeof document==='undefined')return;
 
 /* ---------- environment ---------- */
@@ -187,6 +202,7 @@ function thumbHtml(name){
 function thumb(name,cls){const t=el('span',cls);const h=thumbHtml(name);if(h)t.innerHTML=h;else t.classList.add('none');return t;}
 
 const ICON={
+ back:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
  x:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
  plus:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
  up:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>',
@@ -197,11 +213,16 @@ const ICON={
 
 const E='.forge-lb-ed',C='.forge-lb-cat';
 const CSS=`
-${E}{position:fixed;inset:0;z-index:2147480000;background:#0b1018;color:#f3f7fc;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column}
+${E}{position:fixed;inset:0;overscroll-behavior-x:contain;z-index:2147480000;background:#0b1018;color:#f3f7fc;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column}
 ${E} .ed-in{flex:1;min-height:0;display:flex;flex-direction:column;max-width:560px;width:100%;margin:0 auto;box-sizing:border-box;padding:calc(16px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom))}
 ${E} .ed-top{display:flex;align-items:center;justify-content:space-between;min-height:44px}
 ${E} .ed-round{width:44px;height:44px;flex:0 0 44px;border-radius:22px;border:1px solid #293346;background:#171e2a;color:#f3f7fc;display:flex;align-items:center;justify-content:center;padding:0}
 ${E} .ed-kicker{font-size:14px;color:#95a3b7;font-weight:600}
+${E} .ed-progress{flex:1;display:flex;gap:6px;min-width:0}
+${E} .ed-progress i{flex:1;height:5px;border-radius:3px;background:#293346;display:block}
+${E} .ed-progress i.on{background:${ACC}}
+${E} .ed-step-count{font-size:13px;color:#95a3b7;font-weight:600;min-width:28px;text-align:right}
+${E} .ed-kicker-flow{margin:12px 4px 0;text-align:left}
 ${E} .ed-tabs{margin-top:14px;flex:0 0 auto;min-height:52px;border-radius:26px;background:#171e2a;border:1px solid #293346;display:flex;padding:5px;box-sizing:border-box;gap:4px;overflow-x:auto;scrollbar-width:none}
 ${E} .ed-tabs::-webkit-scrollbar{display:none}
 ${E} .ed-tabs button{flex:1 0 auto;min-width:0;max-width:100%;border:0;border-radius:22px;background:transparent;color:#95a3b7;font:inherit;font-size:14px;font-weight:600;padding:0 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative}
@@ -305,8 +326,33 @@ ${C} .tech-body{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:
 `;
 function ensureCss(){if(!$('forgeLayoutBEditorCss')){const s=el('style');s.id='forgeLayoutBEditorCss';s.textContent=CSS;document.head.append(s);}}
 
+/* On page 3, a right swipe returns to cadence. Swiping never creates a plan. */
+function swipeDirection(dx,dy,ms){
+ if(!Number.isFinite(dx)||!Number.isFinite(dy)||!Number.isFinite(ms)||ms>900||ms<0
+    ||Math.abs(dx)<76||Math.abs(dx)<Math.abs(dy)*1.65)return null;
+ return dx<0?'next':'back';
+}
+function installManualSwipe(host){
+ let start=null;
+ host.addEventListener('touchstart',e=>{
+  start=null;
+  if(!ed?.wizardReturn||e.touches.length!==1||
+    e.target?.closest?.('input,textarea,select,[contenteditable="true"],[role="tablist"],.ed-move,[data-no-swipe]'))return;
+  const t=e.touches[0];start={x:t.clientX,y:t.clientY,at:Date.now()};
+ },{passive:true});
+ host.addEventListener('touchcancel',()=>{start=null;},{passive:true});
+ host.addEventListener('touchend',e=>{
+  if(!start||!ed?.wizardReturn||sheet||e.changedTouches.length!==1)return;
+  const t=e.changedTouches[0],direction=swipeDirection(t.clientX-start.x,t.clientY-start.y,Date.now()-start.at);
+  start=null;
+  if(direction!=='back')return;
+  if(e.cancelable)e.preventDefault();
+  backToManualWizard();
+ },{passive:false});
+}
+
 /* ---------- editor state ---------- */
-let root=null,ed=null;
+let root=null,ed=null,pendingManualDraft=null;
 const unitList=()=>ed&&ed.draft?ed.draft.units:plans();
 function stagedFor(id){
  if(ed.draft)return ed.draft.units.find(u=>u.id===id)||null;
@@ -325,9 +371,16 @@ function openDraft(opts){
  }
  const units=interval?draftSlots(opts.units,opts.location):draftUnits(opts&&opts.days,opts&&opts.location,opts&&opts.variety);
  if(!units.length)return false;
+ // Preserve previously chosen exercises when returning via the manual wizard.
+ const previous=opts?.fromWizard?pendingManualDraft:null;
+ pendingManualDraft=null;
+ if(previous)retainDraftExercises(units,previous);
  ensureCss();closeEditor(true);
- ed={unit:units[0].id,open:0,staged:new Map(),status:'',tone:'',draft:{units,name:String(opts.name||''),mode:interval?'interval':'weekdays',every:Number(opts.every)||0,anchor:String(opts.anchor||'')}};
+ const restoredIndex=previous?Math.max(0,Math.min(units.length-1,previous.unitIndex)):0;
+ ed={unit:units[restoredIndex].id,open:previous?previous.open:0,staged:new Map(),status:'',tone:'',
+  wizardReturn:!!opts?.fromWizard,draft:{units,name:String(opts.name||''),mode:interval?'interval':'weekdays',every:Number(opts.every)||0,anchor:String(opts.anchor||'')}};
  root=el('div','forge-lb-ed');root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-label','Neuen Plan zusammenstellen');
+ installManualSwipe(root);
  document.body.append(root);document.body.classList.add('forge-lb-ed-open');
  document.addEventListener('keydown',onKey,true);
  if(typeof state!=='undefined'&&state.activeWorkout)ed.blocked=true;
@@ -359,10 +412,20 @@ function closeEditor(force){
  document.removeEventListener('keydown',onKey,true);
  return true;
 }
+/* The back arrow navigates; it must not discard the unfinished plan. */
+function backToManualWizard(){
+ if(!ed?.draft||!ed.wizardReturn)return closeEditor(false);
+ const resume=window.ForgeLayoutBWizardResumeManualDraft;
+ if(typeof resume!=='function')return closeEditor(false);
+ pendingManualDraft={draft:ed.draft,unitIndex:Math.max(0,unitList().findIndex(x=>x.id===ed.unit)),open:ed.open};
+ closeEditor(true);
+ if(!resume())pendingManualDraft=null;
+}
+function clearManualDraft(){pendingManualDraft=null;}
 function onKey(e){
  if(e.key!=='Escape')return;
  e.preventDefault();e.stopPropagation();
- if(sheet)closeSheet();else closeEditor(false);
+ if(sheet)closeSheet();else if(ed?.wizardReturn)backToManualWizard();else closeEditor(false);
 }
 
 function render(){
@@ -371,9 +434,21 @@ function render(){
  root.replaceChildren();
  const inner=el('div','ed-in');root.append(inner);
  const top=el('div','ed-top');
- const x=btn('ed-round','',()=>closeEditor(false));x.innerHTML=ICON.x;x.setAttribute('aria-label','Planbearbeitung abbrechen und schließen');
- top.append(x,el('div','ed-kicker',ed.draft?'Neuer Plan · Übungen wählen':'Plan bearbeiten'),el('div','',''));top.lastChild.style.width='44px';
- inner.append(top);
+ const backToSetup=!!ed.draft&&!!ed.wizardReturn;
+ const x=btn('ed-round','',backToSetup?backToManualWizard:()=>closeEditor(false));
+ x.innerHTML=backToSetup?ICON.back:ICON.x;
+ x.setAttribute('aria-label',backToSetup?'Zurück zu Trainingsrhythmus, Trainingsort und Planname':'Planbearbeitung abbrechen und schließen');
+ if(backToSetup){
+  const progress=el('div','ed-progress');progress.setAttribute('role','progressbar');
+  progress.setAttribute('aria-label','Schritt 3 von 3');
+  progress.setAttribute('aria-valuemin','1');progress.setAttribute('aria-valuemax','3');progress.setAttribute('aria-valuenow','3');
+  for(let i=0;i<3;i++)progress.append(el('i','on'));
+  top.append(x,progress,el('div','ed-step-count','3/3'));
+  inner.append(top,el('div','ed-kicker ed-kicker-flow','Neuer Plan · Übungen wählen'));
+ }else{
+  top.append(x,el('div','ed-kicker',ed.draft?'Neuer Plan · Übungen wählen':'Plan bearbeiten'),el('div','',''));
+  top.lastChild.style.width='44px';inner.append(top);
+ }
  if(ed.blocked){
   inner.append(el('p','ed-empty','Während eines laufenden Trainings bleibt der Plan unverändert. Beende zuerst dein Workout.'));
   const f=el('div','ed-foot');f.append(btn('ed-save quiet','Schließen',()=>closeEditor(true)));inner.append(f);return;
@@ -666,7 +741,8 @@ function openCatalog(opts){
   cat.mcat=cat.mcat||'Alle';
   ['Alle','Gelenke','Yoga','Dehnen','Band'].forEach(name=>{const b=btn('',name,()=>{cat.mcat=name;cat.limit=40;mchips.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));fill();});b.setAttribute('aria-pressed',String(name===cat.mcat));mchips.append(b);});
   const chips=el('div','cat-chips');chips.setAttribute('role','group');chips.setAttribute('aria-label','Muskelgruppe');chips.hidden=cat.tab!=='strength';
-  MUSCLE_CHIPS.forEach(([name])=>{const b=btn('',name,()=>{cat.chip=name;cat.limit=40;chips.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));fill();});b.setAttribute('aria-pressed',String(name===cat.chip));chips.append(b);});
+  const chipNames=MUSCLE_CHIPS.map(c=>c[0]);try{if(window.ForgeHomeEquipment?.hasSaved?.())chipNames.splice(1,0,'Meine Geräte');}catch(e){}
+  chipNames.map(n=>[n]).forEach(([name])=>{const b=btn('',name,()=>{cat.chip=name;cat.limit=40;chips.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));fill();});b.setAttribute('aria-pressed',String(name===cat.chip));chips.append(b);});
   s.append(chips,mchips);
   const grid=el('div','cat-grid');s.append(grid);
   s.append(el('div','cat-hint',opts.mode==='browse'?'Antippen zeigt Technik und Muskeln':opts.mode==='replace'?'Antippen ersetzt die Übung in der Einheit':'Antippen übernimmt die Übung in die Einheit'));
@@ -775,6 +851,7 @@ function install(){
  document.addEventListener('click',intercept,true);
  wrapGlobals();setTimeout(wrapGlobals,1500);
  window.ForgeLayoutBEditorOpen=openEditor;window.ForgeLayoutBEditorDraft=openDraft;window.ForgeLayoutBCatalogOpen=openBrowse;
+ window.ForgeLayoutBEditorClearManualDraft=clearManualDraft;
  return true;
 }
 function boot(){if(install())return;let n=0;const t=setInterval(()=>{if(install()||++n>20)clearInterval(t);},250);}

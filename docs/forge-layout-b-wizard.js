@@ -47,10 +47,14 @@ function rhythmText(s){
  if(s.mode==='interval')return 'Alle '+s.every+' '+(s.every===1?'Tag':'Tage')+' · '+s.units+' '+(s.units===1?'Einheit':'Einheiten')+' im Wechsel';
  return (s.days||[]).map(d=>DAYS[d]).join(' · ');
 }
+function equipText(list){const E=typeof window!=='undefined'&&window.ForgeHomeEquipment;return E?E.summary(list):((list||[]).length?(list||[]).join(', '):'Nur Körpergewicht');}
 function strengthSummary(s){
- return [['Ziel',label(GOALS,s.goal)],['Trainingsort',label(PLACES,s.place)],['Erfahrung',label(LEVELS,s.level)],['Aufteilung',label(SPLITS,s.split)],['Rhythmus',rhythmText(s)]];
+ const rows=[['Ziel',label(GOALS,s.goal)],['Trainingsort',label(PLACES,s.place)],['Erfahrung',label(LEVELS,s.level)],['Aufteilung',label(SPLITS,s.split)],['Rhythmus',rhythmText(s)]];
+ // #70: Geräte zuhause gehören zum Plan, wenn zuhause trainiert wird.
+ if(s.place==='home'||s.place==='both')rows.splice(2,0,['Geräte zuhause',equipText(s.equip)]);
+ return rows;
 }
-function strengthSteps(s){return s.how==='manual'?['how','mdays','mname']:['how','basics','split','rhythm','create'];}
+function strengthSteps(s){return s.how==='manual'?['how','mname','mdays']:['how','basics',...(s.place==='home'||s.place==='both'?['equip']:[]),'split','rhythm','create'];}
 function mobilitySteps(m){return ['how',m.how==='custom'?'pick':'gen','when','save'];}
 function canContinue(kind,step,s){
  if(kind==='strength'){
@@ -68,7 +72,7 @@ function canContinue(kind,step,s){
  if(step==='when')return s.timing==='after'||(s.days||[]).length>0;
  return true;
 }
-window.ForgeLayoutBWizard=Object.freeze({ownRhythmText,everyOptions,spreadDays,toggleDay,rhythmText,strengthSummary,strengthSteps,mobilitySteps,canContinue});
+window.ForgeLayoutBWizard=Object.freeze({ownRhythmText,everyOptions,spreadDays,toggleDay,rhythmText,strengthSummary,strengthSteps,mobilitySteps,canContinue,swipeDirection});
 if(typeof document==='undefined')return;
 
 /* ---------- environment ---------- */
@@ -87,7 +91,7 @@ const ICON={
 
 const W='.forge-lb-wiz';
 const CSS=`
-${W}{position:fixed;inset:0;z-index:2147481000;background:#0b1018;color:#f3f7fc;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column;--wa:${ACC};--won:#142016;--wtint:#1a2a22;--wedge:#405d39;--wgrad:#273d2d}
+${W}{position:fixed;inset:0;overscroll-behavior-x:contain;z-index:2147481000;background:#0b1018;color:#f3f7fc;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column;--wa:${ACC};--won:#142016;--wtint:#1a2a22;--wedge:#405d39;--wgrad:#273d2d}
 ${W}.mob{--wa:${TEAL};--won:#062420;--wtint:#14302d;--wedge:#2f6a62;--wgrad:#1d3b3a}
 ${W} .wz-in{flex:1;min-height:0;display:flex;flex-direction:column;max-width:560px;width:100%;margin:0 auto;box-sizing:border-box;padding:calc(16px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom))}
 ${W} .wz-top{display:flex;align-items:center;gap:12px;min-height:44px}
@@ -109,6 +113,10 @@ ${W} .wz-grid.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
 ${W} .wz-grid.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
 ${W} .wz-grid.c5{grid-template-columns:repeat(5,minmax(0,1fr))}
 ${W} .wz-grid.c7{grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+${W} .wz-wide{width:100%}
+${W} .wz-note{font-size:13px;color:#95a3b7;line-height:1.45;margin:0;padding:0 4px}
+${W} .wz-check{display:flex;align-items:center;gap:10px;min-height:48px;font-size:14px;color:#c3cddb;padding:0 4px}
+${W} .wz-check input{width:22px;height:22px;accent-color:var(--wa)}
 ${W} .wz-opt{min-height:50px;border-radius:16px;border:1px solid #293346;background:#171e2a;color:#f3f7fc;font:inherit;font-size:15px;font-weight:600;padding:8px 10px;line-height:1.2}
 ${W} .wz-opt.sm{font-size:13px}
 ${W} .wz-opt[aria-pressed="true"],${W} .wz-opt[aria-checked="true"]{border:2px solid var(--wa);background:var(--wtint);font-weight:800}
@@ -182,7 +190,8 @@ function defaultsStrength(){
  let cad=null;try{cad=typeof state!=='undefined'&&state.settings&&state.settings.cadence&&state.settings.cadence.mode==='interval'&&state.plan.length?state.settings.cadence:null;}catch(e){}
  const out={kind:'strength',how:'auto',goal:v('goal')||'muscle',place:v('place')||'gym',level:v('level')||'beginner',split:v('split')||'full',
   mode:'weekdays',days,every:3,units:3,anchor:localDate(new Date()),name:'',
-  mdays:days.slice(),mvariety:0,mplace:v('place')==='home'?'home':'gym',mmode:'weekdays',mevery:3,munits:3,manchor:localDate(new Date())};
+  mdays:days.slice(),mvariety:0,mplace:v('place')==='home'?'home':'gym',mmode:'weekdays',mevery:3,munits:3,manchor:localDate(new Date()),
+  equip:(()=>{try{return window.ForgeHomeEquipment?window.ForgeHomeEquipment.saved():[];}catch(e){return [];}})(),equipRemember:true};
  // Keep the rhythm the person already trains with (e.g. every 4 days).
  if(cad&&Number.isInteger(cad.every)){
   const n=Array.isArray(cad.planOrder)?cad.planOrder.length:3;
@@ -206,8 +215,39 @@ function steps(){
  return flow.fromType?['type',...list]:list;
 }
 
+/* Validated sideways swipes; vertical scrolling and form inputs stay native. */
+function swipeDirection(dx,dy,ms){
+ if(!Number.isFinite(dx)||!Number.isFinite(dy)||!Number.isFinite(ms)||ms>900||ms<0
+    ||Math.abs(dx)<76||Math.abs(dx)<Math.abs(dy)*1.65)return null;
+ return dx<0?'next':'back';
+}
+function ignoreSwipeTarget(target){
+ return !!target?.closest?.('input,textarea,select,[contenteditable="true"],.wz-chips,[role="tablist"],[data-no-swipe]');
+}
+function installSwipe(host){
+ let start=null;
+ host.addEventListener('touchstart',e=>{
+  start=null;
+  if(e.touches.length!==1||ignoreSwipeTarget(e.target))return;
+  const t=e.touches[0];start={x:t.clientX,y:t.clientY,at:Date.now()};
+ },{passive:true});
+ host.addEventListener('touchcancel',()=>{start=null;},{passive:true});
+ host.addEventListener('touchend',e=>{
+  if(!start||e.changedTouches.length!==1||!flow||flow.done)return;
+  const t=e.changedTouches[0],d=swipeDirection(t.clientX-start.x,t.clientY-start.y,Date.now()-start.at);start=null;
+  if(!d)return;
+  if(d==='next'){
+   const step=steps()[flow.step];
+   if(step==='type'||step==='create'||step==='save'||!canContinue(flow.kind,step,flow.s))return;
+  }
+  if(e.cancelable)e.preventDefault();
+  if(d==='back')back();else next();
+ },{passive:false});
+}
+
 /* ---------- open / close ---------- */
 function open(kind){
+ try{window.ForgeLayoutBEditorClearManualDraft?.();}catch(e){}
  if(!enabled())return false;
  if(typeof state!=='undefined'&&state&&state.activeWorkout){
   // Same guard as the generator: no plan change during a running workout.
@@ -218,12 +258,23 @@ function open(kind){
  if(!$('forgeLayoutBWizardStyle')){const st=el('style');st.id='forgeLayoutBWizardStyle';st.textContent=CSS;document.head.append(st);}
  close();
  root=el('div','forge-lb-wiz');root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');
+ installSwipe(root);
  document.body.append(root);
  document.addEventListener('keydown',onKey,true);
  render();
  return true;
 }
 function close(){if(root){root.remove();root=null;document.removeEventListener('keydown',onKey,true);}}
+/* Return from the exercise picker without resetting the manual plan setup. */
+function resumeManualDraft(){
+ if(!enabled()||!flow||flow.kind!=='strength'||flow.s?.how!=='manual'||flow.done)return false;
+ if(steps()[flow.step]!=='mdays')return false;
+ if(root){render();return true;}
+ root=el('div','forge-lb-wiz');root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');
+ installSwipe(root);
+ document.body.append(root);document.addEventListener('keydown',onKey,true);
+ render();return true;
+}
 function onKey(e){if(e.key==='Escape'){e.preventDefault();back();}}
 function back(){
  if(!flow||flow.done){close();return;}
@@ -236,7 +287,7 @@ function next(){
  flow.error='';
  if(step==='type'){return;}
  if(!canContinue(flow.kind,step,flow.s)){render();return;}
- if(step==='mname'){openOwnPlan();return;}
+ if(step==='mdays'&&flow.kind==='strength'&&flow.s.how==='manual'){openOwnPlan();return;}
  if(step==='create'){createStrength();return;}
  if(step==='save'){saveMobilityPlan();return;}
  flow.step++;render();
@@ -273,6 +324,17 @@ function createStrength(){
  const before=typeof state!=='undefined'?state.activePlanId:null;
  const msgs=withAlerts(()=>{if(typeof window.generatePlan==='function')window.generatePlan();});
  if(state.activePlanId&&state.activePlanId!==before){
+  // #70: Zuhause-Einheiten an die vorhandenen Geräte anpassen (Studio-Einheiten bleiben).
+  try{
+   const E=window.ForgeHomeEquipment;
+   if(E&&(s.place==='home'||s.place==='both')){
+    const eq=E.clean(s.equip);
+    state.plan=E.adaptPlan(state.plan,eq,n=>{try{return typeof forge138Defaults==='function'?forge138Defaults(n):null;}catch(e){return null;}});
+    state.settings={...(state.settings||{}),homeEquipment:eq};
+    if(s.equipRemember!==false)E.remember(eq);
+    if(typeof save==='function')save();
+   }
+  }catch(e){console.error('FORGE Geräte zuhause',e);}
   flow.done={title:'Dein Plan ist bereit',text:(state.activePlanName||'Neuer Plan')+' · '+state.plan.length+' '+(state.plan.length===1?'Einheit':'Einheiten'),rows:strengthSummary(s)};
   try{typeof renderPlan==='function'&&renderPlan();}catch(e){}
  }else{
@@ -280,11 +342,11 @@ function createStrength(){
  }
  render();
 }
-/* „Individuell“: rhythm and place here, exercises in the unit editor (P6/P7). */
+/* „Individuell“: first name/place, then cadence, then exercise editor (P6/P7). */
 function openOwnPlan(){
  const s=flow.s;
  if(typeof window.ForgeLayoutBEditorDraft!=='function'){flow.error='Der Plan-Editor ist noch nicht geladen. Bitte erneut versuchen.';render();return;}
- const opened=window.ForgeLayoutBEditorDraft({mode:s.mmode,days:s.mdays,every:s.mevery,units:s.munits,variety:s.mvariety,anchor:s.manchor,location:s.mplace,name:s.name});
+ const opened=window.ForgeLayoutBEditorDraft({mode:s.mmode,days:s.mdays,every:s.mevery,units:s.munits,variety:s.mvariety,anchor:s.manchor,location:s.mplace,name:s.name,fromWizard:true});
  if(opened)close();else{flow.error='Der Plan-Editor konnte nicht geöffnet werden.';render();}
 }
 function saveMobilityPlan(){
@@ -402,6 +464,8 @@ function render(){
  b.setAttribute('aria-label',flow.step>0&&!flow.done?'Zurück':'Schließen');b.addEventListener('click',back);
  top.append(b);
  const counted=list.filter(x=>x!=='type'&&x!=='how');
+  // The manual exercise selector is the third page of the same plan flow.
+  if(flow.kind==='strength'&&flow.s?.how==='manual')counted.push('exercises');
  const idx=counted.indexOf(step);
  if(idx>=0&&!flow.done){
   const prog=el('div','wz-prog');prog.setAttribute('aria-label','Schritt '+(idx+1)+' von '+counted.length);
@@ -431,11 +495,11 @@ function render(){
    head.append(el('h2','','Neuen Trainingsplan erstellen'),el('p','','Automatisch zusammenstellen oder komplett selbst gestalten.'));
    body.style.justifyContent='flex-end';
    body.append(bigCard(ICON.spark,'Automatisch','4 kurze Schritte. FORGE schlägt Übungen vor, danach kannst du jede Einheit frei anpassen.',s.how==='auto',()=>{s.how='auto';render();}),
-    bigCard(ICON.pen,'Individuell','Trainingstage oder „alle X Tage“ festlegen und die Übungen selbst aus dem Katalog wählen.',s.how==='manual',()=>{s.how='manual';render();}));
+    bigCard(ICON.pen,'Individuell','Zuerst Name und Trainingsort, danach Rhythmus und Übungen selbst wählen.',s.how==='manual',()=>{s.how='manual';render();}));
    body.append(el('p','wz-note','Dein aktueller Plan bleibt aktiv, bis der neue erstellt ist. Danach wird er archiviert.'));
    nextLabel='Weiter';
   }else if(step==='mdays'){
-   head.append(el('h2','','Wann trainierst du?'),el('p','',s.mmode==='interval'?'Die Einheiten wechseln sich ab – die Übungen wählst du gleich selbst.':'Wähle deine Tage und wie viele verschiedene Einheiten du willst – die Übungen wählst du gleich selbst.'));
+   head.append(el('h2','','Wie oft möchtest du trainieren?'),el('p','','Wähle feste Wochentage oder alle X Tage und wie viele unterschiedliche Einheiten du möchtest.'));
    const seg=el('div','wz-seg');seg.setAttribute('role','radiogroup');seg.setAttribute('aria-label','Trainingsrhythmus');
    [['weekdays','Feste Wochentage'],['interval','Alle X Tage']].forEach(([v,t])=>{const x=el('button','',t);x.type='button';x.setAttribute('role','radio');x.setAttribute('aria-checked',String(s.mmode===v));x.addEventListener('click',()=>{s.mmode=v;render();});seg.append(x);});
    body.append(seg);
@@ -462,21 +526,31 @@ function render(){
      body.append(c3);
     }
    }
+   nextLabel='Übungen auswählen';
   }else if(step==='mname'){
-   head.append(el('h2','','Wie soll dein Plan heißen?'),el('p','',s.mmode==='interval'?'Danach wählst du für jede Einheit die Übungen aus dem Katalog.':'Danach wählst du für jeden Tag die Übungen aus dem Katalog.'));
-   const sum=el('div','wz-sum');sum.append(el('small','','Deine Auswahl'));
-   [['Rhythmus',ownRhythmText(s)],['Übungen','wählst du selbst']].forEach(([k,v])=>{const r=el('div');r.append(el('span','',k),el('b','',v));sum.append(r);});
+   head.append(el('h2','','Wie soll dein Plan heißen?'),el('p','','Gib deinem Plan einen Namen und wähle den Trainingsort. Danach legst du deinen Trainingsrhythmus fest.'));
    const f=el('label','wz-field');f.append(el('span','wz-label','Name deines Plans (optional)'));
    const inp=el('input');inp.type='text';inp.maxLength=70;inp.placeholder='Zum Beispiel „Mein 3er-Split“';inp.value=s.name||'';inp.autocomplete='off';
    inp.addEventListener('input',()=>{s.name=inp.value;});f.append(inp);
    const place=group('Trainingsort',2,[['gym','Fitnessstudio'],['home','Zuhause']].map(([v,t])=>opt(t,s.mplace===v,()=>{s.mplace=v;render();})));
-   body.append(sum,place,f);
-   nextLabel='Übungen auswählen';
+   body.append(f,place);
+   nextLabel='Weiter: Trainingsrhythmus';
   }else if(step==='basics'){
    head.append(el('h2','','Was möchtest du trainieren?'),el('p','','Wähle, was zu deinem Alltag passt. Alles lässt sich später ändern.'));
    body.append(group('Dein Ziel',2,GOALS.map(([v,t])=>opt(t,s.goal===v,()=>{s.goal=v;render();}))));
    body.append(group('Trainingsort',3,PLACES.map(([v,t])=>opt(t,s.place===v,()=>{s.place=v;render();},'sm'))));
    body.append(group('Erfahrung',2,LEVELS.map(([v,t])=>opt(t,s.level===v,()=>{s.level=v;render();}))));
+  }else if(step==='equip'){
+   const E=window.ForgeHomeEquipment;
+   head.append(el('h2','','Welche Geräte hast du zuhause?'),el('p','','Mehrfachauswahl. FORGE plant zuhause nur Übungen, für die alles da ist. Ohne Auswahl: nur Körpergewicht.'));
+   s.equip=Array.isArray(s.equip)?s.equip:[];
+   const none=opt('Nur Körpergewicht',!s.equip.length,()=>{s.equip=[];render();});none.classList.add('wz-wide');
+   body.append(none);
+   if(E)body.append(group('Geräte & Hilfsmittel',2,E.OPTIONS.map(([k,t])=>opt(t,s.equip.includes(k),()=>{s.equip=s.equip.includes(k)?s.equip.filter(x=>x!==k):s.equip.concat(k);render();}))));
+   if(E&&s.equip.some(k=>E.NO_EXERCISES.includes(k)))body.append(el('p','wz-note','Für '+s.equip.filter(k=>E.NO_EXERCISES.includes(k)).map(E.label).join(' und ')+' gibt es noch keine eigenen Übungen im Katalog – sie ändern den Plan derzeit nicht.'));
+   if(s.place==='both')body.append(el('p','wz-note','Gilt nur für die Zuhause-Einheiten. Im Studio plant FORGE wie gewohnt.'));
+   const rem=el('label','wz-check');const cb=el('input');cb.type='checkbox';cb.checked=s.equipRemember!==false;cb.addEventListener('change',()=>{s.equipRemember=cb.checked;});
+   rem.append(cb,el('span','','Meine Geräte für nächste Pläne merken'));body.append(rem);
   }else if(step==='split'){
    head.append(el('h2','','Wie teilst du dein Training auf?'),el('p','','FORGE wählt die Übungen passend zur Aufteilung.'));
    const g=el('div','wz-list');g.setAttribute('role','radiogroup');g.setAttribute('aria-label','Aufteilung');
@@ -635,6 +709,7 @@ function install(){
  setInterval(()=>{if(document.visibilityState!=='hidden')mobilityEntry();},800);
  mobilityEntry();
  window.ForgeLayoutBWizardOpen=open;
+ window.ForgeLayoutBWizardResumeManualDraft=resumeManualDraft;
  return true;
 }
 function boot(){if(install())return;let n=0;const t=setInterval(()=>{if(install()||++n>20)clearInterval(t);},250);}

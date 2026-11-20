@@ -15,6 +15,9 @@ const KINDS=Object.freeze([['yoga','Yoga-Flow','Ruhige Flows aus Yoga-Haltungen'
 const KIND_CAT=Object.freeze({yoga:'Yoga',mobility:'Gelenke',stretch:'Dehnen',mixed:'Alle'});
 const DAYS=Object.freeze(['Mo','Di','Mi','Do','Fr','Sa','So']);
 const MAX_ITEMS=20;
+/* #75: Bezug zum Krafttraining pro Routine (alte Routinen = jederzeit). */
+const WHEN=Object.freeze([['before','Vor dem Krafttraining','Vor der ersten Kraftübung anbieten'],['after','Nach dem Krafttraining','Nach dem Speichern anbieten'],
+ ['both','Vorher und nachher','Vor und nach dem Krafttraining anbieten'],['any','Unabhängig','Jederzeit, an Ruhetagen oder festen Tagen']]);
 
 /* ---------- pure helpers (tested) ---------- */
 function kindLabel(k){const x=KINDS.find(y=>y[0]===k);return x?x[1]:'Routine';}
@@ -22,6 +25,16 @@ function list(s){return s&&Array.isArray(s.forgeRoutines)?s.forgeRoutines:[];}
 function active(rs){return (rs||[]).filter(r=>r&&!r.archived);}
 function archived(rs){return (rs||[]).filter(r=>r&&r.archived);}
 function forDay(rs,d){return active(rs).filter(r=>Array.isArray(r.days)&&r.days.includes(d));}
+function whenOf(r){const w=r&&r.when;return WHEN.some(x=>x[0]===w)?w:'any';}
+function whenLabel(w){const x=WHEN.find(y=>y[0]===w);return x?x[1]:WHEN[3][1];}
+/* Stabile Reihenfolge: Favoriten zuerst, sonst nach Anlage – Speichern sortiert nichts um. */
+function ordered(rs){return (rs||[]).map((r,i)=>[r,i]).sort((a,b)=>(!!b[0].pinned-!!a[0].pinned)||String(a[0].createdAt||'').localeCompare(String(b[0].createdAt||''))||a[1]-b[1]).map(x=>x[0]);}
+/* Routinen für „vor“/„nach“ dem Krafttraining an Wochentag d (ohne Tage = bei jedem Training). */
+function forWorkout(rs,phase,d){
+ return ordered(active(rs).filter(r=>{const w=whenOf(r);if(!(w===phase||w==='both'))return false;
+  return !Array.isArray(r.days)||!r.days.length||r.days.includes(d);}));
+}
+function setPinned(rs,id,flag){return (rs||[]).map(r=>r&&String(r.id)===String(id)?{...r,pinned:!!flag}:r);}
 function item(x){return [String(x.name),Math.max(10,Math.round(Number(x.seconds)||30)),x.sides?'je Seite':''];}
 function seconds(items){return (items||[]).reduce((a,it)=>a+5+(Number(it[1])||0)*(/je seite/i.test(String(it[2]||''))?2:1)+(/je seite/i.test(String(it[2]||''))?3:0),0);}
 function validate(r){
@@ -31,13 +44,14 @@ function validate(r){
  if(!Array.isArray(r.items)||!r.items.length)return 'Wähle mindestens eine Übung.';
  if(r.items.length>MAX_ITEMS)return 'Höchstens '+MAX_ITEMS+' Übungen pro Routine.';
  if(!Array.isArray(r.days)||r.days.some(d=>!Number.isInteger(d)||d<0||d>6))return 'Ungültige Wochentage.';
+ if(r.when!==undefined&&!WHEN.some(x=>x[0]===r.when))return 'Bitte wähle, wann du die Routine machen möchtest.';
  return '';
 }
 /* Insert or update one routine; never drops other routines. Returns a new array. */
 function upsert(rs,r,now){
  const t=now||new Date().toISOString();
  const clean={id:String(r.id),name:String(r.name).trim().slice(0,60),kind:r.kind,items:r.items.map(x=>x.slice(0,3)),
-  days:[...new Set(r.days)].sort((a,b)=>a-b),archived:!!r.archived,createdAt:r.createdAt||t,updatedAt:t};
+  days:[...new Set(r.days)].sort((a,b)=>a-b),when:whenOf(r),pinned:!!r.pinned,archived:!!r.archived,createdAt:r.createdAt||t,updatedAt:t};
  const out=(rs||[]).slice();const i=out.findIndex(x=>x&&String(x.id)===clean.id);
  if(i>=0)out[i]={...out[i],...clean,createdAt:out[i].createdAt||clean.createdAt};else out.push(clean);
  return out;
@@ -47,7 +61,7 @@ function setArchived(rs,id,flag,now){
 }
 function routineKey(id){return 'forge-r-'+id;}
 function newId(){return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
-window.ForgeRoutinesCore=Object.freeze({KINDS,KIND_CAT,kindLabel,active,archived,forDay,item,seconds,validate,upsert,setArchived,routineKey,MAX_ITEMS});
+window.ForgeRoutinesCore=Object.freeze({KINDS,KIND_CAT,WHEN,kindLabel,active,archived,forDay,whenOf,whenLabel,ordered,forWorkout,setPinned,item,seconds,validate,upsert,setArchived,routineKey,MAX_ITEMS});
 if(typeof document==='undefined')return;
 
 /* ---------- environment ---------- */
@@ -152,6 +166,27 @@ ${R} button:focus-visible{outline:2px solid ${TEAL};outline-offset:2px}
 .forge-lb-rtoday .rq span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .forge-lb-rtoday .rq b{font-size:15px}
 .forge-lb-rtoday .rq em{font-style:normal;font-size:12px;color:#95a3b7}
+.forge-lb-rt .rt-cardhead{display:flex;align-items:flex-start;gap:8px}
+.forge-lb-rt .rt-cardhead div{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.forge-lb-rt .rt-star{width:44px;height:44px;flex:0 0 44px;border-radius:22px;border:1px solid #2f6a62;background:transparent;color:#95a3b7;font-size:20px;padding:0}
+.forge-lb-rt .rt-star[aria-pressed="true"]{color:#ffd166;border-color:#ffd166}
+.forge-lb-rt .rt-when{font-size:12px;color:#c3cddb;background:#0f1620;border-radius:10px;padding:3px 8px;align-self:flex-start}
+.forge-lb-rt .rt-whens{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.forge-lb-rt .rt-whens .rt-kind{min-height:64px}
+.forge-lb-rtoday .rq-group{font-size:12px;color:#95a3b7;font-weight:700;margin-top:4px}
+.forge-lb-rtoffer{position:fixed;inset:0;z-index:2147482500;background:rgba(5,8,13,.78);display:flex;flex-direction:column;justify-content:flex-end;font-family:Inter,system-ui,sans-serif;color:#f3f7fc}
+.forge-lb-rtoffer .ro-sheet{background:#0f1a1f;border-top:1px solid #2f6a62;border-radius:26px 26px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom));max-width:560px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;gap:10px}
+.forge-lb-rtoffer small{font-size:12px;color:${TEAL};font-weight:800;text-transform:uppercase;letter-spacing:1.3px}
+.forge-lb-rtoffer h2{margin:0;font-size:22px;font-weight:800}
+.forge-lb-rtoffer p{margin:0;font-size:14px;color:#c3cddb;line-height:1.45}
+.forge-lb-rtoffer .rq,.forge-lb-finish .forge-lb-rtafter .rq{display:flex;align-items:center;gap:10px;min-height:56px;border-radius:16px;background:#17212b;border:1px solid #22303d;padding:6px 6px 6px 14px}
+.forge-lb-rtoffer .rq span,.forge-lb-finish .forge-lb-rtafter .rq span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.forge-lb-rtoffer .rq b,.forge-lb-finish .forge-lb-rtafter .rq b{font-size:15px}
+.forge-lb-rtoffer .rq em,.forge-lb-finish .forge-lb-rtafter .rq em{font-style:normal;font-size:12px;color:#95a3b7}
+.forge-lb-rtoffer .rq button,.forge-lb-finish .forge-lb-rtafter .rq button{min-height:44px;border-radius:22px;border:0;background:${TEAL};color:#062420;font:inherit;font-size:14px;font-weight:800;padding:0 16px}
+.forge-lb-rtoffer .ro-skip{min-height:52px;border-radius:26px;border:1px solid #2f6a62;background:transparent;color:#f3f7fc;font:inherit;font-size:16px;font-weight:700}
+.forge-lb-finish .forge-lb-rtafter{border-radius:22px;background:#0f1a1f;border:1px solid #2f6a62;padding:14px;display:flex;flex-direction:column;gap:8px}
+.forge-lb-finish .forge-lb-rtafter small{font-size:12px;color:${TEAL};font-weight:800;text-transform:uppercase;letter-spacing:1.3px}
 .forge-lb-rtoday .rq button{min-height:44px;border-radius:22px;border:0;background:${TEAL};color:#062420;font:inherit;font-size:14px;font-weight:800;padding:0 16px}
 `;
 function ensureCss(){if($('forgeLbRoutinesStyle'))return;const st=el('style');st.id='forgeLbRoutinesStyle';st.textContent=CSS;document.head.append(st);}
@@ -185,9 +220,14 @@ function openList(tab){
  if(view.tab==='active')body.append(btn('rt-new','+ Neue Routine',()=>openEdit(null)));
  const shown=view.tab==='active'?active(all):archived(all);
  if(!shown.length)body.append(el('p','rt-note',view.tab==='active'?'Noch keine Routine. Lege deinen ersten Yoga-Flow oder deine Dehnroutine an – sie erscheint dann an den gewählten Tagen im Wochenplan.':'Keine archivierten Routinen. Archivierte Routinen bleiben hier erhalten und lassen sich jederzeit reaktivieren.'));
- shown.slice().sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||''))).forEach(r=>{
+ ordered(shown).forEach(r=>{
   const c=el('div','rt-card'+(r.archived?' archived':''));
-  c.append(el('small','',kindLabel(r.kind)),el('strong','',r.name),el('div','rt-meta',routineMeta(r).replace(kindLabel(r.kind)+' · ','')));
+  const ch=el('div','rt-cardhead');const cl=el('div');
+  cl.append(el('small','',kindLabel(r.kind)),el('strong','',r.name),el('div','rt-meta',routineMeta(r).replace(kindLabel(r.kind)+' · ','')),el('span','rt-when',whenLabel(whenOf(r))));
+  ch.append(cl);
+  if(!r.archived){const st=btn('rt-star',r.pinned?'★':'☆',()=>{const s=S();s.forgeRoutines=setPinned(list(s),r.id,!r.pinned);store();openList('active');});
+   st.setAttribute('aria-pressed',String(!!r.pinned));st.setAttribute('aria-label',(r.pinned?'Favorit entfernen: ':'Als Favorit anheften: ')+r.name);ch.append(st);}
+  c.append(ch);
   const d=el('div','rt-days');DAYS.forEach((t,i)=>d.append(el('span',(r.days||[]).includes(i)?'on':'',t)));c.append(d);
   const acts=el('div','rt-acts');
   if(!r.archived){
@@ -203,7 +243,7 @@ function openList(tab){
 function openEdit(r,readOnly){
  const src=r?JSON.parse(JSON.stringify(r)):null;
  view={mode:'edit',back:r&&r.archived?'archive':'active',readOnly:!!readOnly,step:src?1:0,
-  d:src||{id:newId(),name:'',kind:'',items:[],days:[],archived:false},cat:'',err:''};
+  d:src||{id:newId(),name:'',kind:'',items:[],days:[],when:'any',pinned:false,archived:false},cat:'',err:''};
  drawEdit();
 }
 function drawEdit(){
@@ -253,7 +293,11 @@ function drawEdit(){
   const inp=el('input','rt-field');inp.value=d.name;inp.maxLength=60;inp.setAttribute('aria-label','Name der Routine');inp.disabled=v.readOnly;
   inp.addEventListener('input',()=>{d.name=inp.value;nb.disabled=!d.name.trim()||v.readOnly;});
   body.append(inp);
-  body.append(el('div','rt-label','Wochentage (optional)'));
+  body.append(el('div','rt-label','Wann möchtest du diese Routine machen?'));
+  const wg=el('div','rt-whens');
+  WHEN.forEach(([k,t,sub])=>{const b=btn('rt-kind','',()=>{if(v.readOnly)return;d.when=k;drawEdit();});b.append(el('b','',t),el('small','',sub));b.setAttribute('aria-pressed',String(whenOf(d)===k));wg.append(b);});
+  body.append(wg);
+  body.append(el('div','rt-label',whenOf(d)==='any'?'Wochentage (optional)':'Nur an diesen Tagen (optional – sonst bei jedem Krafttraining)'));
   const dp=el('div','rt-daypick');
   DAYS.forEach((t,i)=>{const b=btn('',t,()=>{if(v.readOnly)return;d.days=d.days.includes(i)?d.days.filter(x=>x!==i):d.days.concat(i);drawEdit();});b.setAttribute('aria-pressed',String(d.days.includes(i)));dp.append(b);});
   body.append(dp);
@@ -285,23 +329,79 @@ function planEntry(){
 function todayCard(){
  const host=document.querySelector('#workout .forge-lb-mobstart');
  const old=document.querySelector('#workout .forge-lb-rtoday');
- const rs=forDay(list(S()),todayIdx());
- if(!host||!rs.length){if(old)old.remove();return;}
- const key=rs.map(r=>r.id+':'+r.updatedAt).join('|');
+ const all=list(S());const rs=ordered(forDay(all,todayIdx()));
+ const fav=ordered(active(all).filter(r=>r.pinned&&!rs.includes(r)));
+ if(!host||(!rs.length&&!fav.length)){if(old)old.remove();return;}
+ const key=rs.concat(fav).map(r=>r.id+':'+r.updatedAt+':'+!!r.pinned).join('|');
  if(old&&old.dataset.key===key&&old.previousElementSibling===host)return;
  ensureCss();
- const c=el('section','forge-lb-rtoday');c.dataset.key=key;c.append(el('small','','Routinen heute'));
- rs.forEach(r=>{const row=el('div','rq');const t=el('span');t.append(el('b','',r.name),el('em','',routineMeta(r)));row.append(t,btn('','Starten',()=>startRoutine(r.id)));c.append(row);});
+ const c=el('section','forge-lb-rtoday');c.dataset.key=key;c.append(el('small','',rs.length?'Routinen heute':'Deine Favoriten'));
+ const row=r=>{const x=el('div','rq');const t=el('span');t.append(el('b','',(r.pinned?'★ ':'')+r.name),el('em','',whenLabel(whenOf(r))+' · '+routineMeta(r)));x.append(t,btn('','Starten',()=>startRoutine(r.id)));return x;};
+ rs.forEach(r=>c.append(row(r)));
+ if(rs.length&&fav.length)c.append(el('div','rq-group','Favoriten'));
+ fav.forEach(r=>c.append(row(r)));
  if(old)old.remove();host.after(c);
+}
+/* ---------- #75 vor dem Krafttraining anbieten ---------- */
+let offer=null;
+function closeOffer(){if(offer){offer.remove();offer=null;}}
+function preOffer(){
+ const s=S();if(!s||!s.activeWorkout||!s.workoutDraft)return;
+ const d=s.workoutDraft;if(d.preRoutine)return;
+ const done=(d.exercises||[]).some(e=>(e&&e.sets||[]).some(x=>x&&x.done));
+ const rs=done?[]:forWorkout(list(s),'before',todayIdx());
+ if(!rs.length){d.preRoutine={decided:true,none:true};return;}
+ d.preRoutine={decided:false};store();showPre(rs);
+}
+function decidePre(id){
+ const s=S();if(s&&s.workoutDraft)s.workoutDraft.preRoutine={decided:true,routine:id||null,skipped:!id,at:Date.now()};store();closeOffer();
+}
+function showPre(rs){
+ ensureCss();closeOffer();
+ offer=el('div','forge-lb-rtoffer');offer.setAttribute('role','dialog');offer.setAttribute('aria-modal','true');offer.setAttribute('aria-label','Routine vor dem Krafttraining');
+ const sh=el('div','ro-sheet');
+ sh.append(el('small','','Vor dem Krafttraining'),el('h2','',rs.length===1?rs[0].name:'Routine vorab?'),el('p','',rs.length===1?routineMeta(rs[0])+' – danach geht es mit deinem Training weiter.':'Wähle eine Routine oder überspringe sie.'));
+ rs.forEach(r=>{const x=el('div','rq');const t=el('span');t.append(el('b','',r.name),el('em','',routineMeta(r)));
+  x.append(t,btn('','Jetzt starten',()=>{decidePre(r.id);register();setTimeout(()=>{try{window.ForgeLayoutBMobilityStart?.(routineKey(r.id));}catch(e){}},80);}));sh.append(x);});
+ sh.append(btn('ro-skip','Überspringen',()=>decidePre(null)));
+ offer.append(sh);document.body.append(offer);
+ sh.querySelector('button')?.focus({preventScroll:true});
+}
+function checkPre(){
+ const s=S();
+ if(offer&&(!s||!s.activeWorkout||!s.workoutDraft||(s.workoutDraft.preRoutine&&s.workoutDraft.preRoutine.decided))){closeOffer();return;}
+ if(!s||!s.activeWorkout||!s.workoutDraft)return;
+ const pr=s.workoutDraft.preRoutine;
+ if(!pr)preOffer();
+ else if(!pr.decided&&!offer){const rs=forWorkout(list(s),'before',todayIdx());if(rs.length)showPre(rs);else decidePre(null);}
+}
+/* nach erfolgreichem Speichern: Karte im Abschluss-Bildschirm (nie nach „Verwerfen“). */
+function afterCard(){
+ const fin=document.querySelector('.forge-lb-finish .fin-body');
+ if(!fin||fin.querySelector('.forge-lb-rtafter'))return;
+ const rs=forWorkout(list(S()),'after',todayIdx());if(!rs.length)return;
+ ensureCss();
+ const c=el('div','forge-lb-rtafter');c.append(el('small','','Nach dem Training'));
+ rs.forEach(r=>{const x=el('div','rq');const t=el('span');t.append(el('b','',r.name),el('em','',routineMeta(r)));
+  x.append(t,btn('','Starten',()=>{document.querySelector('.forge-lb-finish')?.remove();startRoutine(r.id);}));c.append(x);});
+ c.append(el('p','rt-note','Optional – mit „Fertig“ überspringst du sie heute.'));
+ fin.append(c);
 }
 window.ForgeRoutines=Object.freeze({
  forDay:d=>forDay(list(S()),d).map(r=>({id:r.id,name:r.name,kind:r.kind})),
- start:startRoutine,open:openList,register
+ start:startRoutine,open:openList,register,
+ forWorkout:(phase,d)=>forWorkout(list(S()),phase,d==null?todayIdx():d).map(r=>({id:r.id,name:r.name,kind:r.kind}))
 });
-function tick(){if(!enabled())return;planEntry();todayCard();}
+function tick(){if(!enabled())return;planEntry();todayCard();checkPre();afterCard();}
+function wrapStart(){
+ const o=window.startWorkout;if(typeof o!=='function'||o.__forgeRt)return typeof o==='function';
+ const w=function(){const r=o.apply(this,arguments);try{if(enabled())checkPre();}catch(e){console.error('FORGE Routine vorher',e);}return r;};
+ w.__forgeRt=true;window.startWorkout=w;return true;
+}
 function install(){
  if(!document.body||!enabled())return false;
- register();tick();setInterval(()=>{if(document.visibilityState!=='hidden')tick();},800);
+ register();wrapStart();tick();setInterval(()=>{if(document.visibilityState!=='hidden'){wrapStart();tick();}},800);
+ const fo=new MutationObserver(()=>{if(document.querySelector('.forge-lb-finish'))afterCard();});fo.observe(document.body,{childList:true});
  return true;
 }
 function boot(){if(install())return;let n=0;const t=setInterval(()=>{if(install()||++n>20)clearInterval(t);},250);}

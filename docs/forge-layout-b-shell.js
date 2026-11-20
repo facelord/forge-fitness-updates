@@ -177,6 +177,7 @@ function openMenu(btn){
  if(pageId==='nutrition'&&food)row(ICON.page,'Tagesziele & eigene Lebensmittel',()=>window.ForgeLayoutBFoodOpen('goals'));
  else if(PAGE_ROW[pageId]&&btn&&btn.classList.contains('forge-b-pagehead-action'))row(ICON.page,PAGE_ROW[pageId],()=>openPageTarget(pageId,btn));
  if(typeof window.forgeOpenReminders==='function')row(ICON.bell,'Erinnerungen',()=>window.forgeOpenReminders());
+ if(typeof window.forgeOpenCalendarSync==='function')row(ICON.page,'Kalender synchronisieren',()=>window.forgeOpenCalendarSync());
  if(typeof window.forgeOpenHealth==='function'&&window.forgeHealthAvailable&&window.forgeHealthAvailable())row(ICON.heart,'Health Connect',()=>window.forgeOpenHealth());
  row(ICON.gear,'Einstellungen',()=>$('forgeSettingsToggle')?.click());
  if(bk)row(ICON.file,'Datensicherung',()=>window.forgeOpenBackup());

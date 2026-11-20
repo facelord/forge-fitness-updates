@@ -46,7 +46,17 @@ function schedule(input){
  }
  return out.sort((a,b)=>a.at-b.at);
 }
-window.ForgeLayoutBRemind=Object.freeze({schedule,settings,validTime,HORIZON,DEF});
+/* Pure snapshot producer, shared by Android and unit tests. */
+function buildWidgetDays(now,unitAt,trainedAt){
+ const monday=addDays(isoOf(now),-((now.getDay()+6)%7)),days=[];
+ for(let offset=0;offset<42;offset++){
+  const date=addDays(monday,offset),unit=unitAt(date);
+  const count=Array.isArray(unit?.ex)?unit.ex.length:0;
+  days.push({date,title:unit?String(unit.title||'Training').slice(0,80):'',count,done:!!unit&&!!trainedAt(date)});
+ }
+ return {version:1,days};
+}
+window.ForgeLayoutBRemind=Object.freeze({schedule,settings,validTime,HORIZON,DEF,buildWidgetDays});
 if(typeof document==='undefined')return;
 
 const $=id=>document.getElementById(id);
@@ -70,8 +80,26 @@ function unitOn(iso){const T=window.ForgeLayoutBToday;const st=S();if(!T||!st)re
 function trainedOn(iso){return ((S()&&S().workouts)||[]).some(w=>w&&w.date&&isoOf(new Date(w.date))===iso);}
 function ateOn(iso){return ((S()&&S().foods)||[]).some(f=>f&&(f.date===iso||(typeof f.date==='string'&&f.date.slice(0,10)===iso)||(f.time&&isoOf(new Date(f.time))===iso)));}
 
+/* The Android widget is a local-only read-only view; it never changes a plan.
+ * Reuse the same unitOn() schedule as reminders (fixed days, rolling cadence,
+ * week-only moves) so the widget and FORGE agree on training dates. */
+let lastWidgetSent='';
+function widgetPayload(now=new Date()){
+ if(!S()||!window.ForgeLayoutBToday)return null;
+ return JSON.stringify(buildWidgetDays(now,unitOn,trainedOn));
+}
+function syncWidget(force){
+ const a=window.ForgeAndroid;
+ if(!a||typeof a.updateWeekWidget!=='function')return false;
+ const payload=widgetPayload();
+ if(!payload||(!force&&payload===lastWidgetSent))return false;
+ try{a.updateWeekWidget(payload);lastWidgetSent=payload;return true;}
+ catch(e){console.error('FORGE Wochen-Widget',e);return false;}
+}
+
 let lastSent='';
 function sync(force){
+ syncWidget(force);
  const a=native();if(!a||!S())return false;
  let list=[];
  try{list=schedule({settings:current(),now:new Date(),unitOn,trainedOn,ateOn});}catch(e){console.error('FORGE Erinnerungen',e);return false;}

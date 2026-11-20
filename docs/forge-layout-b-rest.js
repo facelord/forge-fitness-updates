@@ -24,7 +24,11 @@ function step(cur,dir,def){
  return next===d?0:next;
 }
 /* Seconds for exercise i of plan p, or null when the general value applies. */
-function restFor(p,i){const e=p&&Array.isArray(p.ex)?p.ex[i]:null;return e&&valid(e.rest)?Number(e.rest):null;}
+function restFor(p,i,draft){
+ // #78: im laufenden Training gewählte Pause (nur diese Einheit) hat Vorrang.
+ const o=draft&&draft.restOverride&&typeof draft.restOverride==='object'?draft.restOverride[i]:null;
+ if(valid(o)&&(!p||!draft.planId||String(draft.planId)===String(p.id)))return Number(o);
+ const e=p&&Array.isArray(p.ex)?p.ex[i]:null;return e&&valid(e.rest)?Number(e.rest):null;}
 window.ForgeLayoutBRest=Object.freeze({STEPS,clock,valid,label,step,restFor});
 if(typeof document==='undefined')return;
 
@@ -45,7 +49,8 @@ function wrap(){
     const st=typeof state!=='undefined'?state:null;
     if(st&&st.forgeRest&&justDone&&Date.now()-justDone.at<2000){
      const p=(st.plan||[]).find(x=>String(x.id)===String(justDone.planId));
-     const sec=restFor(p,justDone.i);
+     const sec=restFor(p,justDone.i,st.workoutDraft);
+     st.forgeRest.i=justDone.i;
      if(sec&&sec!==st.forgeRest.seconds){
       st.forgeRest.endAt=Date.now()+sec*1000;st.forgeRest.seconds=sec;st.forgeRest.perExercise=true;
       if(typeof save==='function')save();

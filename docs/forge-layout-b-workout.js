@@ -112,7 +112,25 @@ function raiseHint(sug,sets){
  }
  return null;
 }
-window.ForgeLayoutBWorkout=Object.freeze({parseClock,formatShort,fmtKg,chipModel,exerciseStates,exerciseProgress,newlyDone,finishSummary,raiseHint});
+/* #74 Workout verwerfen: nur die laufende Sitzung räumen – Pläne, Historie,
+ * Routinen und Erfolge bleiben unberührt. Gibt die Plan-ID zurück (pure, getestet). */
+function discardSession(st){
+ if(!st||!st.activeWorkout)return null;
+ const planId=st.activeWorkout.planId;
+ st.activeWorkout=null;st.workoutDraft=null;st.forgeRest=null;st.forgeTimeSession=null;st.forgeLbWarmup=null;
+ if(st.activeMobilityVideo&&st.activeMobilityVideo.linked&&st.activeMobilityVideo.workoutPlanId===planId)st.activeMobilityVideo=null;
+ return planId;
+}
+/* #78 Restzeit der laufenden Pause ändern, ohne den Timer neu zu starten.
+ * Bei pausiertem Training zählt der Pausenzeitpunkt (pure, getestet). */
+function adjustRest(rest,delta,now,pausedAt){
+ if(!rest)return null;
+ const base=Number(pausedAt)||Number(now)||Date.now();
+ const left=Math.max(0,Math.round((Number(rest.endAt)-base)/1000));
+ const next=Math.max(0,Math.min(600,left+Math.round(Number(delta)||0)));
+ return {...rest,endAt:base+next*1000,notified:false,left:next};
+}
+window.ForgeLayoutBWorkout=Object.freeze({parseClock,formatShort,fmtKg,chipModel,exerciseStates,exerciseProgress,newlyDone,finishSummary,raiseHint,discardSession,adjustRest});
 if(typeof document==='undefined')return;
 
 /* ---------- environment ---------- */
@@ -266,6 +284,9 @@ ${H} .forge-lb-nextcard small{display:block;font-size:12px;color:#95a3b7;text-tr
 ${H} .forge-lb-nextcard b{display:block;font-size:17px;font-weight:800;margin-top:4px;color:#f3f7fc}
 ${H} .forge-lb-rest-go{height:68px;border-radius:34px;border:0;background:${ACC};color:#142016;font-size:18px;font-weight:800}
 ${H} .forge-lb-rest-note{font-size:12px;color:#95a3b7;text-align:center}
+${H} .forge-lb-cancel{height:34px;flex:0 0 auto;border-radius:17px;border:1px solid #3a2c33;background:transparent;color:#c9b3ba;font-size:12px;font-weight:700;padding:0 10px;display:flex;align-items:center;gap:4px}
+${H} .forge-lb-cancel svg{width:12px;height:12px}
+${H} .forge-lb-rest-cancel{align-self:center;min-height:40px;border:0;background:transparent;color:#a99ba2;font-size:13px;font-weight:600;text-decoration:underline;text-underline-offset:3px}
 @media (max-height:720px){
  ${H}{grid-template-rows:42px minmax(96px,1fr) 46px auto 0px minmax(150px,1.2fr) 64px!important;row-gap:7px!important}
  ${H} .forge-lb-chip{height:44px}
@@ -333,6 +354,15 @@ body.forge-layout-b .forge-lb-ovfoot .forge-lb-ov-end{border:0;background:#f3f7f
 .forge-lb-tstats span{font-size:12px;color:#95a3b7}
 .forge-lb-sheet-main{height:62px;border-radius:31px;border:0;background:${ACC};color:#142016;font-size:17px;font-weight:800;flex:0 0 auto}
 .forge-lb-sheet-sec{height:54px;border-radius:27px;border:1px solid #3a4556;background:#171e2a;color:#f3f7fc;font-size:16px;font-weight:700;flex:0 0 auto}
+.forge-lb-sheet-danger{height:54px;border-radius:27px;border:1px solid #6b2f3a;background:transparent;color:#ffb3bd;font-size:16px;font-weight:700;flex:0 0 auto}
+.forge-lb-sheet-wrap.forge-lb-top-sheet{z-index:2147482600}
+.forge-lb-rs-sec{display:flex;flex-direction:column;gap:8px;padding:12px 0;border-top:1px solid #222b38}
+.forge-lb-rs-sec small{font-size:12px;color:#95a3b7;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.forge-lb-rs-row{display:flex;align-items:center;gap:8px}
+.forge-lb-rs-row b{flex:1;text-align:center;font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;color:#f3f7fc}
+.forge-lb-rs-row button{min-width:56px;height:46px;border-radius:23px;border:1px solid #3a4556;background:#171e2a;color:#f3f7fc;font:inherit;font-size:15px;font-weight:700}
+.forge-lb-rs-check{display:flex;align-items:center;gap:10px;font-size:14px;color:#c9d3df;min-height:44px}
+.forge-lb-rs-check input{width:22px;height:22px;accent-color:${ACC}}
 .forge-lb-sheet button:focus-visible,.forge-lb-sheet a:focus-visible{outline:2px solid ${ACC};outline-offset:2px}
 /* Vor dem Start: Tagesform */
 body.forge-layout-b .forge-lb-form[hidden]{display:none!important}
@@ -357,7 +387,10 @@ function build(shell){
  const clock=el('button','forge-lb-clock');clock.type='button';
  clock.append(el('i'),el('span','','0:00'));
  clock.addEventListener('click',()=>$('forgeLivePause')?.click());
- top.append(list,segs,clock);
+ const cancel=el('button','forge-lb-cancel');cancel.type='button';
+ cancel.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg><span>Abbrechen</span>';
+ cancel.setAttribute('aria-label','Workout abbrechen');cancel.addEventListener('click',confirmDiscard);
+ top.append(cancel,list,segs,clock);
 
  const tech=el('button','forge-lb-tech');tech.type='button';tech.innerHTML=SVG.up+'<span>Technik</span>';
  tech.setAttribute('aria-label','Technik und Muskeln anzeigen');
@@ -410,8 +443,9 @@ function buildRest(){
  add.addEventListener('click',()=>{if(typeof window.forge130RestAdd==='function')window.forge130RestAdd(30);setTimeout(tick,0);});
  const pause=el('button','forge-lb-pill');pause.type='button';pause.innerHTML=SVG.pause+'<span>Training pausieren</span>';
  pause.addEventListener('click',()=>$('forgeLivePause')?.click());
- const adjust=el('button','forge-lb-pill','Werte anpassen');adjust.type='button';
- adjust.addEventListener('click',()=>{$('workout')?.classList.add('forge-lb-rest-min');});
+ const adjust=el('button','forge-lb-pill','Pause anpassen');adjust.type='button';
+ adjust.setAttribute('aria-label','Pausenzeiten anpassen');
+ adjust.addEventListener('click',openRestEditor);
  row.append(add,pause,adjust);
  const kick=el('div','forge-lb-rest-kick');kick.append(check,kicker);
  mid.append(kick,ring,row);
@@ -420,7 +454,8 @@ function buildRest(){
  const go=el('button','forge-lb-rest-go','Zum nächsten Satz');go.type='button';
  go.addEventListener('click',()=>{if(typeof window.forge130RestSkip==='function')window.forge130RestSkip();setTimeout(tick,0);});
  const note=el('div','forge-lb-rest-note','Automatische Satzpause · Dauer in den Einstellungen');
- foot.append(card,go,note);
+ const quit=el('button','forge-lb-rest-cancel','Workout abbrechen');quit.type='button';quit.addEventListener('click',confirmDiscard);
+ foot.append(card,go,note,quit);
  root.append(head,bar,mid,foot);
  return {root,bar,fill,barTo:null,saved,net,big,of,arc:ring.querySelector('.forge-lb-arc'),ring,pauseText:pause.querySelector('span'),nextText:cb,total:0,last:null};
 }
@@ -513,6 +548,91 @@ function confirmFinish(){
   sh.append(ok,cont);
  });
 }
+/* ---------- #74 Workout verwerfen ---------- */
+function confirmDiscard(){
+ const st=typeof state!=='undefined'?state:null;if(!st||!st.activeWorkout)return;
+ const sh=openSheet('Workout wirklich verwerfen?',sh=>{
+  const h=el('div','forge-lb-sheet-head');const t=el('div');t.append(el('strong','','Workout wirklich verwerfen?'));h.append(t);sh.append(h);
+  sh.append(el('p','forge-lb-tnote','Dieses Training wird nicht gespeichert. Alle bisher erfassten Sätze und Zeiten dieser Einheit gehen verloren.'));
+  const cont=el('button','forge-lb-sheet-main','Weiter trainieren');cont.type='button';cont.addEventListener('click',closeSheet);
+  const drop=el('button','forge-lb-sheet-danger','Workout verwerfen');drop.type='button';drop.addEventListener('click',()=>{closeSheet();discardWorkout();});
+  sh.append(cont,drop);
+ });
+ sheetWrap?.classList.add('forge-lb-top-sheet');
+ sh?.querySelector('.forge-lb-sheet-main')?.focus({preventScroll:true});
+}
+function discardWorkout(){
+ const st=typeof state!=='undefined'?state:null;if(!st||!st.activeWorkout)return false;
+ const before=Array.isArray(st.workouts)?st.workouts.length:0;
+ discardSession(st);
+ try{if(typeof save==='function')save();}catch(e){console.error('FORGE Workout verwerfen',e);}
+ if((st.workouts||[]).length!==before)console.error('FORGE: Verwerfen hat die Historie verändert');
+ document.querySelectorAll('.forge-lb-wu').forEach(n=>n.remove());document.body.classList.remove('forge-lb-wu-open');
+ try{if(typeof forge130RenderRest==='function')forge130RenderRest();}catch(e){}
+ try{if(typeof window.render==='function')window.render();}catch(e){}
+ try{if(typeof go==='function')go('workout');}catch(e){}
+ try{window.dispatchEvent(new CustomEvent('forge:workout-discarded'));}catch(e){}
+ return true;
+}
+window.ForgeLayoutBDiscardWorkout=confirmDiscard;
+/* ---------- #78 Pausenzeiten im laufenden Training ---------- */
+function openRestEditor(){
+ const st=typeof state!=='undefined'?state:null;if(!st||!st.activeWorkout)return;
+ const R=window.ForgeLayoutBRest;const p=plan();const f=focus();
+ const draft=st.workoutDraft&&st.workoutDraft.planId===st.activeWorkout.planId?st.workoutDraft:null;
+ const i=st.forgeRest&&Number.isInteger(st.forgeRest.i)?st.forgeRest.i:(f?f.i:0);
+ const name=(draft?.exercises?.[i]?.name)||(p?.ex?.[i]?.name)||'Übung';
+ const def=()=>{try{return Number(forge130Settings().restSeconds)||90;}catch(e){return 90;}};
+ const clk=sec=>R?R.clock(sec):String(sec);
+ let tick=null;
+ openSheet('Pausenzeiten anpassen',sh=>{
+  sh.append(sheetHead('Laufendes Training','Pausenzeiten anpassen','Schließen'));
+  // 1) aktuelle Pause
+  if(st.forgeRest){
+   const sec=el('div','forge-lb-rs-sec');sec.append(el('small','','Aktuelle Pause'));
+   const row=el('div','forge-lb-rs-row');const big=el('b','');
+   const show=()=>{const base=st.activeWorkout?.forgePausedAt||Date.now();big.textContent=clk(Math.max(0,Math.ceil(((st.forgeRest?.endAt||base)-base)/1000)));};
+   const mk=(txt,d)=>{const b=el('button','',txt);b.type='button';b.setAttribute('aria-label','Restpause '+(d>0?'um ':'um minus ')+Math.abs(d)+' Sekunden ändern');
+    b.addEventListener('click',()=>{if(!st.forgeRest)return;const n=adjustRest(st.forgeRest,d,Date.now(),st.activeWorkout?.forgePausedAt);
+     if(n.left<=0){if(typeof window.forge130RestSkip==='function')window.forge130RestSkip();closeSheet();return;}
+     delete n.left;st.forgeRest=n;try{save();}catch(e){}try{forge130RenderRest();}catch(e){}show();});return b;};
+   row.append(mk('−30',-30),mk('−15',-15),big,mk('+15',15),mk('+30',30));sec.append(row);sh.append(sec);show();
+   tick=setInterval(()=>{if(!sh.isConnected){clearInterval(tick);return;}show();},500);
+  }
+  // 2) nächste Pausen dieser Übung (nur dieses Training, optional dauerhaft)
+  if(R&&draft){
+   const sec=el('div','forge-lb-rs-sec');sec.append(el('small','','Nächste Pausen · '+name));
+   draft.restOverride=draft.restOverride&&typeof draft.restOverride==='object'?draft.restOverride:{};
+   const cur=()=>R.valid(draft.restOverride[i])?Number(draft.restOverride[i]):(R.restFor(p,i)||0);
+   const row=el('div','forge-lb-rs-row');const val=el('b','');
+   const show=()=>{val.textContent=R.label(cur(),def());};
+   const set=dir=>{const n=R.step(cur(),dir,def());draft.restOverride[i]=n||def();
+     if(keep.checked&&p&&p.ex&&p.ex[i]){if(n)p.ex[i].rest=n;else delete p.ex[i].rest;}
+     try{save();}catch(e){}show();};
+   const minus=el('button','','−');minus.type='button';minus.setAttribute('aria-label','Kürzere Pause');minus.addEventListener('click',()=>set(-1));
+   const plus=el('button','','+');plus.type='button';plus.setAttribute('aria-label','Längere Pause');plus.addEventListener('click',()=>set(1));
+   row.append(minus,val,plus);sec.append(row);
+   const lab=el('label','forge-lb-rs-check');const keep=el('input');keep.type='checkbox';
+   lab.append(keep,el('span','','Auch dauerhaft im Plan speichern'));
+   keep.addEventListener('change',()=>{if(keep.checked&&p&&p.ex&&p.ex[i]){const v=cur();if(R.valid(v)&&v!==def())p.ex[i].rest=v;else delete p.ex[i].rest;try{save();}catch(e){}}});
+   sec.append(lab);sh.append(sec);show();
+  }
+  // 3) Standardpause (Einstellungen)
+  if(typeof forge130SetRestDuration==='function'){
+   const sec=el('div','forge-lb-rs-sec');sec.append(el('small','','Standardpause für alle Übungen'));
+   const row=el('div','forge-lb-rs-row');const val=el('b','');
+   const show=()=>{val.textContent=clk(def());};
+   const set=dir=>{const list=[45,60,90,120,180];const c=def();
+     let n=dir>0?list.find(v=>v>c):list.slice().reverse().find(v=>v<c);if(n===undefined)n=c;
+     try{forge130SetRestDuration(n);}catch(e){}show();};
+   const minus=el('button','','−');minus.type='button';minus.setAttribute('aria-label','Standardpause kürzer');minus.addEventListener('click',()=>set(-1));
+   const plus=el('button','','+');plus.type='button';plus.setAttribute('aria-label','Standardpause länger');plus.addEventListener('click',()=>set(1));
+   row.append(minus,val,plus);sec.append(row);sh.append(sec);show();
+  }
+  const ok=el('button','forge-lb-sheet-main','Fertig');ok.type='button';ok.addEventListener('click',closeSheet);sh.append(ok);
+ });
+}
+window.ForgeLayoutBRestEditor=openRestEditor;
 function stepTo(targetJ){
  const p=plan(),nav=window.forge130FocusNavigate;
  const f=focus();if(!p||!f||typeof nav!=='function')return;
