@@ -184,8 +184,18 @@ function install(){
   const wrap=function(){const v=original.apply(this,arguments);later();return v;};
   wrap.__forgeCalendarSync=true;window.render=wrap;
  }
+ // Jede gespeicherte Änderung (z. B. Tag verschieben im Wochenplan, „Nächstes Training verschieben“)
+ // löst den Abgleich aus – nicht nur ein komplettes Neuzeichnen der App.
+ const originalSave=window.save;
+ if(typeof originalSave==='function'&&!originalSave.__forgeCalendarSync){
+  const ws=function(){const v=originalSave.apply(this,arguments);later();return v;};
+  ws.__forgeCalendarSync=true;window.save=ws;
+ }
  window.addEventListener('forge:workout-logged',later);
- document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')sync(false);});
+ // Wechsel zu Google Kalender: ausstehende Änderung sofort senden, bevor Android die App pausiert.
+ const flush=()=>{clearTimeout(timer);sync(false);};
+ document.addEventListener('visibilitychange',()=>{flush();});
+ window.addEventListener('pagehide',flush);
  setTimeout(()=>sync(true),2300);
  return true;
 }
