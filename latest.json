@@ -1,7 +1,7 @@
 {
-  "versionCode": 10676,
-  "versionName": "14.13.676",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.676/FORGE-Fitness-14.13.676.apk",
-  "sha256": "09893fec0f71d59a76fa8c9cd3b48e3873afd0619e720fdba4a3698721575f78",
-  "notes": "FORGE 14.13.676 – Änderungen in diesem Update\n• Behoben: Warm-up wartet, bis die gestartete Vorher-Routine geladen ist\n• Behoben: Kalender-Berechtigungsantwort nur im Ergebnis-Callback auswerten\n• Neu: Geräte zuhause im Kraft-Planer auswählen – passende Übungen statt nur Körpergewicht\n• Neu: Kraft-Zirkel – mehrere Zirkel speichern, 10-Sekunden-Wechsel, automatisch weiter\n• Neu: Routinen vor oder nach dem Krafttraining, unabhängig, plus Favoriten\n• Neu: Laufendes Workout sicher abbrechen und Pausen jederzeit anpassen"
+  "versionCode": 10679,
+  "versionName": "14.13.679",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.679/FORGE-Fitness-14.13.679.apk",
+  "sha256": "e5044a6a6f7e190780e7673ae1a6bd0246e8b62af984f24fac04c695f5e9eeef",
+  "notes": "FORGE 14.13.679 – Änderungen in diesem Update\n• Behoben: Verschobene Trainingstage erscheinen sofort im Google Kalender"
 }
