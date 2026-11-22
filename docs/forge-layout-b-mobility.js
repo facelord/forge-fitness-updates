@@ -173,11 +173,75 @@ function isToday(cfg,weekday,trainedToday){
  if(cfg.timing==='both')return days.includes(weekday)||!!trainedToday;
  return days.includes(weekday);
 }
+/* Yoga 2.0 (#72, 22.11.2026): Yoga-Bibliothek mit Metadaten für Katalog, Suche und Flow-Planer.
+ * [Name, Aliasse, Phase, Level, Region, Modus, Sek., je Seite, Fokus, Schritte, Tipp, Tafel-Nr.]
+ * Phase: 0 Ankommen · 1 Aufwärmen (Vierfüßler/Knie) · 2 Stand · 3 Boden · 4 Abschluss (Rückenlage) · 5 Endentspannung
+ * Level: 1 Einsteiger · 2 Mittel · 3 Fortgeschritten. Fokus: g Ganzkörper · r Rücken · h Hüfte · b Beweglichkeit · e Entspannung · m Morgen-Energie
+ * Bestehende Übungen (Kindhaltung, Cat-Cow, Low Lunge …) werden nur getaggt – keine Dubletten. */
+const YOGA_POSES=Object.freeze([
+ ['Leichter Sitz','Sukhasana · Schneidersitz · Easy Pose',0,1,'Atmung & Haltung','static',60,false,'gre',['Im Schneidersitz auf die Matte oder ein Kissen setzen.','Becken leicht aufrichten, Wirbelsäule lang, Schultern sinken.','Hände auf die Knie legen und ruhig durch die Nase atmen.'],'Knie höher als die Hüfte? Auf ein Kissen oder einen Block setzen.',1],
+ ['Berghaltung','Tadasana · Mountain Pose',2,1,'Ganzkörper','static',30,false,'gm',['Hüftbreit stehen, Gewicht gleichmäßig auf beiden Füßen.','Beine aktiv, Becken neutral, Brustbein sanft heben.','Schultern locker, Scheitel nach oben, ruhig atmen.'],'Knie nicht durchdrücken.',2],
+ ['Gestreckter Berg','Urdhva Hastasana · Arme nach oben',2,1,'Schultern & Flanken','static',20,false,'gm',['Aus der Berghaltung die Arme seitlich nach oben führen.','Arme lang strecken, Schultern weg von den Ohren.','Rippen bleiben unten, kein Hohlkreuz.'],'Arme schulterbreit lassen, wenn die Schultern eng sind.',3],
+ ['Stehende Vorbeuge','Uttanasana · Forward Fold',2,1,'Beinrückseite & Rücken','static',30,false,'rbe',['Aus der Hüfte nach vorn beugen.','Knie bei Bedarf beugen, Hände zu Boden, Schienbein oder Block.','Kopf und Nacken locker hängen lassen.'],'Mit gebeugten Knien wieder hochrollen.',4],
+ ['Halbe stehende Vorbeuge','Ardha Uttanasana · Halfway Lift',2,1,'Rücken & Beinrückseite','static',20,false,'rm',['Aus der Vorbeuge den Oberkörper halb anheben.','Hände an die Schienbeine oder auf Blöcke.','Rücken lang, Blick zum Boden.'],'Knie leicht beugen, damit der Rücken gerade bleibt.',5],
+ ['Stuhlhaltung','Utkatasana · Chair Pose',2,1,'Beine & Gesäß','static',30,false,'gm',['Füße hüftbreit, Becken nach hinten unten schieben.','Knie zeigen in Richtung Zehen.','Arme nach oben, Brustbein heben, Rumpf aktiv.'],'Weniger tief gehen, wenn die Knie zwicken.',6],
+ ['Hoher Ausfallschritt','High Lunge · Crescent Lunge',2,1,'Hüfte & Beine','static',30,true,'hgm',['Großer Schritt nach vorn, vorderes Knie über dem Sprunggelenk.','Hinteres Bein lang, Ferse nach hinten schieben.','Oberkörper aufrichten, Arme nach oben.'],'Hinteres Knie bei Bedarf auf der Matte ablegen.',7],
+ ['Krieger I','Virabhadrasana I · Warrior I',2,1,'Beine & Hüfte','static',30,true,'gm',['Langer Schritt, hinterer Fuß ca. 45° ausgedreht.','Vorderes Knie über dem Sprunggelenk beugen, Becken nach vorn.','Arme nach oben strecken, Schultern locker.'],'Schritt verkürzen, wenn das Becken nicht nach vorn zeigt.',9],
+ ['Krieger II','Virabhadrasana II · Warrior II',2,1,'Beine & Hüfte','static',30,true,'ghm',['Breiter Stand, vorderer Fuß nach vorn, hinterer leicht einwärts.','Vorderes Knie über dem Sprunggelenk beugen.','Arme auf Schulterhöhe ausstrecken, Blick über die vordere Hand.'],'Knie nicht nach innen fallen lassen.',10],
+ ['Umgekehrter Krieger','Viparita Virabhadrasana · Reverse Warrior',2,1,'Flanke & Hüfte','static',25,true,'bm',['Aus dem Krieger II starten.','Hintere Hand locker auf den hinteren Oberschenkel legen.','Vorderen Arm lang über den Kopf führen, Flanke öffnen.'],'Nicht auf das hintere Bein stützen.',11],
+ ['Gestreckter Seitenwinkel','Utthita Parsvakonasana · Extended Side Angle',2,1,'Flanke & Beine','static',30,true,'bg',['Aus dem Krieger II den Unterarm auf den vorderen Oberschenkel legen.','Oberen Arm lang über den Kopf strecken.','Brust geöffnet, Becken stabil.'],'Unterarm ablegen statt die Hand zum Boden zu zwingen.',12],
+ ['Dreieckshaltung','Trikonasana · Triangle Pose',2,1,'Flanke & Beinrückseite','static',30,true,'bg',['Breiter Stand, vorderes Bein gestreckt.','Aus der Hüfte zur Seite neigen, untere Hand ans Schienbein oder auf einen Block.','Oberen Arm nach oben strecken.'],'Vorderes Knie nicht überstrecken.',13],
+ ['Göttinnenhaltung','Utkata Konasana · Goddess Pose',2,1,'Beine & Innenschenkel','static',30,false,'hg',['Breiter Stand, Füße leicht nach außen.','Knie in Richtung Zehen beugen, Becken sinkt.','Oberkörper aufrecht, Hände vor der Brust.'],'Weniger tief beugen, wenn die Knie zwicken.',30],
+ ['Seitlicher Yoga-Ausfallschritt','Skandasana · Side Lunge',2,2,'Innenschenkel & Hüfte','static',25,true,'hb',['Sehr breiter Stand, Gewicht zu einer Seite verlagern.','Ein Knie beugen, das andere Bein bleibt gestreckt.','Hände vor dem Körper abstützen, Rücken lang.'],'Hände auf Blöcke stützen, wenn es zu tief ist.',31],
+ ['Stehende Grätsche mit Vorbeuge','Prasarita Padottanasana · Wide-Legged Forward Fold',2,1,'Beinrückseite & Innenschenkel','static',30,false,'be',['Breiter Stand, Füße parallel.','Aus der Hüfte nach vorn beugen, Hände zum Boden oder auf Blöcke.','Kopf locker, Rücken lang.'],'Langsam und mit gebeugten Knien aufrichten.',32],
+ ['Pyramidenhaltung','Parsvottanasana · Pyramid Pose',2,1,'Beinrückseite','static',25,true,'b',['Kurzer Schritt, beide Beine gestreckt, Becken nach vorn.','Mit langem Rücken über das vordere Bein beugen.','Hände auf Blöcke oder ans Schienbein.'],'Vorderes Knie leicht gebeugt lassen.',33],
+ ['Gedrehtes Dreieck','Parivrtta Trikonasana · Revolved Triangle',2,2,'Wirbelsäule & Beinrückseite','static',25,true,'rb',['Aus der Pyramide die Gegenhand auf einen Block neben den vorderen Fuß.','Oberkörper aufdrehen, oberen Arm nach oben.','Becken bleibt möglichst gerade.'],'Mit Block und kürzerem Schritt üben.',34],
+ ['Gedrehter Seitwinkel','Parivrtta Parsvakonasana · Revolved Side Angle',2,2,'Wirbelsäule & Hüfte','static',25,true,'rb',['Aus dem Ausfallschritt die Hände vor der Brust zusammenlegen.','Ellbogen außen an den vorderen Oberschenkel drehen.','Brustkorb öffnen, Blick nach oben.'],'Hinteres Knie bei Bedarf ablegen.',35],
+ ['Halbmond','Ardha Chandrasana · Half Moon',2,2,'Balance & Hüfte','static',20,true,'gb',['Aus dem Dreieck die untere Hand auf einen Block vor den Fuß.','Hinteres Bein auf Hüfthöhe anheben.','Oberkörper und Becken öffnen, oberen Arm strecken.'],'Mit dem Rücken an einer Wand üben.',36],
+ ['Tänzer','Natarajasana · Dancer Pose',2,2,'Balance & Hüftbeuger','static',20,true,'gb',['Auf einem Bein stehen, den anderen Fuß hinten greifen.','Fuß in die Hand drücken, Oberkörper leicht nach vorn.','Freien Arm nach vorn strecken.'],'Mit Gurt oder an der Wand üben.',37],
+ ['Tiefe Yoga-Hocke','Malasana · Garland Pose',2,1,'Hüfte & Sprunggelenke','static',30,false,'hb',['Füße etwas weiter als hüftbreit, Zehen leicht nach außen.','Tief in die Hocke sinken, Fersen am Boden oder auf einer Decke.','Hände vor der Brust, Ellbogen innen an den Knien.'],'Block unter das Gesäß legen.',29],
+ ['Krähe','Bakasana · Crow Pose',2,3,'Arme & Rumpf','static',15,false,'g',['Aus der Hocke die Hände schulterbreit aufsetzen.','Knie hoch an die Oberarme, Gewicht nach vorn.','Füße nacheinander kurz abheben.'],'Kissen vor den Kopf legen; nur mit Vorerfahrung.',38],
+ ['Kobra','Bhujangasana · Cobra Pose',3,1,'Rücken & Brust','static',20,false,'rm',['Bauchlage, Hände neben dem Brustkorb.','Brustbein sanft anheben, Ellbogen nah am Körper.','Becken und Beine bleiben am Boden.'],'Nur im schmerzfreien Bereich hochkommen.',14],
+ ['Sphinx','Salamba Bhujangasana · Sphinx Pose',3,1,'Rücken & Brust','static',45,false,'re',['Bauchlage, Ellbogen unter den Schultern.','Unterarme parallel, Brust sanft anheben.','Nacken lang, ruhig atmen.'],'Ellbogen weiter nach vorn setzen für weniger Rückbeuge.',15],
+ ['Heuschrecke','Salabhasana · Locust Pose',3,2,'Rückenstrecker & Gesäß','static',20,false,'rg',['Bauchlage, Arme neben dem Körper.','Brust und Beine gleichzeitig leicht anheben.','Nacken lang, Blick zum Boden.'],'Erst nur Oberkörper oder nur Beine anheben.',16],
+ ['Bogen','Dhanurasana · Bow Pose',3,2,'Rücken & Brust','static',20,false,'rb',['Bauchlage, Knie beugen, Fußgelenke greifen.','Füße in die Hände drücken, Brust und Oberschenkel anheben.','Ruhig weiteratmen.'],'Halber Bogen: nur ein Bein greifen; oder Gurt nutzen.',17],
+ ['Kamel','Ustrasana · Camel Pose',3,2,'Brust & Hüftbeuger','static',20,false,'b',['Aufrecht knien, Hüfte über den Knien.','Hände an den unteren Rücken legen.','Brustbein heben und nur so weit zurückbeugen, wie es angenehm ist.'],'Hände am Rücken lassen; Kopf nicht fallen lassen.',18],
+ ['Halber Spagat','Ardha Hanumanasana · Half Split',3,1,'Beinrückseite','static',30,true,'bh',['Aus dem tiefen Ausfallschritt das Gesäß nach hinten schieben.','Vorderes Bein strecken, Zehen anziehen.','Mit langem Rücken über das Bein beugen.'],'Hände auf Blöcke stützen.',26],
+ ['Eidechsenhaltung','Utthan Pristhasana · Lizard Pose',3,2,'Hüfte','static',30,true,'hb',['Aus dem Ausfallschritt beide Hände innen neben den vorderen Fuß.','Hinteres Knie ablegen.','Becken sinken lassen, ruhig atmen.'],'Hände auf Blöcke, Knie gepolstert.',25],
+ ['Ganzer Spagat','Hanumanasana · Full Split',3,3,'Beinrückseite & Hüftbeuger','static',30,true,'b',['Aus dem halben Spagat das vordere Bein langsam nach vorn gleiten lassen.','Blöcke unter die Hände, Becken gerade.','Nur so weit, wie es ohne Schmerz geht.'],'Block oder Kissen unter das Becken legen.',27],
+ ['Froschhaltung','Mandukasana · Frog Pose',3,2,'Innenschenkel','static',45,false,'h',['Im Vierfüßlerstand die Knie weit öffnen.','Unterschenkel parallel, Füße ausgedreht.','Becken langsam nach hinten sinken lassen.'],'Knie gut polstern; nicht ins Ziehen hineinfedern.',28],
+ ['Delfin','Ardha Pincha Mayurasana · Dolphin Pose',3,2,'Schultern & Beinrückseite','static',30,false,'g',['Im Vierfüßlerstand die Unterarme ablegen.','Zehen aufstellen und das Gesäß nach oben schieben.','Schultern aktiv vom Boden wegdrücken.'],'Knie gebeugt lassen.',42],
+ ['Seitstütz','Vasisthasana · Side Plank',3,2,'Rumpf & Schultern','static',20,true,'g',['Aus dem hohen Stütz auf eine Hand und die Fußkante drehen.','Hand unter der Schulter, Körper in einer Linie.','Oberen Arm nach oben strecken.'],'Unteres Knie ablegen.',40],
+ ['Taube','Eka Pada Rajakapotasana · Pigeon Pose',3,2,'Hüfte & Gesäß','static',45,true,'he',['Aus dem Hund ein Knie hinter das Handgelenk bringen.','Hinteres Bein lang nach hinten strecken.','Becken gerade, Oberkörper aufrecht oder auf die Unterarme.'],'Kissen unter die Hüfte; bei Knieschmerz lieber die Figure-Four-Dehnung.',20],
+ ['Schmetterling','Baddha Konasana · Bound Angle',3,1,'Innenschenkel & Hüfte','static',45,false,'he',['Aufrecht sitzen, Fußsohlen zusammen.','Knie locker nach außen sinken lassen.','Aus der Hüfte leicht nach vorn neigen.'],'Kissen unter die Knie oder das Gesäß.',21],
+ ['Drehsitz','Ardha Matsyendrasana · Seated Twist',3,1,'Wirbelsäule','static',30,true,'rb',['Aufrecht sitzen, ein Bein über das andere stellen.','Mit dem Einatmen lang werden, mit dem Ausatmen drehen.','Hintere Hand stützt hinter dem Gesäß.'],'Unteres Bein gestreckt lassen.',22],
+ ['Sitzende Grätsche','Upavistha Konasana · Wide Seated Fold',3,1,'Innenschenkel & Beinrückseite','static',45,false,'be',['Beine weit gegrätscht, Zehen zeigen nach oben.','Aufrecht sitzen, dann mit langem Rücken nach vorn neigen.','Hände vor dem Körper abstützen.'],'Auf ein Kissen setzen und Knie leicht beugen.',23],
+ ['Sitzende Vorbeuge','Paschimottanasana · Seated Forward Fold',3,1,'Beinrückseite & Rücken','static',45,false,'re',['Aufrecht sitzen, Beine nach vorn gestreckt.','Mit langem Rücken aus der Hüfte nach vorn beugen.','Hände an Schienbeine oder Füße.'],'Knie beugen oder Decke unter das Gesäß.',null],
+ ['Boot','Navasana · Boat Pose',3,2,'Rumpf','static',20,false,'g',['Sitzen, Knie gebeugt, Oberkörper leicht zurück.','Füße anheben, Schienbeine parallel zum Boden.','Arme nach vorn, Rücken lang.'],'Hände neben dem Gesäß abstützen.',39],
+ ['Brücke','Setu Bandha Sarvangasana · Bridge Pose',4,1,'Gesäß & Rücken','static',30,false,'rg',['Rückenlage, Füße hüftbreit nah am Gesäß.','Becken mit dem Ausatmen anheben.','Knie parallel, Nacken entspannt; langsam abrollen.'],'Block unter das Kreuzbein für die gestützte Variante.',19],
+ ['Fisch','Matsyasana · Fish Pose',4,2,'Brust','static',20,false,'b',['Rückenlage, Hände unter das Gesäß.','Auf die Unterarme stützen und die Brust heben.','Kopf nur leicht ablegen, Gewicht auf den Unterarmen.'],'Bei Nackenproblemen Kopf auf ein Kissen.',46],
+ ['Glückliches Baby','Ananda Balasana · Happy Baby',4,1,'Hüfte & unterer Rücken','static',45,false,'he',['Rückenlage, Knie zur Brust ziehen.','Außenkanten der Füße greifen, Knie neben den Brustkorb.','Kreuzbein bleibt am Boden.'],'Kniekehlen statt Füße greifen.',24],
+ ['Beine an der Wand','Viparita Karani · Legs up the Wall',4,1,'Entspannung','static',120,false,'e',['Seitlich an eine Wand setzen.','Beine an der Wand hochlegen, Rücken auf die Matte.','Arme locker neben den Körper.'],'Kissen unter das Becken; bei Kribbeln Beine absenken.',50],
+ ['Endentspannung','Savasana · Totenstellung · Corpse Pose',5,1,'Entspannung','static',180,false,'e',['Auf den Rücken legen, Beine locker auseinander.','Arme neben dem Körper, Handflächen nach oben.','Augen schließen und den Atem einfach fließen lassen.'],'Kissen unter die Knie, Decke zum Zudecken.',null],
+ ['Kopfstand','Sirsasana · Headstand',2,3,'Schultern & Rumpf','static',20,false,'',['Unterarme ablegen, Hände verschränken.','Kopf nur leicht aufsetzen, Hüfte über die Schultern bringen.','Beine kontrolliert heben.'],'Nur mit Erfahrung und Anleitung; Nacken nie belasten.',41],
+ ['Unterarmstand','Pincha Mayurasana · Forearm Stand',2,3,'Schultern & Rumpf','static',20,false,'',['Delfin-Position einnehmen.','Ein Bein kontrolliert nach oben strecken.','Zweites Bein nachführen, Kopf bleibt frei.'],'Nur mit Erfahrung, zunächst an der Wand.',43],
+ ['Handstand','Adho Mukha Vrksasana',2,3,'Arme & Rumpf','static',15,false,'',['Hände schulterbreit, Finger gespreizt.','Aus dem Ausfallschritt kontrolliert hochschwingen.','Körper in einer Linie halten.'],'Zuerst an der Wand üben.',44],
+ ['Rad','Urdhva Dhanurasana · Wheel Pose',4,3,'Brust & Schultern','static',15,false,'',['Rückenlage, Füße nah am Gesäß, Hände neben den Ohren.','Erst Becken, dann Brust anheben.','Arme strecken, ruhig atmen.'],'Zuerst die Brücke sicher beherrschen.',45]
+]);
+/* Bestehende Übungen, die zusätzlich unter Yoga erscheinen (Multi-Tagging, keine Dubletten). */
+const YOGA_TAGS=Object.freeze([
+ ['Cat-Cow','Katze-Kuh · Marjaryasana-Bitilasana',1,1,'mr',null],
+ ['Kindhaltung','Balasana · Child’s Pose',1,1,'re',null],
+ ['Herabschauender Hund','Adho Mukha Svanasana · Downward Dog',1,1,'gm',null],
+ ['Low Lunge','Tiefer Ausfallschritt · Anjaneyasana',1,1,'hm',8],
+ ['Liegender Twist','Liegende Wirbelsäulendrehung · Supta Matsyendrasana',4,1,'re',47],
+ ['Figure-Four-Dehnung','Nadelöhr in Rückenlage · Sucirandhrasana',4,1,'he',48],
+ ['Knie zur Brust in Rückenlage','Knie zur Brust · Apanasana',4,1,'re',49]]);
 /* ---------- Mobilitätskatalog: Gelenke · Yoga · Dehnen ---------- */
 const CATEGORIES=Object.freeze(['Gelenke','Yoga','Dehnen']);
 const STRETCH=new Set(['Hamstring-Dehnung mit Theraband','Hüftbeuger-Dehnung mit Theraband','90/90-Vorbeuge','Quadrizeps-Dehnung im Stand','Soleus-Dehnung mit gebeugtem Knie','Hamstring-Dehnung mit Gurt','Knie zur Brust in Rückenlage',
  'Hüftbeuger-Dehnung','Figure-Four-Dehnung','Türrahmen-Brustdehnung','Waden-Dehnung','Seitliche Rumpfneigung im Stand']);
-const YOGA=new Set(['Kindhaltung','Herabschauender Hund','Liegender Twist']);
+const YOGA=new Set(['Kindhaltung','Herabschauender Hund','Liegender Twist'].concat(YOGA_POSES.map(p=>p[0])));
 function categoryOf(name){return YOGA.has(name)?'Yoga':STRETCH.has(name)?'Dehnen':'Gelenke';}
 /* Moves that already live (with photos and guides) in the guided routines; now also in the catalogue. */
 const EXTRA_DEFS=Object.freeze([
@@ -285,9 +349,88 @@ function bandExtras(){return BAND_DEFS.map(([name,region,mode,seconds,sides,,ste
 function extras(guides){
  const g=guides||{};
  return EXTRA_DEFS.map(([name,region,mode,seconds,sides])=>{const x=Array.isArray(g[name])?g[name]:[[],''];
-  return {name,region,mode,amount:mode==='dynamic'?10:1,seconds,sides,steps:Array.isArray(x[0])?x[0].slice():[],tip:String(x[1]||''),category:categoryOf(name),source:'routine'};}).concat(bandExtras(),newExtras());
+  return {name,region,mode,amount:mode==='dynamic'?10:1,seconds,sides,steps:Array.isArray(x[0])?x[0].slice():[],tip:String(x[1]||''),category:categoryOf(name),source:'routine'};}).concat(bandExtras(),newExtras(),yogaExtras().filter(x=>!EXTRA_DEFS.some(d=>d[0]===x.name)));
 }
 function withExtras(list,guides){const have=new Set((list||[]).map(x=>x.name));return (list||[]).concat(extras(guides).filter(x=>!have.has(x.name)));}
+const YOGA_NEVER_AUTO=new Set(['Kopfstand','Unterarmstand','Handstand','Rad']);
+const YOGA_META=Object.freeze((()=>{const m=Object.create(null);
+ YOGA_POSES.forEach(([name,alias,phase,level,region,mode,seconds,sides,focus,steps,tip,nr])=>{m[name]=Object.freeze({name,alias,phase,level,region,mode,seconds,sides,focus,nr,existing:false});});
+ YOGA_TAGS.forEach(([name,alias,phase,level,focus,nr])=>{m[name]=Object.freeze({name,alias,phase,level,focus,nr,existing:true});});
+ return m;})());
+const YOGA_LEVELS=Object.freeze([[1,'Einsteiger'],[2,'Mittel'],[3,'Fortgeschritten']]);
+const YOGA_FOCUS=Object.freeze([['g','Ganzkörper'],['r','Rücken'],['h','Hüfte'],['b','Beweglichkeit'],['e','Entspannung'],['m','Morgen-Energie']]);
+const YOGA_MINUTES=Object.freeze([10,15,20,30,45]);
+function categoriesOf(name){const c=categoryOf(name);return YOGA_META[name]&&c!=='Yoga'?[c,'Yoga']:[c];}
+function inCategory(name,cat){return !cat||cat==='Alle'||categoriesOf(name).includes(cat);}
+function yogaAlias(name){const y=YOGA_META[name];return y?y.alias:'';}
+function yogaLevel(name){const y=YOGA_META[name];return y?y.level:0;}
+function yogaExtras(){return YOGA_POSES.map(([name,alias,phase,level,region,mode,seconds,sides,focus,steps,tip])=>({name,region,mode,amount:mode==='dynamic'?10:1,seconds,sides,steps:steps.slice(),tip,category:'Yoga',source:'yoga',alias,level}));}
+/* Dauer eines Routinen-Eintrags wie im Player (ForgeRoutinesCore.seconds): 5 s Übergang, je Seite doppelt + 3 s Wechsel. */
+function itemSecs(sec,sides){return 5+sec*(sides?2:1)+(sides?3:0);}
+function rng(seed){let s=(Number(seed)>>>0)||1;return ()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
+function sidesOf(name){const y=YOGA_META[name];if(!y)return false;if(!y.existing)return !!y.sides;return ['Low Lunge','Liegender Twist','Figure-Four-Dehnung'].includes(name);}
+function baseSec(name){const y=YOGA_META[name];if(y&&!y.existing)return y.seconds;return {'Cat-Cow':60,'Kindhaltung':60,'Herabschauender Hund':45,'Low Lunge':45,'Liegender Twist':45,'Figure-Four-Dehnung':45,'Knie zur Brust in Rückenlage':45}[name]||30;}
+/* Haltezeiten so skalieren, dass die Gesamtdauer zur Zielzeit passt (5-s-Raster, sinnvolle Grenzen). */
+function fitTimes(names,minutes){
+ const target=Math.round(Number(minutes)*60);
+ const isRest=n=>n==='Endentspannung'||n==='Beine an der Wand';
+ let secs=names.map(baseSec);
+ for(let k=0;k<8;k++){
+  const fixed=names.reduce((a,n,i)=>a+itemSecs(0,sidesOf(n)),0);
+  const cur=names.reduce((a,n,i)=>a+secs[i]*(sidesOf(n)?2:1),0);
+  const f=Math.max(.3,(target-fixed)/Math.max(1,cur));
+  secs=secs.map((s,i)=>{const n=names[i];const lo=isRest(n)?60:15,hi=isRest(n)?600:(YOGA_META[n]&&YOGA_META[n].level>=2?60:120);
+   return Math.min(hi,Math.max(lo,Math.round(s*f/5)*5));});
+  const tot=names.reduce((a,n,i)=>a+itemSecs(secs[i],sidesOf(n)),0);
+  if(Math.abs(tot-target)<=Math.max(30,target*.05))break;
+ }
+ return names.map((n,i)=>[n,secs[i],sidesOf(n)?'je Seite':'']);
+}
+function flowSeconds(items){return (items||[]).reduce((a,it)=>a+itemSecs(Number(it[1])||0,/je seite/i.test(String(it[2]||''))),0);}
+/* Kuratierte Einsteiger-Vorlagen (#72). Der Morgen-Flow ist das Abnahmebeispiel aus dem Issue. */
+const YOGA_TEMPLATES=Object.freeze([
+ ['morgen','Morgen-Flow',10,['Leichter Sitz','Cat-Cow','Kindhaltung','Herabschauender Hund','Low Lunge','Berghaltung','Krieger II','Stehende Vorbeuge','Endentspannung']],
+ ['ruecken','Sanft für Rücken & Hüfte',15,['Leichter Sitz','Cat-Cow','Kindhaltung','Sphinx','Low Lunge','Halber Spagat','Schmetterling','Brücke','Knie zur Brust in Rückenlage','Liegender Twist','Endentspannung']],
+ ['abend','Abend-Entspannung',15,['Leichter Sitz','Kindhaltung','Sitzende Vorbeuge','Schmetterling','Glückliches Baby','Figure-Four-Dehnung','Liegender Twist','Beine an der Wand','Endentspannung']]]);
+function yogaTemplate(id){const t=YOGA_TEMPLATES.find(x=>x[0]===id);return t?{id:t[0],name:t[1],minutes:t[2],items:fitTimes(t[3],t[2])}:null;}
+/* Automatischer Flow: Ankommen → Aufwärmen → Stand → Boden → Abschluss → Endentspannung.
+ * Nie zurück in eine frühere Phase (kein Stehen→Liegen→Stehen), keine Dubletten, beidseitige Posen je Seite,
+ * Umkehrhaltungen (Kopf-/Hand-/Unterarmstand, Rad) nie automatisch. */
+function yogaFlow(opts){
+ const o=opts||{};const level=[1,2,3].includes(Number(o.level))?Number(o.level):1;
+ const focus=YOGA_FOCUS.some(f=>f[0]===o.focus)?o.focus:'g';const minutes=YOGA_MINUTES.includes(Number(o.minutes))?Number(o.minutes):15;
+ const r=rng(o.seed||1);
+ const pool=Object.values(YOGA_META).filter(y=>y.level<=level&&!YOGA_NEVER_AUTO.has(y.name)&&y.name!=='Beine an der Wand'||(y.name==='Beine an der Wand'&&focus==='e'));
+ const score=y=>(y.focus.includes(focus)?2:0)+(focus==='g'?.5:0)+r();
+ const cap=Math.min(20,{10:9,15:11,20:13,30:16,45:19}[minutes]);
+ const share={g:[1,3,4,2,1],r:[1,3,2,3,2],h:[1,3,3,3,1],b:[1,2,4,3,1],e:[1,2,0,4,3],m:[1,3,5,1,1]}[focus];
+ const sum=share.reduce((a,b)=>a+b,0);const slots=cap-2;// Ankommen + Endentspannung fest
+ const want=share.slice(1).map(s=>s?Math.max(1,Math.round(slots*s/(sum-share[0]))):0);
+ while(want.reduce((a,b)=>a+b,0)>slots){const i=want.indexOf(Math.max(...want));want[i]--;}
+ const pick=(phase,n,fixedFirst)=>{
+  const c=pool.filter(y=>y.phase===phase);const out=[];
+  (fixedFirst||[]).forEach(f=>{const y=c.find(x=>x.name===f);if(y&&out.length<n)out.push(y);});
+  c.filter(y=>!out.includes(y)).map(y=>[score(y),y]).sort((a,b)=>b[0]-a[0]).slice(0,n-out.length).forEach(x=>out.push(x[1]));
+  // feste, sinnvolle Reihenfolge innerhalb der Phase (Tafel-Nr. folgt der Sequenzlogik)
+  const ord=y=>y.name==='Cat-Cow'?0:y.name==='Kindhaltung'?1:y.name==='Herabschauender Hund'?2:y.name==='Low Lunge'?3:(y.nr||60);
+  return out.sort((a,b)=>ord(a)-ord(b));
+ };
+ const names=['Leichter Sitz'].concat(
+  pick(1,want[0],['Cat-Cow','Herabschauender Hund']),
+  want[1]?pick(2,want[1],['Berghaltung']):[],
+  pick(3,want[2]),
+  pick(4,want[3]),
+  ['Endentspannung']).map(y=>typeof y==='string'?y:y.name);
+ // Voraussetzungen: Haltungen, die aus einer anderen heraus aufgebaut werden, bekommen diese davor.
+ const PRE={'Umgekehrter Krieger':'Krieger II','Gestreckter Seitenwinkel':'Krieger II','Dreieckshaltung':'Krieger II','Halbmond':'Dreieckshaltung','Gedrehtes Dreieck':'Pyramidenhaltung',
+  'Halber Spagat':'Low Lunge','Eidechsenhaltung':'Low Lunge','Ganzer Spagat':'Halber Spagat','Taube':'Herabschauender Hund','Krähe':'Tiefe Yoga-Hocke','Gedrehter Seitwinkel':'Hoher Ausfallschritt'};
+ let list=[...new Set(names)];
+ for(let k=0;k<3;k++){const add=[];list.forEach(n=>{const p=PRE[n];if(p&&!list.includes(p)&&!add.includes(p)&&YOGA_META[p]&&YOGA_META[p].level<=level)add.push(p);});if(!add.length)break;
+  const all=list.concat(add);const ph=n=>YOGA_META[n].phase;const ord=n=>n==='Leichter Sitz'?-1:n==='Cat-Cow'?0:n==='Kindhaltung'?1:n==='Herabschauender Hund'?2:n==='Low Lunge'?3:n==='Endentspannung'?99:(YOGA_META[n].nr||60);
+  list=all.sort((a,b)=>ph(a)-ph(b)||ord(a)-ord(b));}
+ while(list.length>20){const i=list.findIndex((n,j)=>j>0&&j<list.length-1&&!Object.values(PRE).includes(n));list.splice(i>0?i:1,1);}
+ return fitTimes(list,minutes);
+}
 /* ---------- Video-Bibliothek ---------- */
 const VIDEO_AREAS=Object.freeze([['hips','Hüfte'],['upper','Oberkörper'],['back','Rücken'],['legs','Beine'],['full','Ganzkörper']]);
 const VIDEO_MINS=Object.freeze([5,10,15,20,30]);
@@ -313,7 +456,9 @@ function assignVideo(assignments,day,v){
  return list.sort((a,b)=>a.day-b.day);
 }
 function yogaBoard(q){const k=String(q||'').trim().toLowerCase();return YOGA_50.find(y=>y.id===k||y.name.toLowerCase()===k||y.sanskrit.toLowerCase()===k)||null;}
-window.ForgeMobilityCatalog=Object.freeze({CATEGORIES,categoryOf,extras,withExtras,BAND_IMAGES,MOB_BOARDS,NEW_DEFS,YOGA_50,yogaBoard,boardHtml,boardLabeled});
+window.ForgeYoga=Object.freeze({POSES:YOGA_POSES,TAGS:YOGA_TAGS,META:YOGA_META,LEVELS:YOGA_LEVELS,FOCUS:YOGA_FOCUS,MINUTES:YOGA_MINUTES,TEMPLATES:YOGA_TEMPLATES,NEVER_AUTO:[...YOGA_NEVER_AUTO],
+ flow:yogaFlow,template:yogaTemplate,fitTimes,flowSeconds,alias:yogaAlias,level:yogaLevel});
+window.ForgeMobilityCatalog=Object.freeze({CATEGORIES,categoryOf,categoriesOf,inCategory,yogaAlias,yogaLevel,extras,withExtras,BAND_IMAGES,MOB_BOARDS,NEW_DEFS,YOGA_50,yogaBoard,boardHtml,boardLabeled});
 /* Katalog/Detail: freigegebene Tafel statt der alten Einzelpanels (letzter Renderer für diese Namen). */
 try{['forgeExerciseIllustrations','forgePublicExercisePictures'].forEach(k=>{const prev=window[k];if(prev&&prev.forgeMobBoards)return;
  const f=function(name){return MOB_BOARDS[name]?boardHtml(name):(typeof prev==='function'?prev.apply(this,arguments):'');};f.forgeMobBoards=true;window[k]=f;});}catch(e){}
@@ -684,7 +829,7 @@ function startRun(key){
 }
 function openRun(){
  ensureCss();
- if(!root){
+ if(!root||!root.isConnected){
   root=el('div','forge-lb-mobrun');root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-label','Mobilität');
   document.body.append(root);document.body.classList.add('forge-lb-mobrun-open');
  }

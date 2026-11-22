@@ -149,6 +149,8 @@ ${R} .rt-ex small{font-size:12px;color:#95a3b7}
 ${R} .rt-ex em{font-style:normal;font-size:12px;font-weight:800;color:${TEAL};min-width:22px;text-align:center}
 ${R} .rt-sel{display:flex;align-items:center;gap:6px;min-height:46px;border-radius:12px;background:#0f1620;padding:4px 6px 4px 12px;font-size:14px}
 ${R} .rt-sel span{flex:1;min-width:0}
+${R} .rt-sel .rt-time{width:auto;height:auto;border:0;background:#17212b;color:${TEAL};font:inherit;font-size:13px;font-weight:700;border-radius:10px;padding:4px 8px;margin-left:2px;min-height:32px}
+${R} .rt-yoga .rt-new{min-height:50px;font-size:16px}
 ${R} .rt-sel button{width:40px;height:40px;border-radius:20px;border:1px solid #22303d;background:#17212b;color:#f3f7fc;font-size:16px;padding:0}
 ${R} .rt-label{font-size:12px;color:#95a3b7;text-transform:uppercase;letter-spacing:1.3px;padding-left:4px;margin-top:4px}
 ${R} .rt-field{height:52px;border-radius:16px;border:1px solid #22303d;background:#17212b;color:#f3f7fc;font:inherit;font-size:16px;padding:0 14px;box-sizing:border-box;width:100%}
@@ -258,13 +260,18 @@ function drawEdit(){
   KINDS.forEach(([k,t,sub])=>{const b=btn('rt-kind','',()=>{if(v.readOnly)return;d.kind=k;if(!d.name||KINDS.some(x=>x[1]===d.name))d.name=t;v.cat='';drawEdit();});b.append(el('b','',t),el('small','',sub));b.setAttribute('aria-pressed',String(d.kind===k));body.append(b);});
   canNext=!!d.kind;
  }else if(step==='items'){
-  head.append(el('h2','','Übungen'),el('p','',d.items.length+' ausgewählt · Reihenfolge unten anpassen'));
+  head.append(el('h2','','Übungen'),el('p','',d.items.length+' ausgewählt'+(d.items.length?' · ca. '+Math.max(1,Math.round(seconds(d.items)/60))+' Min.':'')+' · Reihenfolge unten anpassen'));
+  const Y=window.ForgeYoga;
+  if(d.kind==='yoga'&&Y&&!v.readOnly)body.append(yogaBuilder(v,d,Y));
   const cats=['Alle','Yoga','Gelenke','Dehnen'];const cur=v.cat||KIND_CAT[d.kind]||'Alle';
   const chips=el('div','rt-chips');cats.forEach(cn=>{const b=btn('',cn,()=>{v.cat=cn;drawEdit();});b.setAttribute('aria-pressed',String(cur===cn));chips.append(b);});
   body.append(chips);
   if(d.items.length){
    body.append(el('div','rt-label','Ablauf'));
-   d.items.forEach((it,i)=>{const row=el('div','rt-sel');row.append(el('span','',(i+1)+'. '+it[0]+' · '+it[1]+' Sek.'+(it[2]?' je Seite':'')));
+   d.items.forEach((it,i)=>{const row=el('div','rt-sel');
+    const lab=el('span','',(i+1)+'. '+it[0]+' · ');
+    const tb=btn('rt-time',it[1]+' Sek.'+(it[2]?' je Seite':''),()=>{if(v.readOnly)return;it[1]=nextHold(it[1]);drawEdit();});
+    tb.setAttribute('aria-label','Haltezeit '+it[0]+': '+it[1]+' Sekunden – ändern');tb.disabled=v.readOnly;lab.append(tb);row.append(lab);
     if(!v.readOnly){
      const up=btn('','↑',()=>{if(i>0){[d.items[i-1],d.items[i]]=[d.items[i],d.items[i-1]];drawEdit();}});up.setAttribute('aria-label',it[0]+' nach oben');up.disabled=i===0;
      const dn=btn('','↓',()=>{if(i<d.items.length-1){[d.items[i+1],d.items[i]]=[d.items[i],d.items[i+1]];drawEdit();}});dn.setAttribute('aria-label',it[0]+' nach unten');dn.disabled=i===d.items.length-1;
@@ -276,7 +283,7 @@ function drawEdit(){
   const box=el('div');box.style.display='flex';box.style.flexDirection='column';box.style.gap='6px';body.append(box);
   loadLib().then(l=>{
    if(!root||view!==v||steps[v.step]!=='items')return;
-   const shown=l.filter(x=>cur==='Alle'||catOf(x.name)===cur);
+   const shown=l.filter(x=>cur==='Alle'||(window.ForgeMobilityCatalog&&window.ForgeMobilityCatalog.inCategory?window.ForgeMobilityCatalog.inCategory(x.name,cur):catOf(x.name)===cur));
    box.replaceChildren(...shown.map(x=>{
     const idx=d.items.findIndex(it=>it[0]===x.name);
     const b=btn('rt-ex','',()=>{if(v.readOnly)return;if(idx>=0)d.items.splice(idx,1);else if(d.items.length<MAX_ITEMS)d.items.push(item(x));drawEdit();});
@@ -314,6 +321,27 @@ function drawEdit(){
   openList('active');
  });
  nb.disabled=!canNext;foot.append(nb);
+}
+
+/* ---------- Yoga-Flow (#72): Vorlagen + automatischer Flow ---------- */
+const HOLDS=Object.freeze([15,20,30,45,60,90,120,180,300]);
+function nextHold(sec){const i=HOLDS.findIndex(h=>h>Number(sec));return i<0?HOLDS[0]:HOLDS[i];}
+function yogaBuilder(v,d,Y){
+ const o=v.yoga||(v.yoga={level:1,focus:'g',minutes:15,seed:1});
+ const box=el('div','rt-card rt-yoga');box.append(el('small','','Yoga-Flow automatisch'));
+ const row=(label,opts,key)=>{box.append(el('div','rt-label',label));const c=el('div','rt-chips');
+  opts.forEach(([k,t])=>{const b=btn('',t,()=>{o[key]=k;drawEdit();});b.setAttribute('aria-pressed',String(o[key]===k));c.append(b);});box.append(c);};
+ row('Level',Y.LEVELS,'level');row('Fokus',Y.FOCUS,'focus');row('Dauer',Y.MINUTES.map(m=>[m,m+' Min.']),'minutes');
+ const apply=(items,name)=>{d.items=items.map(x=>x.slice());if(!d.name||KINDS.some(x=>x[1]===d.name)||d.autoName)d.name=name,d.autoName=true;drawEdit();};
+ const gen=btn('rt-new',d.items.length&&v.generated?'Neu generieren':'Flow erstellen',()=>{o.seed=(o.seed||1)+(v.generated?1:0)||1;v.generated=true;
+  const lv=Y.LEVELS.find(x=>x[0]===o.level)[1],fo=Y.FOCUS.find(x=>x[0]===o.focus)[1];apply(Y.flow(o),'Yoga '+fo+' · '+o.minutes+' Min. · '+lv);});
+ box.append(gen);
+ box.append(el('div','rt-label','Oder Vorlage für Einsteiger'));
+ const tc=el('div','rt-chips');
+ Y.TEMPLATES.forEach(t=>{const b=btn('',t[1]+' · '+t[2]+' Min.',()=>{const x=Y.template(t[0]);v.generated=false;apply(x.items,x.name);});tc.append(b);});
+ box.append(tc);
+ box.append(el('p','rt-note','Ablauf: Ankommen → Aufwärmen → Stand → Boden → Entspannung. Beidseitige Haltungen laufen je Seite. Haltezeit antippen zum Ändern, einzelne Haltungen unten tauschen.'));
+ return box;
 }
 
 /* ---------- entry points & calendar ---------- */

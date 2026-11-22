@@ -615,7 +615,7 @@ function render(){
     const catOf=n=>{try{return window.ForgeMobilityCatalog?window.ForgeMobilityCatalog.categoryOf(n):'Gelenke';}catch(e){return 'Gelenke';}};
     const cats=['Alle','Gelenke','Yoga','Dehnen'];if(!cats.includes(s.region))s.region='Alle';
     chips.replaceChildren(...cats.map(r=>{const c=el('button','wz-chip',r);c.type='button';c.setAttribute('aria-pressed',String(s.region===r));c.addEventListener('click',()=>{s.region=r;render();});return c;}));
-    const shown=lib.filter(x=>s.region==='Alle'||catOf(x.name)===s.region);
+    const shown=lib.filter(x=>s.region==='Alle'||(window.ForgeMobilityCatalog&&window.ForgeMobilityCatalog.inCategory?window.ForgeMobilityCatalog.inCategory(x.name,s.region):catOf(x.name)===s.region));
     lst.replaceChildren(...shown.map(x=>{
      const on=s.picked.includes(x.name);
      const b=el('button','wz-ex');b.type='button';b.setAttribute('aria-pressed',String(on));

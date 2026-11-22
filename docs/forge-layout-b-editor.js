@@ -43,7 +43,7 @@ function filterCatalog(items,query){
  // Word-start hits first ("Rücken" → Rudern before Bankdrücken), then plain substrings.
  const scored=[];
  items.forEach((it,i)=>{
-  const hay=normalize(it.name+' '+(it.label||''));
+  const hay=normalize(it.name+' '+(it.label||'')+' '+(it.alias||''));
   if(!words.every(w=>hay.includes(w)))return;
   const starts=hay.split(/[^a-z0-9]+/);
   scored.push({it,i,s:words.every(w=>starts.some(x=>x.startsWith(w)))?0:1});
@@ -716,7 +716,9 @@ function catItems(){
  const parts=splitCatalog(names,mobNames);
  // Plan units take catalog names only; mobility moves are browsed from their own library.
  const list=cat.tab==='mobility'?mobNames:parts.strength;
- return list.map(name=>({name,label:labelFor(name)}));
+ const yc=window.ForgeMobilityCatalog;
+ return list.map(name=>{const alias=cat.tab==='mobility'&&yc&&yc.yogaAlias?yc.yogaAlias(name):'';const lv=alias&&yc.yogaLevel?yc.yogaLevel(name):0;
+  const base=labelFor(name);return {name,alias,label:alias?[alias.split(' · ')[0],['','Einsteiger','Mittel','Fortgeschritten'][lv]||'',base].filter(Boolean).join(' · '):base};});
 }
 function openCatalog(opts){
  ensureCss();
@@ -756,7 +758,7 @@ function fill(){
  grid.replaceChildren();grid.scrollTop=0;
  if(cat.tab==='mobility'&&!mobLib){grid.append(el('div','cat-none','Mobilitätsübungen werden geladen …'));return;}
  const catOf=n=>{try{return window.ForgeMobilityCatalog?window.ForgeMobilityCatalog.categoryOf(n):'Gelenke';}catch(e){return 'Gelenke';}};
- const items=filterCatalog(catItems(),cat.query).filter(it=>cat.tab==='strength'?matchesChip(it,cat.chip):(!cat.mcat||cat.mcat==='Alle'||(cat.mcat==='Band'?isBand(it.name):catOf(it.name)===cat.mcat)));
+ const items=filterCatalog(catItems(),cat.query).filter(it=>cat.tab==='strength'?matchesChip(it,cat.chip):(!cat.mcat||cat.mcat==='Alle'||(cat.mcat==='Band'?isBand(it.name):(window.ForgeMobilityCatalog&&window.ForgeMobilityCatalog.inCategory?window.ForgeMobilityCatalog.inCategory(it.name,cat.mcat):catOf(it.name)===cat.mcat))));
  const inUnit=new Set(cat.unit?cat.unit.ex.map(e=>e.name):[]);
  const q=String(cat.query||'').trim();
  if(ed&&ed.draft&&cat.unit&&cat.mode!=='browse'&&q.length>=2&&!items.some(it=>normalize(it.name)===normalize(q))&&!inUnit.has(q)){
