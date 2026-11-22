@@ -1,7 +1,7 @@
 {
-  "versionCode": 10679,
-  "versionName": "14.13.679",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.679/FORGE-Fitness-14.13.679.apk",
-  "sha256": "e5044a6a6f7e190780e7673ae1a6bd0246e8b62af984f24fac04c695f5e9eeef",
-  "notes": "FORGE 14.13.679 – Änderungen in diesem Update\n• Behoben: Verschobene Trainingstage erscheinen sofort im Google Kalender"
+  "versionCode": 10684,
+  "versionName": "14.13.684",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.684/FORGE-Fitness-14.13.684.apk",
+  "sha256": "35b5b67f6085e45daf67fcea0beb6ed887f122a6987d07e2c232579a8d518fd1",
+  "notes": "FORGE 14.13.684 – Änderungen in diesem Update\n• Neu: Obst, Gemüse und Eier nach Größe S/M/L/XL und Stückzahl eintragen"
 }
