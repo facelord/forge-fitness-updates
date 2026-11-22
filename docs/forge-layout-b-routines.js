@@ -176,6 +176,7 @@ ${R} button:focus-visible{outline:2px solid ${TEAL};outline-offset:2px}
 .forge-lb-rt .rt-whens{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .forge-lb-rt .rt-whens .rt-kind{min-height:64px}
 .forge-lb-rtoday .rq-group{font-size:12px;color:#95a3b7;font-weight:700;margin-top:4px}
+.forge-lb-rtoday .rq-all{min-height:44px;border-radius:22px;border:1px solid #2c4a46;background:transparent;color:#e6f6f3;font:inherit;font-size:14px;font-weight:700;margin-top:4px}
 .forge-lb-rtoffer{position:fixed;inset:0;z-index:2147482500;background:rgba(5,8,13,.78);display:flex;flex-direction:column;justify-content:flex-end;font-family:Inter,system-ui,sans-serif;color:#f3f7fc}
 .forge-lb-rtoffer .ro-sheet{background:#0f1a1f;border-top:1px solid #2f6a62;border-radius:26px 26px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom));max-width:560px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;gap:10px}
 .forge-lb-rtoffer small{font-size:12px;color:${TEAL};font-weight:800;text-transform:uppercase;letter-spacing:1.3px}
@@ -353,21 +354,24 @@ function planEntry(){
  b.addEventListener('click',()=>openList('active'));
  const mob=rows.querySelector('.forge-lb-mobplan');if(mob)mob.after(b);else rows.prepend(b);
 }
-/* Workout › Mobilität: today's routines with a start button. */
+/* Workout › Mobilität: alle aktiven eigenen Routinen – heute geplante zuerst, dann Favoriten, dann weitere. */
+const RQ_MAX=5;
 function todayCard(){
  const host=document.querySelector('#workout .forge-lb-mobstart');
  const old=document.querySelector('#workout .forge-lb-rtoday');
  const all=list(S());const rs=ordered(forDay(all,todayIdx()));
  const fav=ordered(active(all).filter(r=>r.pinned&&!rs.includes(r)));
- if(!host||(!rs.length&&!fav.length)){if(old)old.remove();return;}
- const key=rs.concat(fav).map(r=>r.id+':'+r.updatedAt+':'+!!r.pinned).join('|');
+ const rest=ordered(active(all).filter(r=>!r.pinned&&!rs.includes(r)));
+ if(!host||(!rs.length&&!fav.length&&!rest.length)){if(old)old.remove();return;}
+ const key=rs.concat(fav,rest).map(r=>r.id+':'+r.updatedAt+':'+!!r.pinned).join('|')+'#'+todayIdx();
  if(old&&old.dataset.key===key&&old.previousElementSibling===host)return;
  ensureCss();
- const c=el('section','forge-lb-rtoday');c.dataset.key=key;c.append(el('small','',rs.length?'Routinen heute':'Deine Favoriten'));
- const row=r=>{const x=el('div','rq');const t=el('span');t.append(el('b','',(r.pinned?'★ ':'')+r.name),el('em','',whenLabel(whenOf(r))+' · '+routineMeta(r)));x.append(t,btn('','Starten',()=>startRoutine(r.id)));return x;};
- rs.forEach(r=>c.append(row(r)));
- if(rs.length&&fav.length)c.append(el('div','rq-group','Favoriten'));
- fav.forEach(r=>c.append(row(r)));
+ const c=el('section','forge-lb-rtoday');c.dataset.key=key;c.append(el('small','','Deine Routinen'));
+ const row=r=>{const x=el('div','rq');const t=el('span');t.append(el('b','',(r.pinned?'★ ':'')+r.name),el('em','',routineMeta(r)+' · '+whenLabel(whenOf(r))));x.append(t,btn('','Starten',()=>startRoutine(r.id)));return x;};
+ let n=0;const group=(label,arr)=>{if(!arr.length||n>=RQ_MAX)return;c.append(el('div','rq-group',label));arr.slice(0,RQ_MAX-n).forEach(r=>{c.append(row(r));n++;});};
+ group('Heute',rs);group('Favoriten',fav);group('Weitere',rest);
+ const total=rs.length+fav.length+rest.length;
+ const more=btn('rq-all',total>n?'Alle '+total+' Routinen anzeigen':'Routinen verwalten',()=>openList('active'));c.append(more);
  if(old)old.remove();host.after(c);
 }
 /* ---------- #75 vor dem Krafttraining anbieten ---------- */
