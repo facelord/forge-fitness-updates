@@ -200,6 +200,7 @@ const ICON={
  again:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="'+ACC+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 108-8 8.5 8.5 0 00-6 2.5L4 8M4 4v4h4M12 8v4l3 2"/></svg>',
  star:'<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>',
  globe:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="'+ACC+'" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/></svg>',
+ mic:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="'+ACC+'" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v4M8 22h8"/></svg>',
  cam:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="'+ACC+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>'
 };
 
@@ -442,7 +443,10 @@ function drawAdd(){
   const ag=btn('fs-tile','',()=>{st.tab=st.tab==='yesterday'?'recent':'yesterday';drawSheet();});ag.innerHTML=ICON.again;ag.setAttribute('aria-pressed',String(st.tab==='yesterday'));
   const agT=el('span');agT.append(el('b','','Wie gestern'),el('small','',!yest.length?'Gestern nichts eingetragen':ys.length?slotLabel(st.slot)+' von gestern':yest.length+' '+(yest.length===1?'Eintrag':'Einträge')+' von gestern'));ag.append(agT);
   if(!yest.length)ag.disabled=true;
-  tiles.append(sc,ag);inner.append(tiles);
+  const voice=btn('fs-tile','',()=>{if(typeof window.ForgeFoodVoiceOpen==='function')window.ForgeFoodVoiceOpen(st.slot);});
+  voice.innerHTML=ICON.mic;
+  const vt=el('span');vt.append(el('b','','Per Sprache'),el('small','','Lebensmittel und Mengen einsprechen'));voice.append(vt);
+  tiles.append(sc,ag,voice);inner.append(tiles);
   if(st.tab!=='yesterday'){
    const tabs=el('div','fs-tabs');tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Liste');
    [['recent','Zuletzt'],['fav','Favoriten']].forEach(([k,t])=>{const b=btn('',t,()=>{st.tab=k;drawSheet();});b.setAttribute('role','tab');b.setAttribute('aria-selected',String(st.tab===k));tabs.append(b);});
@@ -887,6 +891,38 @@ function drawBackup(){
  inner.append(btn('fs-danger','Alle Daten löschen …',()=>openSheet({view:'confirm',title:'Wirklich alle Daten löschen?',text:'Trainings, Pläne, Essen und Einstellungen werden auf diesem Gerät gelöscht. Das lässt sich nicht rückgängig machen – exportiere vorher ein Backup.',ok:'Alles löschen',danger:true,action:()=>{
   const prev=window.confirm;window.confirm=()=>true;try{if(typeof window.resetData==='function')window.resetData();}finally{window.confirm=prev;}closeSheet();refresh();toast('Alle Daten gelöscht');}})));
 }
+
+/* ---------- speech-to-meal bridge: one reviewed group, ONE commit & undo ---------- */
+function commitVoiceMeal(rows,slot){
+ if(!Array.isArray(rows)||rows.length===0||rows.length>30||!SLOTS.some(s=>s[0]===slot))return false;
+ const catalog=candidates(),prepared=[];
+ for(const row of rows){
+  const food=row?.food,grams=Number(row?.grams);
+  if(!food||!catalog.some(f=>foodId(f)===foodId(food))||
+      !Number.isFinite(grams)||grams<=0||grams>3000||
+      CORE.some(k=>n(food[k])===null))return false;
+  const item=itemFromFood(food,grams,mkId());
+  if(row.portion)item.portion=String(row.portion).slice(0,60);
+  prepared.push({item,food});
+ }
+ const snap=snapshot(),day=todayStr();
+ let updated=foods();
+ for(const {item} of prepared)updated=addToSlot(updated,day,slot,item,mkId);
+ state.foods=updated;
+ const d=db();
+ for(const {food} of prepared){
+  const id=foodId(food);
+  d.recent=[food].concat(d.recent.filter(f=>foodId(f)!==id)).slice(0,20);
+  if(food.source==='off')d.products=[food].concat(d.products.filter(f=>foodId(f)!==id)).slice(0,60);
+ }
+ store();refresh();
+ toast(prepared.length+' Lebensmittel per Sprache zu '+slotLabel(slot)+' hinzugefügt',undoTo(snap));
+ return true;
+}
+window.ForgeLayoutBFoodVoiceAPI=Object.freeze({
+ getCandidates:()=>{loadBls();return candidates();},
+ search,foodId,pieceSizes,commitVoiceMeal
+});
 
 /* ---------- install ---------- */
 function install(){
