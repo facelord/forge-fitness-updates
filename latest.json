@@ -1,7 +1,7 @@
 {
-  "versionCode": 10691,
-  "versionName": "14.13.691",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.691/FORGE-Fitness-14.13.691.apk",
-  "sha256": "566c77cc6e82ac92451ff4b96df2f22696a00af207e92df1460072ac2d3cdc11",
-  "notes": "FORGE 14.13.691 – Änderungen in diesem Update\n• Neu: Eigene Routinen erscheinen jetzt auch unter Workout › Mobilität"
+  "versionCode": 10693,
+  "versionName": "14.13.693",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.693/FORGE-Fitness-14.13.693.apk",
+  "sha256": "f708eb68d4410df0a5ac0ffc4a2864967fe75f2c85f833bd279dd3bcb844e76e",
+  "notes": "FORGE 14.13.693 – Änderungen in diesem Update\n• Neu: Zirkel direkt im Workout, „Training gespeichert“ nur noch kurz nach dem Speichern"
 }
