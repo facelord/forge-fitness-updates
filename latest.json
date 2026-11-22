@@ -1,7 +1,7 @@
 {
-  "versionCode": 10698,
-  "versionName": "14.13.698",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.698/FORGE-Fitness-14.13.698.apk",
-  "sha256": "87f5eb8529820068890b53dad6829dcb36792e897f1d57a81081020bd01ff7ce",
-  "notes": "FORGE 14.13.698 – Änderungen in diesem Update\n• Neu: Übungstafeln im neuen, ruhigeren FORGE-Design"
+  "versionCode": 10700,
+  "versionName": "14.13.700",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.700/FORGE-Fitness-14.13.700.apk",
+  "sha256": "5ac30d3d1e288da9f826ee7816e83cda7725e600c52dc3b81bfae88ff82685e4",
+  "notes": "FORGE 14.13.700 – Änderungen in diesem Update\n• Behoben: parse multiple foods when speech recognition omits punctuation\n• Behoben: separately flag ingredients with unknown quantity after and\n• Neu: add voice tile and single-commit meal saving for confirmed ingredients\n• Neu: voice meal draft with multi-ingredient parsing and confirmation-only save\n• Neu: add user-triggered German Android speech input for meal dictation"
 }
