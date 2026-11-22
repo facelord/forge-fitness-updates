@@ -1,7 +1,7 @@
 {
-  "versionCode": 10689,
-  "versionName": "14.13.689",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.689/FORGE-Fitness-14.13.689.apk",
-  "sha256": "47eee95e51d632ed7a5c8cdcc08f6eb9f6058dbe388517505c25d8cd937b7a48",
-  "notes": "FORGE 14.13.689 – Änderungen in diesem Update\n• Behoben: Mobilitäts-Player öffnet zuverlässig erneut\n• Neu: Yoga 2.0 – über 50 Yoga-Haltungen und automatischer Yoga-Flow"
+  "versionCode": 10691,
+  "versionName": "14.13.691",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.691/FORGE-Fitness-14.13.691.apk",
+  "sha256": "566c77cc6e82ac92451ff4b96df2f22696a00af207e92df1460072ac2d3cdc11",
+  "notes": "FORGE 14.13.691 – Änderungen in diesem Update\n• Neu: Eigene Routinen erscheinen jetzt auch unter Workout › Mobilität"
 }
