@@ -1616,7 +1616,8 @@ function forgeUpdateWorkoutDraftStatus(){
 function forgeRenderUndoBanner(){
  const el=document.getElementById('forgeWorkoutUndoBanner');if(!el)return;
  const u=state.lastSaveUndo;
- const available=u?.workoutId&&state.workouts.at(-1)?.id===u.workoutId;
+ const available=u?.workoutId&&state.workouts.at(-1)?.id===u.workoutId&&Date.now()-(Number(u.at)||0)<600000;
+ if(available&&!window.forgeUndoExpiryTimer)window.forgeUndoExpiryTimer=setTimeout(()=>{window.forgeUndoExpiryTimer=null;try{forgeRenderUndoBanner();}catch(e){}},600000-(Date.now()-Number(u.at))+500);
  el.innerHTML=available?`<div class="forge-undo-banner"><strong>✓ Training gespeichert!</strong><span class="muted">Versehentlich gespeichert? Hole alle ausgefüllten Sätze, Gewichte und Wiederholungen zurück und trainiere weiter.</span><button type="button" class="btn alt" onclick="forgeUndoWorkoutSave()">↶ Speichern rückgängig · Entwurf wiederherstellen</button></div>`:'';
 }
 function forgeUndoWorkoutSave(){
@@ -2255,7 +2256,7 @@ function finishWorkout(){
     durationMs,strengthDurationMs,mobilityDurationMs
    });
    state.lastSaveUndo={workoutId:savedId,draft:structuredClone(draft),activeWorkout,
-    activeMobilityVideo,finishedMobilitySessionId,savedRest,savedTimeSession};
+    activeMobilityVideo,finishedMobilitySessionId,savedRest,savedTimeSession,at:Date.now()};
    state.activeWorkout=null;state.workoutDraft=null;
    state.forgeRest=null;state.forgeTimeSession=null;
    forge144AfterSaved(savedId);

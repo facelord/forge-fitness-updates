@@ -190,6 +190,8 @@ ${Z} button:focus-visible{outline:2px solid ${ACC};outline-offset:2px}
 .forge-lb-zkcard .zq span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .forge-lb-zkcard .zq b{font-size:15px}
 .forge-lb-zkcard .zq em{font-style:normal;font-size:12px;color:#95a3b7}
+.forge-lb-zkcard .zq-empty{margin:0;font-size:13px;line-height:1.4;color:#95a3b7}
+.forge-lb-zkcard .zq-all{min-height:44px;border-radius:22px;border:1px solid #3a4a2c;background:transparent;color:#eef7e6;font:inherit;font-size:14px;font-weight:700;margin-top:2px}
 .forge-lb-zkcard .zq button{min-height:44px;border-radius:22px;border:0;background:${ACC};color:#142016;font:inherit;font-size:14px;font-weight:800;padding:0 16px}
 `;
 function ensureCss(){if($('forgeLbCircuitStyle'))return;const st=el('style');st.id='forgeLbCircuitStyle';st.textContent=CSS;document.head.append(st);}
@@ -476,18 +478,24 @@ function planEntry(){
  b.addEventListener('click',()=>openList('active'));
  const after=rows.querySelector('.forge-lb-routines')||rows.querySelector('.forge-lb-mobplan');if(after)after.after(b);else rows.prepend(b);
 }
-/* Workout (Kraft, ohne laufendes Training): Favoriten-Zirkel mit Schnellstart. */
+/* Workout (Kraft, ohne laufendes Training): eigene Zirkel mit Schnellstart – Favoriten zuerst.
+   Am Ruhetag an der Stelle der früheren „Lust auf etwas Leichtes?“-Auswahl (.td-zkslot). */
+const ZQ_MAX=4;
 function quickCard(){
  const s=S();const old=document.querySelector('#workout .forge-lb-zkcard');
  const host=document.querySelector('#workout .forge-lb-today, #workout .forge-lb-wtoday');
- const fav=ordered(active(list()).filter(c=>c.pinned));
- if(!host||!fav.length||(s&&s.activeWorkout)){if(old)old.remove();return;}
- const key=fav.map(c=>c.id+':'+c.updatedAt).join('|');
- if(old&&old.dataset.key===key)return;
+ const slot=host&&host.querySelector('.td-zkslot');
+ const all=active(list());const fav=ordered(all.filter(c=>c.pinned));const rest=ordered(all.filter(c=>!c.pinned));
+ if(!host||(s&&s.activeWorkout)||(!all.length&&!slot)){if(old)old.remove();return;}
+ const key=fav.concat(rest).map(c=>c.id+':'+c.updatedAt+':'+!!c.pinned).join('|')+'#'+(slot?'slot':'end');
+ if(old&&old.dataset.key===key&&host.contains(old))return;
  ensureCss();
  const c=el('section','forge-lb-zkcard');c.dataset.key=key;c.append(el('small','','Deine Zirkel'));
- fav.forEach(z=>{const row=el('div','zq');const t=el('span');t.append(el('b','','★ '+z.name),el('em','',meta(z)));row.append(t,btn('','Starten',()=>start(z.id)));c.append(row);});
- if(old)old.remove();host.append(c);
+ const row=z=>{const r=el('div','zq');const t=el('span');t.append(el('b','',(z.pinned?'★ ':'')+z.name),el('em','',meta(z)));r.append(t,btn('','Starten',()=>start(z.id)));return r;};
+ fav.concat(rest).slice(0,ZQ_MAX).forEach(z=>c.append(row(z)));
+ if(!all.length)c.append(el('p','zq-empty','Kurze Zirkel für zu Hause oder unterwegs – mit Timer, Runden und Pausen.'));
+ c.append(btn('zq-all',!all.length?'Zirkel erstellen':all.length>ZQ_MAX?'Alle '+all.length+' Zirkel anzeigen':'Zirkel verwalten',()=>{if(!all.length)openEdit(null);else openList('active');}));
+ if(old)old.remove();if(slot)slot.append(c);else host.append(c);
 }
 window.ForgeCircuits=Object.freeze({open:openList,start,edit:id=>{const c=list().find(x=>x&&String(x.id)===String(id));if(c)openEdit(c);}});
 function tick(){if(!enabled())return;planEntry();quickCard();const r=run();if(r&&!pr)openRun();}

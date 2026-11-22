@@ -285,10 +285,8 @@ function renderRest(sit){
  const wk=el('div','td-week');wk.setAttribute('aria-hidden','true');
  for(let i=0;i<7;i++){const iso=addDays(mon,i);const u=unitOn(st.plan,iso,o);const s=el('span',(u?'on':'')+(iso===t?' t':''));s.append(document.createTextNode(DAYS[i]),el('i'));wk.append(s);}
  hero.append(wk);card.append(hero);
- card.append(el('div','td-label','Lust auf etwas Leichtes?'));
- const opt=(cls,icon,title,sub,fn)=>{const b=btn('td-opt','',fn);const i=el('i',cls);i.innerHTML=icon;const s=el('span');s.append(el('b','',title),el('small','',sub));const c=el('span');c.style.flex='0 0 auto';c.innerHTML=ICON.chev;b.append(i,s,c);return b;};
- card.append(opt('mob',ICON.mob,'Mobilität','Geführte Routine mit Timer und Seitenwechsel',()=>switchMode('mobility')));
- card.append(opt('cardio',ICON.cardio,'Lockeres Cardio','Gehen, Rad, Laufen – die Uhr läuft mit',()=>switchMode('cardio')));
+ /* Statt „Lust auf etwas Leichtes?“: hier setzt forge-layout-b-circuit.js die Karte „Deine Zirkel“ ein. */
+ card.append(el('div','td-zkslot'));
  if(sit.unit)card.append(btn('td-sec',(sit.kind==='done'?'Noch eine Einheit: ':'Trotzdem trainieren: ')+(sit.unit.title||'Training'),()=>{chosenId=sit.unit.id;chosenDay=today();render(true);}));
 }
 function renderEmpty(){
