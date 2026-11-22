@@ -21,7 +21,7 @@ const groups=[
  ['Rumänisches Kreuzheben','Kreuzheben','Beinbeuger','Hip Thrust','Glute Bridge'],
  ['Rudern am Kabel','Face Pulls','Reverse Flys','Reverse Snow Angels','Bird Dog'],
  ['Bizepscurls','Hammer Curls','Bizepscurls mit Rucksack'],
- ['Trizepsdrücken','Dips (Trizepsfokus)','Enge Liegestütze','Überkopf-Trizepsstrecken'],
+ ['Trizepsdrücken','Dips (Trizepsfokus)','Enge Liegestütze','Überkopf-Trizepsstrecken','Skull Crushers mit SZ-Stange'],
  ['Wadenheben','Wadenheben stehend','Wadenheben sitzend']
 ];
 const normalize=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('de').trim();

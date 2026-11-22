@@ -21,7 +21,7 @@ const REQ=(()=>{const m=Object.create(null);const set=(req,names)=>names.forEach
  set(['dumbbells'],['Bizepscurls','Hammer Curls','Seitheben','Arnold Press','Schulterdrücken','Überkopf-Trizepsstrecken','Einarmiges Kurzhantelrudern','Reverse Flys',"Farmer's Carry"]);
  set(['dumbbells','bench'],['Schrägbank Kurzhantel']);
  set(['barbell'],['Kniebeuge','Kreuzheben','Rumänisches Kreuzheben','Schulterdrücken mit der Langhantel']);
- set(['barbell','bench'],['Bankdrücken','Negatives Bankdrücken','Hip Thrust']);
+ set(['barbell','bench'],['Bankdrücken','Negatives Bankdrücken','Hip Thrust','Skull Crushers mit SZ-Stange']);
  set(['pullupbar'],['Klimmzüge','Klimmzüge (breiter Griff)','Klimmzüge (enger Griff)','Hängendes Knieheben']);
  set(['dipbars'],['Dips','Dips (Trizepsfokus)']);
  set(['band'],['Band-Brustpresse','Band-Rudern','Pull-Aparts mit Theraband','Band-Kniebeuge mit Theraband','Monster Walks mit Miniband','Face Pulls mit Theraband',

@@ -210,12 +210,67 @@ const V13_BOARDS=Object.freeze({
  'Schulterheben mit Stab':'v13-19-schulterheben-stab',
  'Cat-Cow':'v13-e01-katzen-kuh-cat-cow','Liegender Twist':'v13-e02-wirbelsaeulenrotation-liegend','Thoraxrotation im Vierfüßlerstand':'v13-e03-thoraxrotation-vierfuessler',
  'Seitliche Rumpfneigung im Stand':'v13-e04-seitliche-rumpfneigung-stand','Low Lunge':'v13-e05-hueftoeffner-ausfallschritt','90/90 Hüftwechsel':'v13-e06-90-90-hueftmobilisation-seitenwechsel',
- 'Brustwirbelsäulen-Extension im Stand':'v13-e07-bws-extension-stand','Figure-Four-Dehnung':'v13-e08-hueftoeffner-figure-four','Handgelenksmobilisation im Vierfüßlerstand':'v13-e09-handgelenk-vierfuessler'});
+ 'Brustwirbelsäulen-Extension im Stand':'v13-e07-bws-extension-stand','Figure-Four-Dehnung':'v13-e08-hueftoeffner-figure-four','Handgelenksmobilisation im Vierfüßlerstand':'v16-handgelenk-vierfuessler',
+ /* V16 Bild-QA (22.11.): neue, geprüfte Tafeln für bestehende Übungen. Alte Fotos/Karten bleiben als Datei erhalten. */
+ 'Kindhaltung':'v16-kindhaltung','Herabschauender Hund':'v16-herabschauender-hund','Sitzende Vorbeuge':'v16-sitzende-vorbeuge','Hüftbeuger-Dehnung':'v16-hueftbeuger-halbkniestand','Waden-Dehnung':'v16-waden-dehnung-wand','Adduktoren-Rockback':'v16-adduktoren-rockback','Türrahmen-Brustdehnung':'v16-tuerrahmen-brustdehnung','Wall Slides':'v16-wall-slides','Krieger II':'yoga-10-krieger-ii'});
 /* Diese Tafeln tragen „KI-generiert“ bereits im Bild – dort keine zweite Kennzeichnung. */
+/* Yoga 50 (V16 Bild-QA 22.11.): [Nr, Name, Sanskrit, Datei]. Stabile ID = 'yoga-NN'. Noch keine eigenen Katalogeinträge (Yoga 2.0, #72). */
+const YOGA_50=Object.freeze([
+ [1,'Leichter Sitz','Sukhasana','yoga-01-leichter-sitz'],
+ [2,'Berghaltung','Tadasana','yoga-02-berghaltung'],
+ [3,'Gestreckter Berg','Urdhva Hastasana','yoga-03-gestreckter-berg'],
+ [4,'Stehende Vorbeuge','Uttanasana','yoga-04-stehende-vorbeuge'],
+ [5,'Halbe stehende Vorbeuge','Ardha Uttanasana','yoga-05-halbe-stehende-vorbeuge'],
+ [6,'Stuhlhaltung','Utkatasana','yoga-06-stuhlhaltung'],
+ [7,'Hoher Ausfallschritt','High Lunge','yoga-07-hoher-ausfallschritt'],
+ [8,'Tiefer Ausfallschritt','Anjaneyasana','yoga-08-tiefer-ausfallschritt'],
+ [9,'Krieger I','Virabhadrasana I','yoga-09-krieger-i'],
+ [10,'Krieger II','Virabhadrasana II','yoga-10-krieger-ii'],
+ [11,'Umgekehrter Krieger','Reverse Warrior','yoga-11-umgekehrter-krieger'],
+ [12,'Gestreckter Seitenwinkel','Utthita Parsvakonasana','yoga-12-gestreckter-seitenwinkel'],
+ [13,'Dreieckshaltung','Trikonasana','yoga-13-dreieckshaltung'],
+ [14,'Kobra','Bhujangasana','yoga-14-kobra'],
+ [15,'Sphinx','Salamba Bhujangasana','yoga-15-sphinx'],
+ [16,'Heuschrecke','Salabhasana','yoga-16-heuschrecke'],
+ [17,'Bogen','Dhanurasana','yoga-17-bogen'],
+ [18,'Kamel','Ustrasana','yoga-18-kamel'],
+ [19,'Brücke','Setu Bandha Sarvangasana','yoga-19-bruecke'],
+ [20,'Taube','Eka Pada Rajakapotasana','yoga-20-taube'],
+ [21,'Schmetterling','Baddha Konasana','yoga-21-schmetterling'],
+ [22,'Drehsitz','Ardha Matsyendrasana','yoga-22-drehsitz'],
+ [23,'Sitzende Grätsche','Upavistha Konasana','yoga-23-sitzende-graetsche'],
+ [24,'Glückliches Baby','Ananda Balasana','yoga-24-glueckliches-baby'],
+ [25,'Eidechsenhaltung','Utthan Pristhasana','yoga-25-eidechsenhaltung'],
+ [26,'Halber Spagat','Ardha Hanumanasana','yoga-26-halber-spagat'],
+ [27,'Ganzer Spagat','Hanumanasana','yoga-27-ganzer-spagat'],
+ [28,'Froschhaltung','Mandukasana','yoga-28-froschhaltung'],
+ [29,'Tiefe Yoga-Hocke','Malasana','yoga-29-tiefe-yoga-hocke'],
+ [30,'Göttinnenhaltung','Utkata Konasana','yoga-30-goettinnenhaltung'],
+ [31,'Seitlicher Yoga-Ausfallschritt','Skandasana','yoga-31-seitlicher-yoga-ausfallschritt'],
+ [32,'Stehende Grätsche mit Vorbeuge','Prasarita Padottanasana','yoga-32-stehende-graetsche-mit-vorbeuge'],
+ [33,'Pyramidenhaltung','Parsvottanasana','yoga-33-pyramidenhaltung'],
+ [34,'Gedrehtes Dreieck','Parivrtta Trikonasana','yoga-34-gedrehtes-dreieck'],
+ [35,'Gedrehter Seitwinkel','Parivrtta Parsvakonasana','yoga-35-gedrehter-seitwinkel'],
+ [36,'Halbmond','Ardha Chandrasana','yoga-36-halbmond'],
+ [37,'Tänzer','Natarajasana','yoga-37-taenzer'],
+ [38,'Krähe','Bakasana','yoga-38-kraehe'],
+ [39,'Boot','Navasana','yoga-39-boot'],
+ [40,'Seitstütz','Vasisthasana','yoga-40-seitstuetz'],
+ [41,'Kopfstand','Sirsasana','yoga-41-kopfstand'],
+ [42,'Delfin','Ardha Pincha Mayurasana','yoga-42-delfin'],
+ [43,'Unterarmstand','Pincha Mayurasana','yoga-43-unterarmstand'],
+ [44,'Handstand','Adho Mukha Vrksasana','yoga-44-handstand'],
+ [45,'Rad','Urdhva Dhanurasana','yoga-45-rad'],
+ [46,'Fisch','Matsyasana','yoga-46-fisch'],
+ [47,'Liegende Wirbelsäulendrehung','Supta Matsyendrasana','yoga-47-liegende-wirbelsaeulendrehung'],
+ [48,'Nadelöhr in Rückenlage','Sucirandhrasana','yoga-48-nadeloehr-in-rueckenlage'],
+ [49,'Knie zur Brust','Apanasana','yoga-49-knie-zur-brust'],
+ [50,'Beine an der Wand','Viparita Karani','yoga-50-beine-an-der-wand']
+].map(([nr,name,sanskrit,file])=>Object.freeze({id:'yoga-'+String(nr).padStart(2,'0'),nr,name,sanskrit,src:'./mobility-boards/'+file+'.webp'})));
 const BOARD_LABELED=Object.freeze(new Set(['v13-10-quadrizeps-dehnung-stand','v13-11-soleus-dehnung-gebeugtes-knie','v13-12-hamstring-dehnung-gurt','v13-13-beckenkippen-rueckenlage',
  'v13-14-beckenkreisen-stand','v13-15-knie-zur-brust-rueckenlage','v13-16-thread-the-needle','v13-17-bws-streckung-foam-roller','v13-18-schulterkreisen','v13-19-schulterheben-stab',
- 'v13-e08-hueftoeffner-figure-four','v13-e09-handgelenk-vierfuessler'].map(b=>'./mobility-boards/'+b+'.webp')));
-const BAND_IMAGES=Object.freeze(Object.assign(Object.fromEntries(Object.entries(V13_BOARDS).map(([n,b])=>[n,'./mobility-boards/'+b+'.webp'])),
+ 'v13-e08-hueftoeffner-figure-four','v13-e09-handgelenk-vierfuessler','v16-kindhaltung','v16-herabschauender-hund','v16-sitzende-vorbeuge','v16-hueftbeuger-halbkniestand','v16-waden-dehnung-wand','v16-adduktoren-rockback','v16-tuerrahmen-brustdehnung','v16-wall-slides','yoga-10-krieger-ii','v16-handgelenk-vierfuessler'].map(b=>'./mobility-boards/'+b+'.webp').concat(YOGA_50.map(y=>y.src))));
+const BAND_IMAGES=Object.freeze(Object.assign(Object.fromEntries(YOGA_50.filter(y=>!V13_BOARDS[y.name]).map(y=>[y.name,y.src])),Object.fromEntries(Object.entries(V13_BOARDS).map(([n,b])=>[n,'./mobility-boards/'+b+'.webp'])),
  Object.fromEntries(BAND_DEFS.map(d=>[d[0],'./mobility-boards/'+d[5]+'.webp']))));
 const MOB_BOARDS=BAND_IMAGES;
 function boardLabeled(src){return BOARD_LABELED.has(String(src||''));}
@@ -257,7 +312,8 @@ function assignVideo(assignments,day,v){
  list.push({day,goal:v.area,mins:v.mins,choice:v.idx,timing:'separate'});
  return list.sort((a,b)=>a.day-b.day);
 }
-window.ForgeMobilityCatalog=Object.freeze({CATEGORIES,categoryOf,extras,withExtras,BAND_IMAGES,MOB_BOARDS,NEW_DEFS,boardHtml,boardLabeled});
+function yogaBoard(q){const k=String(q||'').trim().toLowerCase();return YOGA_50.find(y=>y.id===k||y.name.toLowerCase()===k||y.sanskrit.toLowerCase()===k)||null;}
+window.ForgeMobilityCatalog=Object.freeze({CATEGORIES,categoryOf,extras,withExtras,BAND_IMAGES,MOB_BOARDS,NEW_DEFS,YOGA_50,yogaBoard,boardHtml,boardLabeled});
 /* Katalog/Detail: freigegebene Tafel statt der alten Einzelpanels (letzter Renderer für diese Namen). */
 try{['forgeExerciseIllustrations','forgePublicExercisePictures'].forEach(k=>{const prev=window[k];if(prev&&prev.forgeMobBoards)return;
  const f=function(name){return MOB_BOARDS[name]?boardHtml(name):(typeof prev==='function'?prev.apply(this,arguments):'');};f.forgeMobBoards=true;window[k]=f;});}catch(e){}

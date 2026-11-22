@@ -61,7 +61,7 @@ const PRIMARY=Object.freeze((()=>{const m={};const add=(cat,list)=>list.forEach(
  add('Ganzkörper',['Burpees','Hampelmann']);
  add('Beine',['Band-Kniebeuge mit Theraband','Monster Walks mit Miniband','Abduktorenmaschine','Adduktorenmaschine','Ausfallschritte','Beinbeuger','Beinpresse','Beinstrecker','Bulgarian Split Squat','Einbeiniges rumänisches Kreuzheben','Glute Bridge','Hip Thrust','Kniebeuge','Kniebeugen','Kreuzheben','Rumänisches Kreuzheben','Wadenheben']);
  add('Schultern',['Face Pulls mit Theraband','Band-Seitheben mit Theraband','Arnold Press','Face Pulls','Pike Push-ups','Reverse Flys','Schulter-Außenrotation','Schulterdrücken','Schulterdrücken mit der Langhantel','Seitheben']);
- add('Arme',['Bizeps-Curls mit Theraband','Band-Trizepsdrücken mit Theraband','Bizepscurls','Bizepscurls mit Rucksack','Dips (Trizepsfokus)','Enge Liegestütze','Hammer Curls','Trizepsdrücken','Überkopf-Trizepsstrecken']);
+ add('Arme',['Bizeps-Curls mit Theraband','Band-Trizepsdrücken mit Theraband','Bizepscurls','Bizepscurls mit Rucksack','Dips (Trizepsfokus)','Enge Liegestütze','Hammer Curls','Skull Crushers mit SZ-Stange','Trizepsdrücken','Überkopf-Trizepsstrecken']);
  add('Rumpf',['Band-Pallof-Press','Bergsteiger','Bird Dog','Dead Bug',"Farmer's Carry",'Hängendes Knieheben','Kabel-Crunches','Pallof Press','Plank']);
  return m;})());
 function primaryGroup(item){
