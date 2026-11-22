@@ -1,7 +1,7 @@
 {
-  "versionCode": 10686,
-  "versionName": "14.13.686",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.686/FORGE-Fitness-14.13.686.apk",
-  "sha256": "85cdb456b6df38e7fbc8c602048972757a5d04a63b4c2b286a04afdf1fe5adc2",
-  "notes": "FORGE 14.13.686 – Änderungen in diesem Update\n• Neu: Neue geprüfte Übungstafeln für Yoga, Mobilität und Skull Crushers"
+  "versionCode": 10689,
+  "versionName": "14.13.689",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.689/FORGE-Fitness-14.13.689.apk",
+  "sha256": "47eee95e51d632ed7a5c8cdcc08f6eb9f6058dbe388517505c25d8cd937b7a48",
+  "notes": "FORGE 14.13.689 – Änderungen in diesem Update\n• Behoben: Mobilitäts-Player öffnet zuverlässig erneut\n• Neu: Yoga 2.0 – über 50 Yoga-Haltungen und automatischer Yoga-Flow"
 }
