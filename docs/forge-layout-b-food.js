@@ -96,6 +96,48 @@ function quickAmounts(last){
  if(last&&!base.includes(last)){base.push(last);base.sort((a,b)=>a-b);if(base.length>5)base.splice(base.indexOf(base.find(v=>v!==last&&v!==100)),1);}
  return base.slice(0,5);
 }
+/* Stückware: typische essbare Menge je Stück (ca., ohne Schale/Kern) für S/M/L/XL.
+   Gilt nur für das rohe/gegarte Lebensmittel selbst, nie für Saft, Chips, Getrocknetes usw. */
+const PIECE_TABLE=Object.freeze([
+ [['ei','eier','huhnerei','huhnereier','freilandei','freilandeier'],[45,52,60,68],'ohne Schale'],
+ [['banane','bananen'],[90,115,135,160],'ohne Schale'],
+ [['apfel','apfeln'],[120,160,200,250],''],
+ [['birne','birnen'],[130,170,210,250],''],
+ [['orange','orangen'],[120,160,200,250],'ohne Schale'],
+ [['mandarine','mandarinen','clementine','clementinen'],[50,70,90,110],'ohne Schale'],
+ [['kiwi','kiwis'],[60,75,90,110],'ohne Schale'],
+ [['pfirsich','pfirsiche','nektarine','nektarinen'],[100,140,170,200],'ohne Kern'],
+ [['pflaume','pflaumen','zwetschge','zwetschgen'],[25,35,45,55],'ohne Kern'],
+ [['aprikose','aprikosen'],[30,40,50,60],'ohne Kern'],
+ [['avocado','avocados'],[100,140,180,220],'Fruchtfleisch'],
+ [['mango','mangos'],[200,280,350,450],'Fruchtfleisch'],
+ [['zitrone','zitronen'],[50,70,90,110],'ohne Schale'],
+ [['kartoffel','kartoffeln'],[60,100,150,200],''],
+ [['sußkartoffel','sußkartoffeln','susskartoffel','susskartoffeln'],[150,250,350,450],''],
+ [['tomate','tomaten'],[60,100,150,200],''],
+ [['paprika','paprikaschote','paprikaschoten'],[120,160,200,250],'ohne Kerne'],
+ [['karotte','karotten','mohre','mohren'],[50,80,110,140],''],
+ [['zwiebel','zwiebeln'],[50,80,120,160],'geschält'],
+ [['zucchini'],[150,200,300,400],''],
+ [['gurke','gurken','salatgurke','salatgurken'],[250,350,450,550],'']
+]);
+const PIECE_SIZES=Object.freeze(['S','M','L','XL']);
+const PIECE_LEAD=new Set(['bio','frisch','frische','frischer','frisches']);
+const PIECE_OK=new Set(['roh','geschalt','ungeschalt','gekocht','hart','hartgekocht','weich','weichgekocht','gedunstet','gegart','frisch','natur','bio','rot','rote','gelb','gelbe','grun','grune','gemischt','reif','mit','ohne','schale','gebacken','gegrillt','pellkartoffel','pellkartoffeln','festkochend','mehligkochend','vorwiegend','s','m','l','xl','klasse','freiland','bodenhaltung','lose','mohre','karotte']);
+function pieceSizes(name){
+ const t=norm(name).replace(/[,/()]+/g,' ').split(/\s+/).filter(Boolean);
+ while(t.length&&PIECE_LEAD.has(t[0]))t.shift();
+ if(!t.length)return null;
+ const row=PIECE_TABLE.find(r=>r[0].includes(t[0]));
+ if(!row||!t.slice(1).every(w=>PIECE_OK.has(w)))return null;
+ const out={note:row[2]};PIECE_SIZES.forEach((k,i)=>out[k]=row[1][i]);return out;
+}
+function portionLabel(p){return p&&PIECE_SIZES.includes(p.size)&&p.count>0?(p.count===1?'1 Stück ':p.count+' Stück ')+p.size:'';}
+function portionGuess(sizes,grams){
+ if(!sizes||!(grams>0))return null;
+ for(let c=1;c<=12;c++)for(const k of PIECE_SIZES)if(Math.abs(sizes[k]*c-grams)<0.05)return {size:k,count:c};
+ return null;
+}
 function validTargets(t){return ['cal','protein','carbs','fat'].every(k=>Number.isFinite(t[k])&&t[k]>0);}
 function validFood(f){
  if(!f||!String(f.name||'').trim())return 'Bitte einen Namen eingeben.';
@@ -105,7 +147,7 @@ function validFood(f){
  return null;
 }
 function fmtG(v,d){return v===null||v===undefined?'–':Number(v).toLocaleString('de-DE',{maximumFractionDigits:d??0})+' g';}
-window.ForgeLayoutBFood=Object.freeze({SLOTS,slotForHour,slotLabel,sumItems,itemFromFood,itemKcal,entryOf,addToSlot,recomputeEntry,dayGroups,totals,saltOf,score,search,lastGrams,quickAmounts,validTargets,validFood,foodId,norm});
+window.ForgeLayoutBFood=Object.freeze({SLOTS,slotForHour,slotLabel,sumItems,itemFromFood,itemKcal,entryOf,addToSlot,recomputeEntry,dayGroups,totals,saltOf,score,search,lastGrams,quickAmounts,pieceSizes,portionLabel,portionGuess,PIECE_TABLE,validTargets,validFood,foodId,norm});
 if(typeof document==='undefined')return;
 
 /* ---------- environment ---------- */
@@ -244,6 +286,15 @@ ${S} .fs-amt span{font-size:18px;color:#95a3b7;font-weight:700}
 ${S} .fs-chips{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;flex:0 0 auto}
 ${S} .fs-chips button{height:40px;border-radius:12px;border:1px solid #293346;background:#171e2a;color:#f3f7fc;font:inherit;font-size:13px;font-weight:600}
 ${S} .fs-chips button[aria-pressed="true"]{border:2px solid ${ACC};background:#1a2a22;font-weight:800}
+${S} .fs-piece{display:flex;flex-direction:column;gap:8px;flex:0 0 auto}
+${S} .fs-size{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+${S} .fs-size button{height:52px;border-radius:14px;border:1px solid #293346;background:#171e2a;color:#f3f7fc;font:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+${S} .fs-size b{font-size:17px;font-weight:800}${S} .fs-size small{font-size:12px;color:#95a3b7}
+${S} .fs-size button[aria-checked="true"]{border:2px solid ${ACC};background:#1a2a22}${S} .fs-size button[aria-checked="true"] small{color:#d9f5c4}
+${S} .fs-count{display:grid;grid-template-columns:minmax(0,1fr) 44px 34px 44px;align-items:center;gap:4px;background:#0f1620;border:1px solid #293346;border-radius:14px;padding:4px 6px 4px 12px}
+${S} .fs-count span{font-size:13px;color:#c3cddb;font-weight:600;min-width:0}
+${S} .fs-count b{text-align:center;font-size:18px;font-weight:800;color:#f3f7fc}
+${S} .fs-count button{height:40px;border:0;border-radius:10px;background:#171e2a;color:#c3cddb;font:inherit;font-size:22px}${S} .fs-count button:disabled{opacity:.35}
 ${S} .fs-macros{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;background:#171e2a;border:1px solid #293346;border-radius:18px;padding:12px;flex:0 0 auto}
 ${S} .fs-macros.three{grid-template-columns:repeat(3,minmax(0,1fr))}
 ${S} .fs-macros b{display:block;font-size:20px;font-weight:800}
@@ -452,13 +503,14 @@ function foodRow(f,quick){
  if(isFav(f))b.append(el('em','','Favorit'));else b.insertAdjacentHTML('beforeend',ICON.chev);
  return b;
 }
-function addFood(food,grams,slot,fromQuick){
+function addFood(food,grams,slot,fromQuick,portion){
  const snap=snapshot();
  const item=itemFromFood(food,grams,mkId());
+ if(portion)item.portion=portion;
  state.foods=addToSlot(foods(),todayStr(),slot,item,mkId);
  remember(food);store();refresh();
  if(fromQuick&&sheetState){drawSheet();}
- toast(food.name+' · '+grams+' g → '+slotLabel(slot),undoTo(snap));
+ toast(food.name+' · '+(portion?portion+' ('+fmtNum(grams)+' g)':grams+' g')+' → '+slotLabel(slot),undoTo(snap));
 }
 function copyEntry(entry,slot){
  const snap=snapshot();
@@ -571,12 +623,40 @@ function drawScan(){
  inner.append(el('p','fs-hint',''));
 }
 
+/* ---------- Stückware S/M/L/XL ---------- */
+function pieceInit(st,name,last){
+ if(st.pieceInit)return;st.pieceInit=true;
+ const sz=pieceSizes(name);st.piece=null;if(!sz)return;
+ st.piece=portionGuess(sz,Number(st.grams));
+ if(!st.piece&&!last&&Number(st.grams)===100){st.piece={size:'M',count:1};st.grams=sz.M;}
+}
+function pieceBlock(st,name){
+ const sz=pieceSizes(name);if(!sz)return null;
+ const wrap=el('div','fs-piece');
+ wrap.append(el('div','fs-label','Größe · ca. pro Stück'+(sz.note?' ('+sz.note+')':'')));
+ const row=el('div','fs-size');row.setAttribute('role','radiogroup');row.setAttribute('aria-label','Größe');
+ PIECE_SIZES.forEach(k=>{
+  const b=btn('','',()=>{st.piece={size:k,count:st.piece?st.piece.count:1};st.grams=sz[k]*st.piece.count;drawSheet();});
+  b.append(el('b','',k),el('small','',sz[k]+' g'));b.setAttribute('role','radio');b.setAttribute('aria-checked',String(!!st.piece&&st.piece.size===k));b.setAttribute('aria-label','Größe '+k+', ca. '+sz[k]+' g');row.append(b);
+ });
+ wrap.append(row);
+ const cnt=el('div','fs-count');const c=st.piece?st.piece.count:1;
+ const set=v=>{const size=st.piece?st.piece.size:'M';st.piece={size,count:Math.max(1,Math.min(12,v))};st.grams=sz[size]*st.piece.count;drawSheet();};
+ const m=btn('','−',()=>set(c-1));m.setAttribute('aria-label','Ein Stück weniger');m.disabled=!!st.piece&&c<=1;
+ const pl=btn('','+',()=>set(c+1));pl.setAttribute('aria-label','Ein Stück mehr');pl.disabled=!!st.piece&&c>=12;
+ cnt.append(el('span','',st.piece?portionLabel(st.piece)+' ≈ '+fmtNum(sz[st.piece.size]*c)+' g':'Anzahl Stück'),m,el('b','',String(c)),pl);
+ wrap.append(cnt);return wrap;
+}
+function fmtNum(v){return String(Math.round(v*10)/10).replace('.',',');}
+function clearPiece(st){if(!st.piece)return;st.piece=null;sheetEl&&sheetEl.querySelectorAll('.fs-size [role=radio]').forEach(b=>b.setAttribute('aria-checked','false'));const sp=sheetEl&&sheetEl.querySelector('.fs-count span');if(sp)sp.textContent='Anzahl Stück';}
+
 /* ---------- E4 Menge ---------- */
 function drawAmount(){
  const st=sheetState,f=st.food;
  if(st.vals===undefined)st.vals={};
  const missing=CORE.filter(k=>n(f[k])===null&&n(st.vals[k])===null);
  const val=k=>n(f[k])!==null?n(f[k]):n(st.vals[k]);
+ pieceInit(st,f.name,lastGrams(foods(),f.name));
  const inner=frame('','Menge wählen');
  const star=btn('fs-round'+(isFav(f)?' on':''),'',()=>{toggleFav(f);drawSheet();});star.innerHTML=ICON.star;star.setAttribute('aria-label',isFav(f)?'Als Favorit entfernen':'Als Favorit merken');star.setAttribute('aria-pressed',String(isFav(f)));
  const right=el('div');right.style.cssText='display:flex;gap:8px';const x=btn('fs-round','',back);x.innerHTML=ICON.back;x.setAttribute('aria-label','Zurück');right.append(star,x);
@@ -589,14 +669,16 @@ function drawAmount(){
   inner.append(form);
  }
  const amt=el('div','fs-amt');
- const minus=btn('','−',()=>{st.grams=Math.max(1,Math.round((Number(st.grams)||0)-10));drawSheet();});minus.setAttribute('aria-label','10 g weniger');
- const plus=btn('','+',()=>{st.grams=Math.min(5000,Math.round((Number(st.grams)||0)+10));drawSheet();});plus.setAttribute('aria-label','10 g mehr');
+ const minus=btn('','−',()=>{st.piece=null;st.grams=Math.max(1,Math.round((Number(st.grams)||0)-10));drawSheet();});minus.setAttribute('aria-label','10 g weniger');
+ const plus=btn('','+',()=>{st.piece=null;st.grams=Math.min(5000,Math.round((Number(st.grams)||0)+10));drawSheet();});plus.setAttribute('aria-label','10 g mehr');
  const lab=el('label');const inp=el('input');inp.type='number';inp.inputMode='decimal';inp.min='1';inp.max='5000';inp.value=String(st.grams);inp.setAttribute('aria-label','Menge in Gramm');
- inp.addEventListener('input',()=>{const g=n(inp.value);if(g!==null&&g>0){st.grams=Math.min(5000,g);updateMacros();}});
- lab.append(inp,el('span','','g'));amt.append(minus,lab,plus);inner.append(amt);
+ inp.addEventListener('input',()=>{const g=n(inp.value);if(g!==null&&g>0){st.grams=Math.min(5000,g);clearPiece(st);updateMacros();}});
+ lab.append(inp,el('span','','g'));amt.append(minus,lab,plus);
+ const pb=pieceBlock(st,f.name);if(pb)inner.append(pb);
+ inner.append(amt);
  const chips=el('div','fs-chips');
- quickAmounts(lastGrams(foods(),f.name)).forEach(g=>{const b=btn('',g+' g',()=>{st.grams=g;drawSheet();});b.setAttribute('aria-pressed',String(Number(st.grams)===g));chips.append(b);});
- inner.append(chips);
+ if(!pb)quickAmounts(lastGrams(foods(),f.name)).forEach(g=>{const b=btn('',g+' g',()=>{st.grams=g;drawSheet();});b.setAttribute('aria-pressed',String(Number(st.grams)===g));chips.append(b);});
+ if(!pb)inner.append(chips);
  const mac=el('div','fs-macros');inner.append(mac);
  function updateMacros(){
   const g=Number(st.grams)||0;mac.replaceChildren();
@@ -613,7 +695,7 @@ function drawAmount(){
   if(!(g>0&&g<=5000)){err.textContent='Bitte eine Menge zwischen 1 und 5000 g eingeben.';err.className='fs-hint err';return;}
   const food={...f};for(const k of CORE)if(n(food[k])===null)food[k]=n(st.vals[k]);
   if(CORE.some(k=>n(food[k])===null)){err.textContent='Bitte die fehlenden Werte pro 100 g eintragen.';err.className='fs-hint err';return;}
-  addFood(food,Math.round(g*10)/10,st.slot,false);
+  addFood(food,Math.round(g*10)/10,st.slot,false,portionLabel(st.piece));
   if(st.compose){openSheet({view:'add',slot:st.slot,tab:'recent',q:'',push:false});}
   else closeSheet();
  });
@@ -639,7 +721,7 @@ function drawMeal(){
    if(entries.length>1&&entry.name&&entry.name!==slotLabel(entry.slot))body.append(el('div','fs-sec',entry.name));
    entry.ingredients.forEach(it=>{
     const b=btn('fs-row tap','',()=>openSheet({view:'item',slot:st.slot,entryId:entry.id,itemId:it.id,grams:Number(it.grams)}));
-    const s=el('span');s.append(el('b','',it.name),el('small','',fmtG(Number(it.grams),1)));b.append(s,el('em','kc',itemKcal(it)+' kcal'));
+    const s=el('span');s.append(el('b','',it.name),el('small','',fmtG(Number(it.grams),1)+(it.portion?' · '+it.portion:'')));b.append(s,el('em','kc',itemKcal(it)+' kcal'));
     b.setAttribute('aria-label',it.name+', '+it.grams+' g – ändern');body.append(b);
    });
   }else{
@@ -665,17 +747,19 @@ function drawItem(){
  const inner=frame('',it?it.name:(entry.name||'Eintrag'));
  inner.append(headRow(slotLabel(entry.slot),it?it.name:(entry.name||'Eintrag')));
  if(it){
+  if(!st.pieceInit){st.pieceInit=true;st.piece=portionGuess(pieceSizes(it.name),Number(st.grams));}
+  const pb=pieceBlock(st,it.name);if(pb)inner.append(pb);
   const amt=el('div','fs-amt');
-  const minus=btn('','−',()=>{st.grams=Math.max(1,Math.round(st.grams-10));drawSheet();});minus.setAttribute('aria-label','10 g weniger');
-  const plus=btn('','+',()=>{st.grams=Math.min(5000,Math.round(st.grams+10));drawSheet();});plus.setAttribute('aria-label','10 g mehr');
+  const minus=btn('','−',()=>{st.piece=null;st.grams=Math.max(1,Math.round(st.grams-10));drawSheet();});minus.setAttribute('aria-label','10 g weniger');
+  const plus=btn('','+',()=>{st.piece=null;st.grams=Math.min(5000,Math.round(st.grams+10));drawSheet();});plus.setAttribute('aria-label','10 g mehr');
   const lab=el('label');const inp=el('input');inp.type='number';inp.inputMode='decimal';inp.value=String(st.grams);inp.setAttribute('aria-label','Menge in Gramm');
-  inp.addEventListener('change',()=>{const g=n(inp.value);if(g!==null&&g>0){st.grams=Math.min(5000,g);drawSheet();}});
+  inp.addEventListener('change',()=>{const g=n(inp.value);if(g!==null&&g>0){st.piece=null;st.grams=Math.min(5000,g);drawSheet();}});
   lab.append(inp,el('span','','g'));amt.append(minus,lab,plus);inner.append(amt);
   inner.append(el('p','fs-hint',Math.round((n(it.cal)||0)*st.grams/100)+' kcal · '+Math.round((n(it.protein)||0)*st.grams/100)+' g Eiweiß'));
   inner.append(btn('fs-main','Menge speichern',()=>{
    const snap=snapshot();
-   state.foods=foods().map(f=>f.id!==entry.id?f:recomputeEntry({...f,ingredients:f.ingredients.map(i=>i.id===it.id?{...i,grams:Math.round(st.grams*10)/10}:i)}));
-   store();refresh();back();toast(it.name+' · '+st.grams+' g gespeichert',undoTo(snap));
+   state.foods=foods().map(f=>f.id!==entry.id?f:recomputeEntry({...f,ingredients:f.ingredients.map(i=>{if(i.id!==it.id)return i;const x={...i,grams:Math.round(st.grams*10)/10};const pl=portionLabel(st.piece);if(pl)x.portion=pl;else delete x.portion;return x;})}));
+   store();refresh();back();toast(it.name+' · '+(st.piece?portionLabel(st.piece)+' ('+fmtNum(st.grams)+' g)':st.grams+' g')+' gespeichert',undoTo(snap));
   }));
  }else inner.append(el('p','fs-text',Math.round(n(entry.cal)||0)+' kcal · '+fmtG(n(entry.protein))+' Eiweiß · '+fmtG(n(entry.carbs))+' Kohlenhydrate · '+fmtG(n(entry.fat))+' Fett'));
  inner.append(btn('fs-danger',it?'Aus der Mahlzeit entfernen':'Eintrag löschen',()=>{
