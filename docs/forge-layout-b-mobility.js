@@ -276,7 +276,7 @@ const V13_BOARDS=Object.freeze({
  'Seitliche Rumpfneigung im Stand':'v13-e04-seitliche-rumpfneigung-stand','Low Lunge':'v13-e05-hueftoeffner-ausfallschritt','90/90 Hüftwechsel':'v13-e06-90-90-hueftmobilisation-seitenwechsel',
  'Brustwirbelsäulen-Extension im Stand':'v13-e07-bws-extension-stand','Figure-Four-Dehnung':'v13-e08-hueftoeffner-figure-four','Handgelenksmobilisation im Vierfüßlerstand':'v16-handgelenk-vierfuessler',
  /* V16 Bild-QA (22.11.): neue, geprüfte Tafeln für bestehende Übungen. Alte Fotos/Karten bleiben als Datei erhalten. */
- 'Kindhaltung':'v16-kindhaltung','Herabschauender Hund':'v16-herabschauender-hund','Sitzende Vorbeuge':'v16-sitzende-vorbeuge','Hüftbeuger-Dehnung':'v16-hueftbeuger-halbkniestand','Waden-Dehnung':'v16-waden-dehnung-wand','Adduktoren-Rockback':'v16-adduktoren-rockback','Türrahmen-Brustdehnung':'v16-tuerrahmen-brustdehnung','Wall Slides':'v16-wall-slides','Krieger II':'yoga-10-krieger-ii'});
+ 'Kindhaltung':'v16-kindhaltung','Handgelenksmobilisation':'v16-handgelenksmobilisation','Herabschauender Hund':'v16-herabschauender-hund','Sitzende Vorbeuge':'v16-sitzende-vorbeuge','Hüftbeuger-Dehnung':'v16-hueftbeuger-halbkniestand','Waden-Dehnung':'v16-waden-dehnung-wand','Adduktoren-Rockback':'v16-adduktoren-rockback','Türrahmen-Brustdehnung':'v16-tuerrahmen-brustdehnung','Wall Slides':'v16-wall-slides','Krieger II':'yoga-10-krieger-ii'});
 /* Diese Tafeln tragen „KI-generiert“ bereits im Bild – dort keine zweite Kennzeichnung. */
 /* Yoga 50 (V16 Bild-QA 22.11.): [Nr, Name, Sanskrit, Datei]. Stabile ID = 'yoga-NN'. Noch keine eigenen Katalogeinträge (Yoga 2.0, #72). */
 const YOGA_50=Object.freeze([
@@ -333,7 +333,7 @@ const YOGA_50=Object.freeze([
 ].map(([nr,name,sanskrit,file])=>Object.freeze({id:'yoga-'+String(nr).padStart(2,'0'),nr,name,sanskrit,src:'./mobility-boards/'+file+'.webp'})));
 const BOARD_LABELED=Object.freeze(new Set(['v13-10-quadrizeps-dehnung-stand','v13-11-soleus-dehnung-gebeugtes-knie','v13-12-hamstring-dehnung-gurt','v13-13-beckenkippen-rueckenlage',
  'v13-14-beckenkreisen-stand','v13-15-knie-zur-brust-rueckenlage','v13-16-thread-the-needle','v13-17-bws-streckung-foam-roller','v13-18-schulterkreisen','v13-19-schulterheben-stab',
- 'v13-e08-hueftoeffner-figure-four','v13-e09-handgelenk-vierfuessler','v16-kindhaltung','v16-herabschauender-hund','v16-sitzende-vorbeuge','v16-hueftbeuger-halbkniestand','v16-waden-dehnung-wand','v16-adduktoren-rockback','v16-tuerrahmen-brustdehnung','v16-wall-slides','yoga-10-krieger-ii','v16-handgelenk-vierfuessler'].map(b=>'./mobility-boards/'+b+'.webp').concat(YOGA_50.map(y=>y.src))));
+ 'v13-e08-hueftoeffner-figure-four','v13-e09-handgelenk-vierfuessler','v16-kindhaltung','v16-handgelenksmobilisation','v16-herabschauender-hund','v16-sitzende-vorbeuge','v16-hueftbeuger-halbkniestand','v16-waden-dehnung-wand','v16-adduktoren-rockback','v16-tuerrahmen-brustdehnung','v16-wall-slides','yoga-10-krieger-ii','v16-handgelenk-vierfuessler'].map(b=>'./mobility-boards/'+b+'.webp').concat(YOGA_50.map(y=>y.src))));
 const BAND_IMAGES=Object.freeze(Object.assign(Object.fromEntries(YOGA_50.filter(y=>!V13_BOARDS[y.name]).map(y=>[y.name,y.src])),Object.fromEntries(Object.entries(V13_BOARDS).map(([n,b])=>[n,'./mobility-boards/'+b+'.webp'])),
  Object.fromEntries(BAND_DEFS.map(d=>[d[0],'./mobility-boards/'+d[5]+'.webp']))));
 const MOB_BOARDS=BAND_IMAGES;
