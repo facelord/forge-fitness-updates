@@ -1,7 +1,7 @@
 {
-  "versionCode": 10702,
-  "versionName": "14.13.702",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.702/FORGE-Fitness-14.13.702.apk",
-  "sha256": "be86446de65ba68d82c4a76831d851f631a8b7025a42a5c4125e42ab13cb1471",
-  "notes": "FORGE 14.13.702 – Änderungen in diesem Update\n• Neu: Aufgeräumte Oberfläche – eine Mobilitätskarte, „Meine Programme“ im Plan, ruhigeres Design"
+  "versionCode": 10704,
+  "versionName": "14.13.704",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.704/FORGE-Fitness-14.13.704.apk",
+  "sha256": "85168f353f358695bc5b1934f110f7fd198841547f5cfed1e7eea4cf8a99f80c",
+  "notes": "FORGE 14.13.704 – Änderungen in diesem Update\n• Behoben: Handgelenksmobilisation zeigt neue Tafel statt altem Foto"
 }
