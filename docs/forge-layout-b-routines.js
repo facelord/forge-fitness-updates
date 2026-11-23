@@ -61,7 +61,53 @@ function setArchived(rs,id,flag,now){
 }
 function routineKey(id){return 'forge-r-'+id;}
 function newId(){return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
-window.ForgeRoutinesCore=Object.freeze({KINDS,KIND_CAT,WHEN,kindLabel,active,archived,forDay,whenOf,whenLabel,ordered,forWorkout,setPinned,item,seconds,validate,upsert,setArchived,routineKey,MAX_ITEMS});
+
+/* ---------- Automatisch zusammenstellen: Mobilität · Dehnen · Kombiniert (23.11.2026) ---------- */
+const AUTO_FOCUS=Object.freeze([['g','Ganzkörper'],['r','Rücken & Nacken'],['h','Hüfte & Beine'],['s','Schultern & Arme']]);
+const AUTO_MIN=Object.freeze({mobility:[5,10,15,20],stretch:[5,10,15],mixed:[10,15,20,30]});
+const AUTO_TITLE=Object.freeze({mobility:'Mobilität',stretch:'Dehnen',mixed:'Mix'});
+const AUTO_RX=Object.freeze({r:/rücken|wirbelsäule|bws|lws|becken|rumpf|nacken/i,h:/hüfte|oberschenkel|gesäß|knie|wade|sprung|fuß|innenschenkel|bein/i,s:/schulter|brust|handgelenk|arm/i});
+const AUTO_EQUIP=/theraband|gurt|foam roller|stab\b|mit ball/i;
+function autoGroup(x){const r=String(x.region||'')||x.name;return AUTO_RX.r.test(r)?'r':AUTO_RX.s.test(r)?'s':AUTO_RX.h.test(r)?'h':'r';}
+function autoPos(n){return /endentspannung|beine an der wand/i.test(n)?5:/rückenlage|sitz|90\/90|figure-four|knie zur brust|schmetterling|liegend|glückliches baby|brücke|grätsche$/i.test(n)?2:/vierfüßler|cat-cow|thread|rockback|kindhaltung|hund|sphinx|kobra|low lunge|spagat|eidechse|taube|kamel|hüftbeuger-dehnung$/i.test(n)?1:0;}
+function autoFamily(n){if(/endentspannung|beine an der wand/i.test(n))return 'ende';return String(n).replace(/ (im|mit|an|in|über) .*$/i,'').toLowerCase();}
+function autoSecs(it){const sides=/je seite/i.test(String(it[2]||''));return 5+it[1]*(sides?2:1)+(sides?3:0);}
+function autoPick(pool,target,rnd,focus,used,maxN){const cap=maxN||MAX_ITEMS;
+ const fam=new Set(used.map(x=>autoFamily(x.name)));const out=[];let t=0;
+ let rest=pool.slice();for(let i=rest.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[rest[i],rest[j]]=[rest[j],rest[i]];}
+ if(focus==='g'){const by={r:[],h:[],s:[]};rest.forEach(x=>by[autoGroup(x)].push(x));rest=[];const ks=['h','r','s'];
+  for(let i=0;by.h.length+by.r.length+by.s.length;i++){const k=ks[i%3];if(by[k].length)rest.push(by[k].shift());}}
+ for(const x of rest){if(t>=target||out.length>=cap)break;const f=autoFamily(x.name);if(fam.has(f))continue;
+  const it=item(x);const st=autoSecs(it);if(t>0&&t+st>target*1.12)continue;fam.add(f);out.push(it);t+=st;}
+ return out;
+}
+/* lib: Katalog (Name, Region, Sekunden, Seiten, Hilfsmittel) · cats(name)→['Gelenke'|'Dehnen'|'Yoga',…] · level(name)→0..3 */
+function autoRoutine(lib,o,cats,level){
+ const kind=AUTO_MIN[o&&o.kind]?o.kind:'mobility';const mins=AUTO_MIN[kind].includes(Number(o.minutes))?Number(o.minutes):AUTO_MIN[kind][1];
+ const focus=AUTO_FOCUS.some(f=>f[0]===o.focus)?o.focus:'g';const target=mins*60;const rnd=rng(o.seed||1);
+ const ok=x=>x&&x.name&&(o.equip||!(x.equipment||AUTO_EQUIP.test(x.name)))&&(focus==='g'||autoGroup(x)===focus);
+ const inC=(x,c)=>(cats(x.name)||[]).includes(c);
+ const joints=(lib||[]).filter(x=>ok(x)&&inC(x,'Gelenke'));
+ const stretch=(lib||[]).filter(x=>ok(x)&&inC(x,'Dehnen'));
+ const calm=(lib||[]).filter(x=>ok(x)&&inC(x,'Yoga')&&!inC(x,'Gelenke')&&!inC(x,'Dehnen')&&(Number(level(x.name))||0)<=1&&x.mode!=='dynamic'&&!/berghaltung|gestreckter berg|stuhl|krieger|dreieck|seitenwinkel|göttin|sitz$/i.test(x.name));
+ let items;
+ if(kind==='mobility')items=autoPick(joints,target,rnd,focus,[]);
+ else if(kind==='stretch'){items=autoPick(stretch,target,rnd,focus,[]);
+  let t=items.reduce((a,it)=>a+autoSecs(it),0);if(t<target*0.9)items=items.concat(autoPick(calm,target-t,rnd,focus,items.map(x=>({name:x[0]})),MAX_ITEMS-items.length));}
+ else{const a=autoPick(joints,Math.round(target*0.45),rnd,focus,[]);const b=autoPick(stretch.concat(calm),target-a.reduce((s,it)=>s+autoSecs(it),0),rnd,focus,a.map(x=>({name:x[0]})),MAX_ITEMS-a.length);items=a.concat(b);}
+ /* Haltezeiten auf die gewünschte Dauer strecken (max. 60 Sek. bewegt, 90 Sek. gehalten) */
+ const dyn=new Set((lib||[]).filter(x=>x.mode==='dynamic').map(x=>x.name));
+ for(let g=0;g<40;g++){const t=items.reduce((a,it)=>a+autoSecs(it),0);if(t>=target*0.92||!items.length)break;
+  const c=items.filter(it=>it[1]<(dyn.has(it[0])?60:90));if(!c.length)break;c.forEach(it=>{it[1]=Math.min(dyn.has(it[0])?60:90,it[1]+5);});}
+ /* Reihenfolge: bewegt vor gehalten (Kombi: Gelenke zuerst), innerhalb nach Position Stand → Vierfüßler → Boden */
+ const rank=it=>(kind==='mixed'&&!joints.some(x=>x.name===it[0])?10:0)+autoPos(it[0]);
+ items=items.map((it,i)=>[it,i]).sort((a,b)=>rank(a[0])-rank(b[0])||a[1]-b[1]).map(x=>x[0]);
+ const fl=AUTO_FOCUS.find(f=>f[0]===focus)[1];
+ const total=items.reduce((a,it)=>a+autoSecs(it),0);
+ return {name:AUTO_TITLE[kind]+' '+fl,minutes:mins,items,short:total<target*0.8,total};
+}
+function rng(seed){let s=(Number(seed)>>>0)||1;return ()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
+window.ForgeRoutinesCore=Object.freeze({KINDS,KIND_CAT,WHEN,kindLabel,active,archived,forDay,whenOf,whenLabel,ordered,forWorkout,setPinned,item,seconds,validate,upsert,setArchived,routineKey,MAX_ITEMS,AUTO_FOCUS,AUTO_MIN,autoRoutine,autoGroup,autoPos});
 if(typeof document==='undefined')return;
 
 /* ---------- environment ---------- */
@@ -273,6 +319,7 @@ function drawEdit(){
   head.append(el('h2','','Übungen'),el('p','',d.items.length+' ausgewählt'+(d.items.length?' · ca. '+Math.max(1,Math.round(seconds(d.items)/60))+' Min.':'')+' · Reihenfolge unten anpassen'));
   const Y=window.ForgeYoga;
   if(d.kind==='yoga'&&Y&&!v.readOnly)body.append(yogaBuilder(v,d,Y));
+  else if(AUTO_MIN[d.kind]&&!v.readOnly)body.append(autoBuilder(v,d));
   const cats=['Alle','Yoga','Gelenke','Dehnen'];const cur=v.cat||KIND_CAT[d.kind]||'Alle';
   const chips=el('div','rt-chips');cats.forEach(cn=>{const b=btn('',cn,()=>{v.cat=cn;drawEdit();});b.setAttribute('aria-pressed',String(cur===cn));chips.append(b);});
   body.append(chips);
@@ -351,6 +398,26 @@ function yogaBuilder(v,d,Y){
  Y.TEMPLATES.forEach(t=>{const b=btn('',t[1]+' · '+t[2]+' Min.',()=>{const x=Y.template(t[0]);v.generated=false;apply(x.items,x.name);});tc.append(b);});
  box.append(tc);
  box.append(el('p','rt-note','Ablauf: Ankommen → Aufwärmen → Stand → Boden → Entspannung. Beidseitige Haltungen laufen je Seite. Haltezeit antippen zum Ändern, einzelne Haltungen unten tauschen.'));
+ return box;
+}
+
+
+function autoBuilder(v,d){
+ const o=v.auto&&v.auto.kind===d.kind?v.auto:(v.auto={kind:d.kind,focus:'g',minutes:AUTO_MIN[d.kind][1],equip:false,seed:1});
+ const box=el('div','rt-card rt-yoga');box.append(el('small','',(d.kind==='stretch'?'Dehnroutine':d.kind==='mixed'?'Kombi-Routine':'Mobilitätsroutine')+' automatisch'));
+ const row=(label,opts,key)=>{box.append(el('div','rt-label',label));const c=el('div','rt-chips');
+  opts.forEach(([k,t])=>{const b=btn('',t,()=>{o[key]=k;drawEdit();});b.setAttribute('aria-pressed',String(o[key]===k));c.append(b);});box.append(c);};
+ row('Fokus',AUTO_FOCUS,'focus');row('Dauer',AUTO_MIN[d.kind].map(m=>[m,m+' Min.']),'minutes');row('Hilfsmittel',[[false,'Ohne'],[true,'Mit Theraband & Co.']],'equip');
+ const gen=btn('rt-new',d.items.length&&v.generated?'Neu generieren':'Routine erstellen',()=>{
+  o.seed=(o.seed||1)+(v.generated?1:0)||1;
+  loadLib().then(l=>{if(!root||view!==v)return;const C=window.ForgeMobilityCatalog;
+   const r=autoRoutine(l,o,n=>C&&C.categoriesOf?C.categoriesOf(n):[catOf(n)],n=>C&&C.yogaLevel?C.yogaLevel(n):0);
+   if(!r.items.length){v.err='Für diese Auswahl gibt es noch keine passenden Übungen.';drawEdit();return;}
+   v.generated=true;v.err='';v.autoShort=r.short?'Für „'+AUTO_FOCUS.find(f=>f[0]===o.focus)[1]+'“ gibt es bisher nur '+r.items.length+' passende Übung'+(r.items.length===1?'':'en')+' – ca. '+Math.max(1,Math.round(r.total/60))+' Min. statt '+r.minutes+'.':'';d.items=r.items;if(!d.name||KINDS.some(x=>x[1]===d.name)||d.autoName)d.name=r.name,d.autoName=true;drawEdit();});
+ });
+ box.append(gen);
+ if(v.generated&&v.autoShort)box.append(el('p','rt-note',v.autoShort));
+ box.append(el('p','rt-note',(d.kind==='mixed'?'Ablauf: erst Gelenke bewegen, dann dehnen und ruhig ausklingen. ':'Ablauf: vom Stand über den Vierfüßlerstand zum Boden. ')+'Haltezeit antippen zum Ändern. Oder unten selbst Übungen auswählen.'));
  return box;
 }
 
