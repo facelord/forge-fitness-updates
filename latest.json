@@ -1,7 +1,7 @@
 {
-  "versionCode": 10704,
-  "versionName": "14.13.704",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.704/FORGE-Fitness-14.13.704.apk",
-  "sha256": "85168f353f358695bc5b1934f110f7fd198841547f5cfed1e7eea4cf8a99f80c",
-  "notes": "FORGE 14.13.704 – Änderungen in diesem Update\n• Behoben: Handgelenksmobilisation zeigt neue Tafel statt altem Foto"
+  "versionCode": 10706,
+  "versionName": "14.13.706",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.706/FORGE-Fitness-14.13.706.apk",
+  "sha256": "5e99bd5a369f8c5d695016796f7ffd8abfbaf42f240a17aec973d15ed71da08e",
+  "notes": "FORGE 14.13.706 – Änderungen in diesem Update\n• Neu: Mobilität, Dehnen und Kombi-Routinen automatisch zusammenstellen"
 }
