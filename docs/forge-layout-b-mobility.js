@@ -545,6 +545,7 @@ ${K} .ms-meta span{font-size:12px;border-radius:12px;background:#0f1620;color:#c
 ${K} .ms-meta span.on{background:${TEAL};color:#062420;font-weight:800}
 body.forge-layout-b #mobWorkout .forge-lb-mob-hidden{display:none!important}
 body.forge-layout-b #forgeVideoLibrary,body.forge-layout-b #forge149MobilityCard>.forge-mob-head{display:none!important}
+${K}.ms-compact{gap:4px}${K}.ms-compact .ms-link{min-height:40px;padding:4px 2px;font-size:13px;color:#8fd8c8;text-align:left}
 ${K} .ms-link{border:0;background:transparent;color:${TEAL};font:inherit;font-size:14px;font-weight:700;padding:8px 2px;min-height:44px;text-align:center}
 .forge-lb-mobvideo{width:100%;display:flex;align-items:center;gap:12px;background:#171e2a;border:1px solid #293346;border-radius:20px;padding:12px 14px;margin:0 0 14px;color:#f3f7fc;font-family:Inter,system-ui,sans-serif;text-align:left;min-height:68px;box-sizing:border-box}
 .forge-lb-mobvideo>i{width:44px;height:44px;flex:0 0 44px;border-radius:14px;background:#14302d;color:${TEAL};display:flex;align-items:center;justify-content:center}
@@ -652,25 +653,31 @@ function toPlan(){
  setTimeout(()=>{if(typeof window.ForgeLayoutBWizardOpen==='function')window.ForgeLayoutBWizardOpen('mobility');},120);
 }
 /* Training › Mobilität: genau eine Routine-Karte + Videokachel. Pläne entstehen nur im Plan. */
+function ownRoutines(){try{return (Array.isArray(state.forgeRoutines)?state.forgeRoutines:[]).some(r=>r&&!r.archived);}catch(e){return false;}}
 function renderCard(){
  if(!enabled())return;
  const host=$('mobWorkout');if(!host)return;
  ensureCss();
  let card=host.parentElement.querySelector(':scope > .forge-lb-mobstart');
  if(!card){card=el('section','forge-lb-mobstart');host.before(card);}
- card.replaceChildren();
+ card.replaceChildren();card.classList.remove('ms-compact');
  const c=cfg(),r=routine();
  if(!c.enabled||!r){
   card.append(el('div','ms-kick',run()?'Läuft gerade':'Deine Mobilitätsroutine'),el('h3','',run()?(run().name||'Mobilität'):'Noch keine Routine'));
   if(run()){
    const go=btn('ms-go','',()=>startRun());go.innerHTML=ICON.play+'<span>Mobilität fortsetzen</span>';card.append(go);
+  }else if(ownRoutines()){
+   card.classList.add('ms-compact');card.firstChild.textContent='Deine Mobilität';card.querySelector('h3').remove();
+   card.append(btn('ms-link','+ Mobilitätsplan im Plan erstellen',toPlan));
+   const g=routines().gentle;
+   if(g&&Array.isArray(g.items)&&g.items.length)card.append(btn('ms-link','Ohne Plan: '+g.name+' ('+minutesLabel(totalSeconds(g.items,lib))+') starten',()=>startRun('gentle')));
   }else{
    card.append(el('div','ms-sub','Lege deine Routine im Plan fest – an festen Tagen oder nach dem Krafttraining.'));
    card.append(btn('ms-go','Routine im Plan erstellen',toPlan));
    const g=routines().gentle;
    if(g&&Array.isArray(g.items)&&g.items.length)card.append(btn('ms-link','Ohne Plan: '+g.name+' ('+minutesLabel(totalSeconds(g.items,lib))+') starten',()=>startRun('gentle')));
   }
-  videoTile(card);hideLegacy();return;
+  videoTile(card);hideLegacy();try{window.ForgeRoutinesTodayCard?.();}catch(e){}return;
  }
  const today=isToday(c,todayIdx(),trainedToday());
  const logs=Array.isArray(c.logs)?c.logs:[];
@@ -679,7 +686,7 @@ function renderCard(){
  card.append(el('h3','',r.name));
  const rounds=Math.max(1,...r.items.map(it=>it&&it[3]&&it[3].rounds||1));const uniq=r.items.filter(it=>!(it&&it[3]&&it[3].round>1));
  card.append(el('div','ms-sub',uniq.length+' Übungen'+(rounds>1?' · '+rounds+' Runden':'')+' · '+minutesLabel(rounds>1||r.items.some(it=>it&&it[3])?buildPhases(r.items,lib).reduce((a,p)=>a+p.secs,0):totalSeconds(r.items,lib))+' · '+(c.timing==='after'?'nach dem Krafttraining':c.timing==='both'?'Ruhetage & nach dem Training':'an Ruhetagen')));
- if(c.timing!=='after'){
+ if(false){
   const meta=el('div','ms-meta');['Mo','Di','Mi','Do','Fr','Sa','So'].forEach((d,i)=>{const s=el('span',(c.weekdays||[]).includes(i)?'on':'',d);meta.append(s);});card.append(meta);
  }
  const go=btn('ms-go','',()=>startRun());go.innerHTML=ICON.play+'<span>'+(run()?'Mobilität fortsetzen':done?'Noch einmal starten':'Mobilität starten')+'</span>';
@@ -692,7 +699,7 @@ function renderCard(){
   card.append(list);
  }
  if(logs.length)card.append(el('div','ms-sub',logs.length+'× erledigt'));
- videoTile(card);hideLegacy();
+ videoTile(card);hideLegacy();try{window.ForgeRoutinesTodayCard?.();}catch(e){}
 }
 function videoCatalog(){try{return typeof MOB_VIDEO_CATALOG!=='undefined'?MOB_VIDEO_CATALOG:{};}catch(e){return {};}}
 function videoTile(card){

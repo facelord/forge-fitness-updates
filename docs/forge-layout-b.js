@@ -235,7 +235,7 @@ function onEnd(e){
 }
 function swipeHint(){
  try{if(localStorage.getItem('forge_layout_b_swiped')==='1')return;
-  const n=+(localStorage.getItem('forge_layout_b_hint')||0);if(n>=3)return;
+  const n=+(localStorage.getItem('forge_layout_b_hint')||0);if(n>=1)return;
   localStorage.setItem('forge_layout_b_hint',String(n+1));}catch(e){return;}
  const h=document.createElement('div');h.className='forge-b-swipe-hint';h.setAttribute('role','status');
  h.textContent='Tipp: Zur Seite wischen für den nächsten Bereich';

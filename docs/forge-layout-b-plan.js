@@ -97,7 +97,14 @@ ${P} .forge-lb-daydetail div span:last-child{color:#95a3b7;white-space:nowrap}
 ${P} .forge-lb-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 ${P} .forge-lb-tile{height:92px;border-radius:22px;border:1px solid #293346;background:#171e2a;color:#f3f7fc;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;padding:0 16px;text-align:left;font-size:15px;font-weight:700}
 ${P} .forge-lb-row{height:50px;border-radius:16px;border:0;background:transparent;color:#95a3b7;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:space-between;padding:0 8px}
-${P} .forge-lb-rows{display:flex;flex-direction:column;gap:2px;border-top:1px solid #1d2533;padding-top:4px}
+${P} .forge-lb-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+${P} .forge-lb-proghead{font-size:12px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:#95a3b7;margin:6px 4px -2px}
+${P} .forge-lb-rows>.forge-lb-row:not(.forge-lb-wide){height:auto;min-height:76px;border:1px solid #293346;background:#171e2a;border-radius:20px;color:#f3f7fc;padding:12px 12px 12px 16px;align-items:center;text-align:left;font-size:15px;font-weight:700}
+${P} .forge-lb-rows>.forge-lb-row span{display:flex;flex-direction:column;gap:3px;min-width:0}
+${P} .forge-lb-rows>.forge-lb-row small{font-size:12px;font-weight:500;color:#95a3b7;line-height:1.25}
+${P} .forge-lb-rows>.forge-lb-mobplan,${P} .forge-lb-rows>.forge-lb-routines{border-color:#24433f!important}
+${P} .forge-lb-rows>.forge-lb-wide{grid-column:1/-1;height:48px}
+${P} .forge-lb-rows>.forge-lb-wide:first-of-type{}
 ${P} button:focus-visible{outline:2px solid ${ACC}!important;outline-offset:2px!important}
 `;
 
@@ -128,14 +135,15 @@ function build(page){
  neu.addEventListener('click',()=>detail(()=>clickTool(/Neuen Trainingsplan erstellen/)));
  tiles.append(edit,neu);
  const rows=el('div','forge-lb-rows');
- const cat=el('button','forge-lb-row');cat.type='button';cat.innerHTML='<span>Übungskatalog</span>'+ICON.chev;
+ const cat=el('button','forge-lb-row');cat.type='button';cat.classList.add('forge-lb-catrow');cat.innerHTML='<span>Übungskatalog<small>Alle Übungen & Tafeln</small></span>'+ICON.chev;
  cat.addEventListener('click',()=>detail(()=>clickTool(/Übungskatalog/)));
- const arch=el('button','forge-lb-row');arch.type='button';arch.innerHTML='<span>Archivierte Pläne</span>'+ICON.chev;
+ const arch=el('button','forge-lb-row forge-lb-wide');arch.type='button';arch.innerHTML='<span>Archivierte Pläne</span>'+ICON.chev;
  arch.addEventListener('click',()=>{try{if(typeof window.ForgeLayoutBProgressOpen==='function'&&window.ForgeLayoutBProgressOpen('archive'))return;}catch(e){console.error('FORGE Archiv',e);}detail(()=>clickTool(/Archivierte Pläne/));});
- const set=el('button','forge-lb-row');set.type='button';set.innerHTML='<span>Wochenplan-Einstellungen</span>'+ICON.chev;
+ const set=el('button','forge-lb-row forge-lb-wide');set.type='button';set.innerHTML='<span>Wochenplan-Einstellungen</span>'+ICON.chev;
  set.addEventListener('click',()=>detail(()=>clickTool(/Wochenplan-Einstellungen/)));
  rows.append(cat,arch,set);
- root.append(back,head,hero,week,tiles,rows);
+ const progh=el('div','forge-lb-proghead','Meine Programme');
+ root.append(back,head,hero,week,progh,tiles,rows);
  const anchor=page.querySelector(':scope > .forge-b-pagehead');
  if(anchor)anchor.after(root);else page.prepend(root);
  ui={root,sub,hk,ht,hm,start,startText:start.querySelector('span'),shift,acts,wm,days,dd,archText:arch.querySelector('span'),key:''};

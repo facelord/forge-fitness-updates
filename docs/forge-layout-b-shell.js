@@ -107,6 +107,7 @@ ${B} :is(#plan,#workout,#nutrition,#progress){position:relative}
 ${B} .page>.forge-lb-brand{display:flex;flex-direction:column;justify-content:center;gap:2px;min-height:44px;margin:6px 0 6px;padding:0 58px 0 6px;font-family:Inter,system-ui,sans-serif;pointer-events:none}
 ${B} .page>.forge-lb-brand b{font-family:'FORGE Exo 2',Inter,system-ui,sans-serif;font-size:clamp(18px,5.2vw,20px);font-weight:800;letter-spacing:.08em;color:${ACC};line-height:1.05}
 ${B} .page>.forge-lb-brand span{font-size:clamp(13px,3.6vw,14px);color:#a3b0c2;letter-spacing:.01em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+${B} .page:not(#plan)>.forge-lb-brand{min-height:40px;margin:4px 0 2px}${B} .page:not(#plan)>.forge-lb-brand span{display:none}
 ${B} .page>.forge-lb-brand.forge-lb-reveal>*{animation:forgeLbReveal .45s cubic-bezier(.2,.7,.2,1) both}
 ${B} .page>.forge-lb-brand.forge-lb-reveal>span{animation-delay:.06s}
 @keyframes forgeLbReveal{from{clip-path:inset(0 100% 0 0);opacity:.2}to{clip-path:inset(0 0 0 0);opacity:1}}
@@ -126,6 +127,8 @@ ${B} #forge150WorkoutModes{display:grid!important;grid-template-columns:repeat(3
 ${B} #forge150WorkoutModes button{height:100%!important;min-height:0!important;border:0!important;border-radius:21px!important;background:transparent!important;color:#95a3b7!important;font-size:14px!important;font-weight:600!important;box-shadow:none!important;padding:0 4px!important}
 ${B} #forge150WorkoutModes button.active,${B} #forge150WorkoutModes button[aria-pressed="true"],${B} #forge150WorkoutModes button[aria-selected="true"]{background:${ACC}!important;color:#142016!important;font-weight:800!important}
 ${B} #forge150WorkoutModes button[data-mode="mobility"].active,${B} #forge150WorkoutModes button[data-mode="mobility"][aria-pressed="true"],${B} #forge150WorkoutModes button[data-mode="mobility"][aria-selected="true"]{background:${TEAL}!important;color:#062420!important}
+/* Untere Leiste übernimmt die Farbe des gewählten Workout-Bereichs (Mobilität türkis) */
+body.forge-layout-b:has(#workout.page.active #forge150WorkoutModes button[data-mode="mobility"]:is(.active,[aria-pressed="true"],[aria-selected="true"])) #nav.forge-simple-nav button.active{background:${TEAL}!important;color:#062420!important}
 /* Tauschen-Blatt */
 ${B} .forge-swap-sheet{background:#111723!important;border-top:1px solid #3a4556!important;border-radius:28px 28px 0 0!important;font-family:Inter,system-ui,sans-serif!important}
 ${B} .forge-swap-brand{display:none!important}

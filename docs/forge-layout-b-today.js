@@ -284,7 +284,7 @@ function renderRest(sit){
  const t=today(),mon=addDays(t,-weekdayOf(t)),o=opts(),st=S();
  const wk=el('div','td-week');wk.setAttribute('aria-hidden','true');
  for(let i=0;i<7;i++){const iso=addDays(mon,i);const u=unitOn(st.plan,iso,o);const s=el('span',(u?'on':'')+(iso===t?' t':''));s.append(document.createTextNode(DAYS[i]),el('i'));wk.append(s);}
- hero.append(wk);card.append(hero);
+ card.append(hero);
  /* Statt „Lust auf etwas Leichtes?“: hier setzt forge-layout-b-circuit.js die Karte „Deine Zirkel“ ein. */
  card.append(el('div','td-zkslot'));
  if(sit.unit)card.append(btn('td-sec',(sit.kind==='done'?'Noch eine Einheit: ':'Trotzdem trainieren: ')+(sit.unit.title||'Training'),()=>{chosenId=sit.unit.id;chosenDay=today();render(true);}));

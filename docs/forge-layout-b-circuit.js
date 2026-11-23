@@ -474,7 +474,7 @@ function planEntry(){
  const rows=document.querySelector('#plan .forge-lb-plan .forge-lb-rows');
  if(!rows||rows.querySelector('.forge-lb-circuits'))return;
  const b=el('button','forge-lb-row forge-lb-circuits');b.type='button';
- b.innerHTML='<span>Zirkel · Kraft & Bauch am Stück</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+ b.innerHTML='<span>Zirkel<small>Kraft & Bauch am Stück</small></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
  b.addEventListener('click',()=>openList('active'));
  const after=rows.querySelector('.forge-lb-routines')||rows.querySelector('.forge-lb-mobplan');if(after)after.after(b);else rows.prepend(b);
 }

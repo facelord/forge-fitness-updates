@@ -127,6 +127,11 @@ ${R} .rt-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px
 ${R} .rt-days span{height:28px;border-radius:9px;background:#0f1620;color:#5d6a7e;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
 ${R} .rt-days span.on{background:#193b39;color:${TEAL}}
 ${R} .rt-acts{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:6px}
+${R} .rt-acts.rt-acts-main{grid-template-columns:1fr 52px;position:relative}
+${R} .rt-more{position:relative}${R} .rt-more summary{list-style:none;height:44px;border-radius:14px;border:1px solid #2c3a48;background:#121b24;color:#e6eef6;font-size:22px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer}
+${R} .rt-more summary::-webkit-details-marker{display:none}
+${R} .rt-menu{position:absolute;right:0;bottom:50px;z-index:3;display:flex;flex-direction:column;gap:4px;min-width:170px;padding:6px;border-radius:14px;background:#17212b;border:1px solid #2c3a48;box-shadow:0 10px 30px #0009}
+${R} .rt-menu button{height:44px;text-align:left;padding:0 12px}
 ${R} .rt-acts button,${R} .rt-sec{min-height:44px;border-radius:22px;border:1px solid #2f6a62;background:transparent;color:#f3f7fc;font:inherit;font-size:14px;font-weight:700;padding:0 10px}
 ${R} .rt-acts button.go{background:${TEAL};border-color:${TEAL};color:#062420;font-weight:800}
 ${R} .rt-new{min-height:56px;border-radius:28px;border:0;background:${TEAL};color:#062420;font:inherit;font-size:17px;font-weight:800;flex:0 0 auto}
@@ -162,6 +167,8 @@ ${R} .rt-next{height:58px;border-radius:29px;border:0;background:${TEAL};color:#
 ${R} .rt-next:disabled{opacity:.45}
 ${R} button:focus-visible{outline:2px solid ${TEAL};outline-offset:2px}
 /* Workout › Mobilität: heute geplante Routinen */
+.forge-lb-mobstart .forge-lb-rtoday{background:transparent;border:0;border-top:1px solid #22303d;border-radius:0;padding:10px 0 0;margin:6px 0 0}
+.forge-lb-mobstart.ms-compact .forge-lb-rtoday{border-top:0;padding-top:2px;margin-top:2px}
 .forge-lb-rtoday{background:#17212b;border:1px solid #22303d;border-radius:22px;padding:14px;margin:0 0 14px;display:flex;flex-direction:column;gap:8px;font-family:Inter,system-ui,sans-serif;color:#f3f7fc}
 .forge-lb-rtoday small{font-size:12px;color:${TEAL};font-weight:700;text-transform:uppercase;letter-spacing:1.3px}
 .forge-lb-rtoday .rq{display:flex;align-items:center;gap:10px;min-height:52px}
@@ -226,16 +233,18 @@ function openList(tab){
  ordered(shown).forEach(r=>{
   const c=el('div','rt-card'+(r.archived?' archived':''));
   const ch=el('div','rt-cardhead');const cl=el('div');
-  cl.append(el('small','',kindLabel(r.kind)),el('strong','',r.name),el('div','rt-meta',routineMeta(r).replace(kindLabel(r.kind)+' · ','')),el('span','rt-when',whenLabel(whenOf(r))));
+  const dl=(r.days||[]).slice().sort((a,b)=>a-b).map(i=>DAYS[i]).join(', ');
+  cl.append(el('small','',kindLabel(r.kind)),el('strong','',shortName(r.name)),el('div','rt-meta',routineMeta(r).replace(kindLabel(r.kind)+' · ','')+(dl?' · '+dl:'')),el('span','rt-when',whenLabel(whenOf(r))));
   ch.append(cl);
   if(!r.archived){const st=btn('rt-star',r.pinned?'★':'☆',()=>{const s=S();s.forgeRoutines=setPinned(list(s),r.id,!r.pinned);store();openList('active');});
    st.setAttribute('aria-pressed',String(!!r.pinned));st.setAttribute('aria-label',(r.pinned?'Favorit entfernen: ':'Als Favorit anheften: ')+r.name);ch.append(st);}
   c.append(ch);
-  const d=el('div','rt-days');DAYS.forEach((t,i)=>d.append(el('span',(r.days||[]).includes(i)?'on':'',t)));c.append(d);
   const acts=el('div','rt-acts');
   if(!r.archived){
    const go=btn('go','Starten',()=>startRoutine(r.id));
-   acts.append(go,btn('','Bearbeiten',()=>openEdit(r)),btn('','Archivieren',()=>{const s=S();s.forgeRoutines=setArchived(list(s),r.id,true);store();register();openList('active');}));
+   const more=el('details','rt-more');const sm=el('summary','','…');sm.setAttribute('aria-label','Weitere Aktionen: '+r.name);more.append(sm);
+   const menu=el('div','rt-menu');menu.append(btn('','Bearbeiten',()=>openEdit(r)),btn('','Archivieren',()=>{const s=S();s.forgeRoutines=setArchived(list(s),r.id,true);store();register();openList('active');}));more.append(menu);
+   acts.classList.add('rt-acts-main');acts.append(go,more);
   }else{
    acts.style.gridTemplateColumns='1fr 1fr';
    acts.append(btn('go','Reaktivieren',()=>{const s=S();s.forgeRoutines=setArchived(list(s),r.id,false);store();register();openList('archive');}),btn('','Ansehen',()=>openEdit(r,true)));
@@ -335,7 +344,7 @@ function yogaBuilder(v,d,Y){
  row('Level',Y.LEVELS,'level');row('Fokus',Y.FOCUS,'focus');row('Dauer',Y.MINUTES.map(m=>[m,m+' Min.']),'minutes');
  const apply=(items,name)=>{d.items=items.map(x=>x.slice());if(!d.name||KINDS.some(x=>x[1]===d.name)||d.autoName)d.name=name,d.autoName=true;drawEdit();};
  const gen=btn('rt-new',d.items.length&&v.generated?'Neu generieren':'Flow erstellen',()=>{o.seed=(o.seed||1)+(v.generated?1:0)||1;v.generated=true;
-  const lv=Y.LEVELS.find(x=>x[0]===o.level)[1],fo=Y.FOCUS.find(x=>x[0]===o.focus)[1];apply(Y.flow(o),'Yoga '+fo+' · '+o.minutes+' Min. · '+lv);});
+  const lv=Y.LEVELS.find(x=>x[0]===o.level)[1],fo=Y.FOCUS.find(x=>x[0]===o.focus)[1];apply(Y.flow(o),'Yoga '+fo);});
  box.append(gen);
  box.append(el('div','rt-label','Oder Vorlage für Einsteiger'));
  const tc=el('div','rt-chips');
@@ -350,12 +359,13 @@ function planEntry(){
  const rows=document.querySelector('#plan .forge-lb-plan .forge-lb-rows');
  if(!rows||rows.querySelector('.forge-lb-routines'))return;
  const b=el('button','forge-lb-row forge-lb-routines');b.type='button';
- b.innerHTML='<span>Routinen · Yoga, Mobilität, Dehnen</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+ b.innerHTML='<span>Routinen<small>Yoga, Mobilität, Dehnen</small></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
  b.addEventListener('click',()=>openList('active'));
  const mob=rows.querySelector('.forge-lb-mobplan');if(mob)mob.after(b);else rows.prepend(b);
 }
 /* Workout › Mobilität: alle aktiven eigenen Routinen – heute geplante zuerst, dann Favoriten, dann weitere. */
 const RQ_MAX=5;
+function shortName(n){return String(n||'').replace(/^(Yoga [^·]+?) · \d+ Min\. · (?:Einsteiger|Mittel|Fortgeschritten)$/,'$1');}
 function todayCard(){
  const host=document.querySelector('#workout .forge-lb-mobstart');
  const old=document.querySelector('#workout .forge-lb-rtoday');
@@ -363,17 +373,23 @@ function todayCard(){
  const fav=ordered(active(all).filter(r=>r.pinned&&!rs.includes(r)));
  const rest=ordered(active(all).filter(r=>!r.pinned&&!rs.includes(r)));
  if(!host||(!rs.length&&!fav.length&&!rest.length)){if(old)old.remove();return;}
- const key=rs.concat(fav,rest).map(r=>r.id+':'+r.updatedAt+':'+!!r.pinned).join('|')+'#'+todayIdx();
- if(old&&old.dataset.key===key&&old.previousElementSibling===host)return;
+ const compact=host.classList.contains('ms-compact');
+ const key=rs.concat(fav,rest).map(r=>r.id+':'+r.updatedAt+':'+!!r.pinned).join('|')+'#'+todayIdx()+(compact?'c':'p');
+ if(old&&old.dataset.key===key&&host.contains(old))return;
  ensureCss();
- const c=el('section','forge-lb-rtoday');c.dataset.key=key;c.append(el('small','','Deine Routinen'));
- const row=r=>{const x=el('div','rq');const t=el('span');t.append(el('b','',(r.pinned?'★ ':'')+r.name),el('em','',routineMeta(r)+' · '+whenLabel(whenOf(r))));x.append(t,btn('','Starten',()=>startRoutine(r.id)));return x;};
+ /* Eine Karte: eigene Routinen stehen IN der Mobilitäts-Karte (nach der Plan-Routine bzw. direkt unter der Überschrift). */
+ const c=el('section','forge-lb-rtoday');c.dataset.key=key;
+ if(!compact)c.append(el('small','','Deine Routinen'));
+ const row=r=>{const x=el('div','rq');const t=el('span');const w=whenOf(r);t.append(el('b','',(r.pinned?'★ ':'')+shortName(r.name)),el('em','',routineMeta(r)+(w==='any'?'':' · '+whenLabel(w))));x.append(t,btn('','Starten',()=>startRoutine(r.id)));return x;};
  let n=0;const group=(label,arr)=>{if(!arr.length||n>=RQ_MAX)return;c.append(el('div','rq-group',label));arr.slice(0,RQ_MAX-n).forEach(r=>{c.append(row(r));n++;});};
  group('Heute',rs);group('Favoriten',fav);group('Weitere',rest);
  const total=rs.length+fav.length+rest.length;
- const more=btn('rq-all',total>n?'Alle '+total+' Routinen anzeigen':'Routinen verwalten',()=>openList('active'));c.append(more);
- if(old)old.remove();host.after(c);
+ c.append(btn('rq-all',total>n?'Alle '+total+' Routinen anzeigen':'Routinen verwalten',()=>openList('active')));
+ if(old)old.remove();
+ const firstLink=compact?host.querySelector(':scope > .ms-link'):null;
+ if(firstLink)host.insertBefore(c,firstLink);else host.append(c);
 }
+window.ForgeRoutinesTodayCard=todayCard;
 /* ---------- #75 vor dem Krafttraining anbieten ---------- */
 let offer=null;
 function closeOffer(){if(offer){offer.remove();offer=null;}}
