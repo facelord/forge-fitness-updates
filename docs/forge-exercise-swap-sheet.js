@@ -182,7 +182,8 @@ function renderFrame(){
   ?'Nur für dieses Training · bisherige Sätze bleiben beim Tausch rückgängig machbar'
   :'Für deinen aktiven Plan · erst nach „Speichern“ dauerhaft'));
  const tabs=el('div','forge-swap-tabs');tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Übungsauswahl');
- for(const [value,label] of [['matching','✧ Passend'],['all','▱ Alle Alternativen']]){
+ const zks=circuits();
+ for(const [value,label] of [['matching','✧ Passend'],['all','▱ Alle Alternativen']].concat(zks.length?[['circuits','⟳ Zirkel']]:[])){
   const b=button(label,()=>{
    if(!current||current.tab===value)return;
    current.tab=value;current.selected=null;current.message='';
@@ -221,9 +222,28 @@ function updateTabs(){
   b.setAttribute('aria-selected',String(b.dataset.tab===current.tab));
  });
 }
+function circuits(){try{return window.ForgeCircuits&&typeof window.ForgeCircuits.available==='function'?window.ForgeCircuits.available():[];}catch(e){return [];}}
+/* #107: gespeicherten Zirkel statt der Übung einsetzen (Training: nur heute · Plan: nach „Speichern“ dauerhaft). */
+function renderCircuits(results){
+ const x=current;const list=filterNames(circuits().map(c=>c.name),x.query).map(n=>circuits().find(c=>c.name===n)).filter(Boolean);
+ results.append(el('div','forge-swap-results-count','Deine Zirkel · '+list.length));
+ for(const c of list){
+  const name='Zirkel: '+c.name;
+  const row=button('',()=>{x.selected=name;x.circuit=c;x.message='';renderResults();},'forge-swap-item');
+  row.setAttribute('role','option');row.setAttribute('aria-selected',String(x.selected===name));row.setAttribute('aria-label',name+' auswählen');
+  const d=el('span','forge-swap-item-details');d.append(el('strong','',c.name));
+  d.append(el('span','forge-swap-item-note',c.items+' Übungen · '+c.rounds+' '+(c.rounds===1?'Runde':'Runden')+' · ca. '+Math.max(1,Math.round(c.seconds/60))+' Min. · ersetzt „'+x.original+'“'));
+  row.append(d,el('span','forge-swap-radio',x.selected===name?'✓':''));results.append(row);
+ }
+ if(!list.length)results.append(el('p','forge-swap-empty','Kein Zirkel gefunden. Zirkel legst du unter Plan › Zirkel an.'));
+ const action=$('forgeSwapApply');if(action)action.disabled=!(x.selected&&x.circuit);
+ const status=$('forgeSwapFeedback');if(status)status.textContent=x.message||'';
+}
 function renderResults(){
  const x=current;if(!x)return;
  const results=$('forgeSwapResults');if(!results)return;
+ if(x.tab==='circuits'){results.replaceChildren();renderCircuits(results);return;}
+ x.circuit=null;
  const all=x.tab==='matching'?x.matching:x.available.filter(n=>n!==x.original);
  const found=filterNames(all,x.query);results.replaceChildren();
  const visible=found.slice(0,24);
@@ -269,7 +289,9 @@ function select(name){
  $('forgeSwapFeedback').textContent='';
 }
 function applySelection(){
- const x=current;if(!x||x.busy||!x.selected||!x.available.includes(x.selected))return;
+ const x=current;if(!x||x.busy||!x.selected)return;
+ if(x.circuit&&x.selected==='Zirkel: '+x.circuit.name){applyCircuit();return;}
+ if(!x.available.includes(x.selected))return;
  if(x.mode==='plan'){
   if(state?.activeWorkout||String(x.draft.id)!==x.planId||
    x.draft.ex?.[x.index]?.name!==x.original){
@@ -314,6 +336,23 @@ function applySelection(){
  if(final===x.selected){close(true);return;}
  if(!x.message)x.message='Nicht übernommen. Die bestehende Übung bleibt erhalten.';
  renderResults();
+}
+function applyCircuit(){
+ const x=current,c=x.circuit,name=x.selected;
+ if(x.mode==='plan'){
+  if(state?.activeWorkout||String(x.draft.id)!==x.planId||x.draft.ex?.[x.index]?.name!==x.original){x.message='Der Plan wurde inzwischen verändert. Bitte erneut öffnen.';renderResults();return;}
+  const prev=x.draft.ex[x.index];
+  x.draft.ex[x.index]={...prev,name,sets:c.rounds,reps:Math.max(5,Math.round(c.seconds/Math.max(1,c.rounds))),unit:'sec'};
+  const done=x.onChoose;close(true);done();return;
+ }
+ const p=livePlan();
+ if(!p||String(p.id)!==x.planId||state.activeWorkout?.startedAt!==x.expectedSession){x.message='Die laufende Einheit hat sich verändert. Bitte neu öffnen.';renderResults();return;}
+ x.busy=true;
+ try{const select=$('workoutSelect');if(select&&select.value!==String(p.id))select.value=String(p.id);invokeNativeSubstitution(x.index,name);}
+ catch(error){console.error('FORGE Zirkel einsetzen',error);x.message='Der Zirkel konnte nicht eingesetzt werden.';}
+ finally{x.busy=false;}
+ if(state?.workoutDraft?.exercises?.[x.index]?.name===name){close(true);return;}
+ if(!x.message)x.message='Nicht übernommen. Die bestehende Übung bleibt erhalten.';renderResults();
 }
 function injectCss(){
  if($('forgeExerciseSwapStyle'))return;

@@ -289,6 +289,7 @@ body.forge-compact-typing #workout.forge-compact-live.forge-premium-layout #forg
  }
  function decimal(n){return Math.round(n*100)/100;}
  function stepValue(input,type){
+  if(type==='kg')return 2.5;   // #108: jede Gewichts-Plus/Minus-Taste = ±2,5 kg (freie Eingabe bleibt möglich)
   const attr=Number(input.getAttribute('step'));
   if(Number.isFinite(attr)&&attr>0&&input.getAttribute('step')!=='any')return attr;
   return type==='kg'?2.5:1;
@@ -310,8 +311,9 @@ body.forge-compact-typing #workout.forge-compact-live.forge-premium-layout #forg
  }
  function decorate(input,type){
   if(!input)return;
-  const label=input.closest('.forge130-focus-card-grid label');
+  const label=input.closest('.forge130-focus-card-grid label, .forge-v91-warm-fields label');   // #110: Aufwärmsätze nutzen dieselben Regler
   if(!label)return;
+  const warm=!!input.closest('.forge-v91-warm-fields');
   if(label.dataset.forgeV8For===input.id&&label.querySelector('.forge-v8-arc'))return;
   label.querySelectorAll('.forge-v8-arc,.forge-v8-label,.forge-v8-unit,.forge-v8-minus,.forge-v8-plus').forEach(n=>n.remove());
   label.classList.add('forge-v8-dial');
@@ -319,10 +321,10 @@ body.forge-compact-typing #workout.forge-compact-live.forge-premium-layout #forg
   label.prepend(arc());
   const title=document.createElement('span');
   title.className='forge-v8-label';
-  title.textContent=type==='kg'?'Gewicht':'Wiederholungen / Sek.';
+  title.textContent=type==='kg'?'Gewicht':warm?'Wiederholungen':'Wiederholungen / Sek.';
   const unit=document.createElement('span');
   unit.className='forge-v8-unit';
-  unit.textContent=type==='kg'?'kg':'Wdh. / Sek.';
+  unit.textContent=type==='kg'?'kg':warm?'Wdh.':'Wdh. / Sek.';
   label.append(title,unit);
   for(const [dir,cls,glyph,word] of [[-1,'forge-v8-minus','−','Verringern'],[1,'forge-v8-plus','+','Erhöhen']]){
    const btn=document.createElement('button');btn.type='button';
@@ -340,6 +342,9 @@ body.forge-compact-typing #workout.forge-compact-live.forge-premium-layout #forg
   const weight=$('forge130QuickKg'),reps=$('forge130QuickReps');
   if(weight)decorate(weight,'kg');
   if(reps)decorate(reps,'reps');
+  const wk=$('forgeV91WarmKg'),wr=$('forgeV91WarmReps');
+  if(wk)decorate(wk,'kg');
+  if(wr)decorate(wr,'reps');
   // Accessibility: native actions remain, even when icon-only on screen.
   $('forgeCompactExercises')?.setAttribute('aria-label','Alle Übungen');
   $('forgeCompactMore')?.setAttribute('aria-label','Aufwärmen, Tipps und Trainingsoptionen');

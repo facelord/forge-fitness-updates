@@ -650,7 +650,7 @@ function thumb(name){const t=el('span','ms-th');const src=images(name)[0];if(src
 let showList=false;
 function toPlan(){
  try{if(typeof window.go==='function')window.go('plan');}catch(e){}
- setTimeout(()=>{if(typeof window.ForgeLayoutBWizardOpen==='function')window.ForgeLayoutBWizardOpen('mobility');},120);
+ setTimeout(()=>{if(window.ForgeRoutines&&typeof window.ForgeRoutines.create==='function')window.ForgeRoutines.create('mobility');else if(typeof window.ForgeLayoutBWizardOpen==='function')window.ForgeLayoutBWizardOpen('mobility');},120);
 }
 /* Training › Mobilität: genau eine Routine-Karte + Videokachel. Pläne entstehen nur im Plan. */
 function ownRoutines(){try{return (Array.isArray(state.forgeRoutines)?state.forgeRoutines:[]).some(r=>r&&!r.archived);}catch(e){return false;}}
@@ -668,12 +668,12 @@ function renderCard(){
    const go=btn('ms-go','',()=>startRun());go.innerHTML=ICON.play+'<span>Mobilität fortsetzen</span>';card.append(go);
   }else if(ownRoutines()){
    card.classList.add('ms-compact');card.firstChild.textContent='Deine Mobilität';card.querySelector('h3').remove();
-   card.append(btn('ms-link','+ Mobilitätsplan im Plan erstellen',toPlan));
+   card.append(btn('ms-link','+ Neue Routine erstellen',toPlan));
    const g=routines().gentle;
    if(g&&Array.isArray(g.items)&&g.items.length)card.append(btn('ms-link','Ohne Plan: '+g.name+' ('+minutesLabel(totalSeconds(g.items,lib))+') starten',()=>startRun('gentle')));
   }else{
-   card.append(el('div','ms-sub','Lege deine Routine im Plan fest – an festen Tagen oder nach dem Krafttraining.'));
-   card.append(btn('ms-go','Routine im Plan erstellen',toPlan));
+   card.append(el('div','ms-sub','Leg dir eine Routine an – automatisch oder selbst zusammengestellt, an festen Tagen oder nach dem Krafttraining.'));
+   card.append(btn('ms-go','Routine erstellen',toPlan));
    const g=routines().gentle;
    if(g&&Array.isArray(g.items)&&g.items.length)card.append(btn('ms-link','Ohne Plan: '+g.name+' ('+minutesLabel(totalSeconds(g.items,lib))+') starten',()=>startRun('gentle')));
   }

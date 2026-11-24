@@ -677,7 +677,7 @@ function renderDone(inner){
  ok.addEventListener('click',()=>{close();if(typeof window.go==='function')window.go('plan');});
  foot.append(ok);
  if(flow.kind==='strength'){
-  const mob=el('button','wz-sec','Auch einen Mobilitätsplan erstellen');mob.type='button';mob.addEventListener('click',()=>{open('mobility');});foot.append(mob);
+  const mob=el('button','wz-sec','Auch eine Mobilitätsroutine erstellen');mob.type='button';mob.addEventListener('click',()=>{if(window.ForgeRoutines&&window.ForgeRoutines.create){close();window.ForgeRoutines.create('mobility');}else open('mobility');});foot.append(mob);
  }
  inner.append(box,foot);
 }
@@ -697,6 +697,8 @@ function intercept(e){
  open(kind==='any'?null:kind);
 }
 function mobilityEntry(){
+ /* #112: kein eigener Einstieg „Mobilitätsplan“ mehr – alles unter „Routinen“. */
+ document.querySelectorAll('#plan .forge-lb-mobplan').forEach(b=>b.remove());return;
  const rows=document.querySelector('#plan .forge-lb-plan .forge-lb-rows');
  if(!rows||rows.querySelector('.forge-lb-mobplan'))return;
  const b=el('button','forge-lb-row forge-lb-mobplan');b.type='button';

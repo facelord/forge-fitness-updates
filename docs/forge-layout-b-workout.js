@@ -130,7 +130,7 @@ function adjustRest(rest,delta,now,pausedAt){
  const next=Math.max(0,Math.min(600,left+Math.round(Number(delta)||0)));
  return {...rest,endAt:base+next*1000,notified:false,left:next};
 }
-window.ForgeLayoutBWorkout=Object.freeze({parseClock,formatShort,fmtKg,chipModel,exerciseStates,exerciseProgress,newlyDone,finishSummary,raiseHint,discardSession,adjustRest});
+window.ForgeLayoutBWorkout=Object.freeze({allSetsDone,parseClock,formatShort,fmtKg,chipModel,exerciseStates,exerciseProgress,newlyDone,finishSummary,raiseHint,discardSession,adjustRest});
 if(typeof document==='undefined')return;
 
 /* ---------- environment ---------- */
@@ -163,7 +163,7 @@ const SVG={
 /* ---------- styles ---------- */
 const S='body.forge-layout-b #workout.forge-lb-live.forge-premium-layout';
 const H=S+' #forgePremiumShell.forge-b-shell';
-const D=H+' #forgeQuickWorkout .forge130-focus-card-grid>label.forge-v8-dial';
+const D=H+' :is(#forgeQuickWorkout .forge130-focus-card-grid,#forgeV91Warm .forge-v91-warm-fields)>label.forge-v8-dial';
 const CSS=`
 ${S}{overflow:clip!important}
 ${H}{grid-template-rows:46px minmax(118px,1fr) 50px auto 0px minmax(178px,1.2fr) 74px!important;row-gap:10px!important;padding:10px 14px 8px!important;background:#0b1018!important;max-width:560px!important}
@@ -176,7 +176,17 @@ ${H} .forge-lb-segs span.current{background:#3a4556}
 ${H} .forge-lb-segs span i{position:absolute;inset:0 auto 0 0;width:0;border-radius:3px;background:rgba(169,242,103,.55);transition:width .5s cubic-bezier(.2,.8,.2,1)}
 ${H} .forge-lb-segs span.current i{background:${ACC}}
 ${H} .forge-lb-segs span.done i{width:100%}
+${H} .forge-lb-zkpanel{display:none}
+${H}.forge-lb-zk .forge-lb-zkpanel{display:flex!important;flex-direction:column;gap:6px;flex:1 1 auto;justify-content:center;border-radius:24px;border:1px solid #2f5a3a;background:linear-gradient(160deg,#1d2c22,#171e2a 70%);padding:18px 18px;color:#f3f7fc;min-height:0}
+${H}.forge-lb-zk .forge-lb-zkpanel small{font-size:12px;letter-spacing:1.3px;text-transform:uppercase;color:${ACC};font-weight:700}
+${H}.forge-lb-zk .forge-lb-zkpanel b{font-size:24px;font-weight:800;line-height:1.15}
+${H}.forge-lb-zk .forge-lb-zkpanel span{font-size:14px;color:#c3cddb}
+${H}.forge-lb-zk .forge-lb-zkpanel p{margin:4px 0 0;font-size:13px;color:#95a3b7;line-height:1.4}
+${H}.forge-lb-zk .forge-lb-zkpanel.missing{border-color:#6b5426;background:#1f2530}
+${H}.forge-lb-zk .forge-lb-zk-man{margin-top:6px;min-height:44px;border-radius:22px;border:1px solid #3a4556;background:transparent;color:#f3f7fc;font:inherit;font-weight:700}
+${H}.forge-lb-zk #forgeQuickWorkout,${H}.forge-lb-zk #forgeV91Warm{display:none!important}
 ${H} .forge-lb-main{position:relative}
+${H} .forge-lb-main.forge-lb-main-save{font-size:16px;line-height:1.1;white-space:normal;text-align:center}
 ${H} .forge-lb-main.fx-pop{animation:forgeLbPop .42s cubic-bezier(.3,1.6,.5,1)}
 ${H} .forge-lb-main.fx-pop::after{content:"";position:absolute;inset:0;border-radius:inherit;border:2px solid ${ACC};animation:forgeLbRing .5s ease-out forwards;pointer-events:none}
 ${H} .forge-lb-main.fx-pop svg path{stroke-dasharray:24;stroke-dashoffset:24;animation:forgeLbDraw .3s .08s ease-out forwards}
@@ -224,12 +234,22 @@ ${S}.forge-lb-rest-min #forgePremiumShell.forge-b-shell{grid-template-rows:46px 
 ${H} .forge-b-set-panel{grid-row:6!important;padding:0!important;background:none!important;border:0!important;box-shadow:none!important;min-height:0!important;display:flex!important;flex-direction:column!important}
 ${H}:not(.forge-v91-warming) #forgeV91Warm{display:none!important}
 ${H}.forge-v91-warming #forgeQuickWorkout{display:none!important}
-${H}.forge-v91-warming #forgeV91Warm{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;gap:10px!important;min-height:0!important}
+${H}.forge-v91-warming #forgeV91Warm{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;gap:6px!important;min-height:0!important}
 ${H}.forge-v91-warming #forgeV91WarmDone{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;opacity:0!important}
 ${H}.forge-v91-warming .forge-b-media{display:block!important;grid-row:2!important}
-${H}.forge-v91-warming .forge-v91-warm-fields{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:10px!important;flex:1 1 auto!important}
-${H}.forge-v91-warming .forge-v91-warm-fields label{display:flex!important;flex-direction:column!important;justify-content:center!important;align-items:center!important;height:auto!important;min-height:110px!important;border-radius:24px!important;border:1px solid #293346!important;background:#171e2a!important;color:#95a3b7!important;font-size:11px!important;text-transform:uppercase;letter-spacing:1px}
-${H}.forge-v91-warming .forge-v91-warm-fields input{width:90%!important;border:0!important;background:transparent!important;color:#f3f7fc!important;-webkit-text-fill-color:#f3f7fc!important;text-align:center!important;font-size:40px!important;font-weight:800!important;box-shadow:none!important;outline-offset:-2px}
+${H}.forge-v91-warming #forgeV91WarmForm{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:0!important;gap:0!important;margin:0!important}
+${H}.forge-v91-warming .forge-v91-warm-fields{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:10px!important;flex:1 1 auto!important;min-height:0!important;height:auto!important}
+${H}.forge-v91-warming .forge-v91-warm-bottom{display:none!important}
+${H}.forge-v91-warming #forgeV91Warm .forge-v91-warm-fields>label.forge-v8-dial{min-height:0!important}
+${H}.forge-v91-warming #forgeV91Warm .forge-v91-warm-fields>label.forge-v8-dial>.forge-v8-unit{margin:4px 0 0!important}
+${H}.forge-v91-warming #forgeV91Warm .forge-v91-warm-fields>label.forge-v8-dial input{min-height:36px!important;margin:0 0 2px!important;font-size:clamp(30px,9vw,42px)!important}
+${H}.forge-v91-warming #forgeV91Warm .forge-v91-warm-fields>label.forge-v8-dial>:is(.forge-v8-plus,.forge-v8-minus){min-height:34px!important}
+${H}.forge-v91-warming #forgeV91WarmRemove{color:#ff9b8a!important}
+${H}.forge-v91-warming .forge-v91-warm-bar{padding:4px 6px 4px 12px!important;min-height:0!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important}
+${H}.forge-v91-warming .forge-v91-warm-caption{display:none!important}
+${H}.forge-v91-warming .forge-lb-warmcap{white-space:nowrap!important;font-size:13px!important;color:${ACC}!important;font-weight:700!important}
+${H}.forge-v91-warming .forge-v91-warm-tools{display:flex!important;gap:6px!important;flex-wrap:nowrap!important}
+${H}.forge-v91-warming .forge-v91-warm-tools button{white-space:nowrap!important;font-size:12px!important;padding:0 12px!important;min-height:36px!important;min-width:44px!important}
 ${H}.forge-v91-warming .forge-v91-warm-bar{background:#171e2a!important;border:1px solid #293346!important;border-radius:14px!important;padding:8px 10px!important}
 ${H} #forgeQuickWorkout{flex:1 1 auto!important;height:100%!important;min-height:0!important;display:flex!important;flex-direction:column!important}
 ${H} #forgeQuickWorkout>.forge130-focus-card{flex:1 1 auto!important;height:auto!important;min-height:0!important;display:flex!important;flex-direction:column!important}
@@ -406,7 +426,7 @@ function build(shell){
  const swap=el('button','forge-lb-swapchip');swap.type='button';swap.innerHTML=SVG.swap+'<span>Tauschen</span>';swap.setAttribute('aria-label','Übung tauschen');
  swap.addEventListener('click',()=>{const f=focus();if(f)window.ForgeExerciseSwap?.openForSession?.(f.i);});
  const main=el('button','forge-lb-main');main.type='button';main.innerHTML=SVG.check+'<span>Satz fertig</span>';
- main.addEventListener('click',()=>{fxPop(main);const warm=$('forgePremiumShell')?.classList.contains('forge-v91-warming');(warm?$('forgeV91WarmDone'):document.querySelector('#forgeQuickWorkout .forge-primary-action'))?.click();});
+ main.addEventListener('click',()=>{fxPop(main);if(main.dataset.mode==='save'){saveAndFinish();return;}if(main.dataset.mode==='zk'){startCircuit();return;}const warm=$('forgePremiumShell')?.classList.contains('forge-v91-warming');(warm?$('forgeV91WarmDone'):document.querySelector('#forgeQuickWorkout .forge-primary-action'))?.click();});
  const next=el('button','forge-lb-side');next.type='button';next.innerHTML=SVG.next+'<span>Nächste</span>';
  next.addEventListener('click',()=>{
   if(next.dataset.mode==='finish'){confirmFinish();return;}
@@ -533,6 +553,80 @@ function workoutStats(){
  for(const e of ex)for(const x of e.sets||[]){total++;if(x&&x.done){done++;vol+=(Number(String(x.kg||'').replace(',','.'))||0)*(Number(x.reps)||0);}}
  const sec=parseClock($('workoutDigitalClock')?.textContent||'')||0;
  return {done,total,vol:Math.round(vol),minutes:Math.max(0,Math.round(sec/60))};
+}
+
+/* ---------- #107 gespeicherter Zirkel als Übung im Krafttraining ---------- */
+const ZK_PREFIX='Zirkel: ';
+function circuitName(name){const m=/^Zirkel:\s*(.+)$/.exec(String(name||''));return m?m[1].trim():'';}
+const zkManual={};
+function zkPanel(){
+ let pn=nodes.zk;const host=nodes.shell.querySelector('.forge-b-set-panel');
+ if(!pn){pn=el('div','forge-lb-zkpanel');nodes.zk=pn;}
+ if(host&&pn.parentElement!==host)host.prepend(pn);
+ return pn;
+}
+function renderCircuit(p,draft,i,cur,allDone){
+ const name=circuitName(cur.name||(p.ex&&p.ex[i]&&p.ex[i].name));
+ const open=(cur.sets||[]).some(x=>x&&!x.done);
+ const key=p.id+'|'+i;
+ const on=!!name&&open&&!allDone&&!zkManual[key]&&!nodes.shell.classList.contains('forge-v91-warming');
+ nodes.shell.classList.toggle('forge-lb-zk',on);
+ if(!on){if(nodes.main.dataset.mode==='zk')nodes.main.dataset.mode='set';return;}
+ const C=window.ForgeCircuits,c=C&&C.byName?C.byName(name):null;
+ const pn=zkPanel();const sig=name+'|'+(c?c.id+'|'+c.rounds+'|'+c.items+'|'+c.seconds:'x');
+ if(pn.dataset.sig!==sig){
+  pn.dataset.sig=sig;pn.replaceChildren();
+  pn.append(el('small','','Zirkel im Krafttraining'),el('b','',name));
+  if(c){
+   pn.append(el('span','',c.items+' '+(c.items===1?'Übung':'Übungen')+' · '+c.rounds+' '+(c.rounds===1?'Runde':'Runden')+' · ca. '+Math.max(1,Math.round(c.seconds/60))+' Min.'));
+   pn.append(el('p','','Läuft am Stück mit Wechselpausen. Danach geht es hier mit der nächsten Übung weiter – alles zählt als ein Training.'));
+  }else{
+   pn.classList.add('missing');
+   pn.append(el('p','','Dieser Zirkel wurde umbenannt, archiviert oder gelöscht. Tausche die Übung über „Tauschen“ oder trage sie wie eine normale Übung ein.'));
+   const man=el('button','forge-lb-zk-man','Als normale Übung eintragen');man.type='button';man.addEventListener('click',()=>{zkManual[key]=true;renderLive();});pn.append(man);
+  }
+ }
+ pn.classList.toggle('missing',!c);
+ nodes.main.dataset.mode=c?'zk':'set';
+ setText(nodes.mainText,c?'Zirkel starten':'Satz fertig');
+ nodes.main.disabled=!c;
+}
+function startCircuit(){
+ const s=live(),p=plan(),f=focus();if(!s||!p||!f)return;
+ const d=s.workoutDraft;const name=circuitName(d&&d.exercises&&d.exercises[f.i]&&d.exercises[f.i].name||p.ex[f.i]&&p.ex[f.i].name);
+ const C=window.ForgeCircuits,c=C&&C.byName?C.byName(name):null;if(!c)return;
+ C.startEmbedded(c.id,{planId:p.id,exIndex:f.i});
+}
+/* Rückmeldung des Zirkel-Players: erledigte Runden = erledigte Sätze dieser Position, genau ein Training. */
+window.ForgeLayoutBCircuitDone=function(ctx,res){
+ const s=live(),p=plan();if(!s||!p||String(p.id)!==String(ctx.planId)||!res)return;
+ const i=Number(ctx.exIndex),box=$('workoutExercises');if(!box||!Number.isInteger(i))return;
+ const n=Number(res.completedRounds)||0;if(!n)return;
+ const rows=(p.ex[i]&&Number(p.ex[i].sets))||0;
+ const per=Math.round((Number(res.durationMs)||0)/1000/Math.max(1,res.rounds));
+ const upto=n>=res.rounds?rows:Math.min(rows,n);
+ for(let j=0;j<upto;j++){
+  const q=k=>box.querySelector('[data-ex="'+i+'"][data-set="'+j+'"][data-field="'+k+'"]');
+  if(q('reps')&&!q('done')?.checked)q('reps').value=String(per||'');
+  if(q('done'))q('done').checked=true;
+ }
+ try{if(typeof window.forgeSaveWorkoutDraft==='function')window.forgeSaveWorkoutDraft();}catch(e){console.error(e);}
+ const d=s.workoutDraft;if(d&&d.exercises&&d.exercises[i]){d.exercises[i].circuitLog={...res,at:new Date().toISOString()};}
+ try{if(typeof window.forge130NextPending==='function')s.activeWorkout.focus=window.forge130NextPending(p);}catch(e){}
+ s.forgeRest=null;
+ try{if(typeof save==='function')save();}catch(e){}
+ try{if(typeof window.renderWorkout==='function')window.renderWorkout();}catch(e){}
+ renderLive();
+};
+function allSetsDone(draft){const ex=(draft&&draft.exercises)||[];let total=0;for(const e of ex)for(const x of (e&&e.sets)||[]){total++;if(!x||!x.done)return false;}return total>0;}
+let saving=0;
+function saveAndFinish(){
+ if(saving&&Date.now()-saving<4000)return;            // Doppeltipp-Schutz: nur ein Verlauf-Eintrag
+ const st=typeof state!=='undefined'?state:null;if(!st||!st.activeWorkout)return;
+ const btn=$('saveWorkout');if(!btn){confirmFinish();return;}
+ saving=Date.now();if(nodes&&nodes.main)nodes.main.disabled=true;
+ try{$('workoutExercises')?.closest('details')?.removeAttribute('open');btn.click();}catch(e){console.error(e);}
+ setTimeout(()=>{saving=0;if(nodes&&nodes.main)nodes.main.disabled=false;},4000);
 }
 function confirmFinish(){
  const st=workoutStats();
@@ -760,13 +854,26 @@ function renderLive(){
  const warming=nodes.shell.classList.contains('forge-v91-warming');
  const prim=warming?$('forgeV91WarmDone'):document.querySelector('#forgeQuickWorkout .forge-primary-action');
  const label=(prim?.textContent||'Satz fertig').replace(/^[✓✔\s]+/,'').trim();
- const nice=warming?'Satz A fertig':/^satz abschlie/i.test(label)?'Satz fertig':label;
- setText(nodes.mainText,nice||'Satz fertig');
- nodes.main.disabled=!!prim?.disabled;
+ const nice=warming?'Satz A fertig':/^(satz abschlie|arbeitssatz)/i.test(label)?'Satz fertig':label;
+ if(warming){const rm=$('forgeV91WarmRemove'),tools=document.querySelector('#forgeV91Warm .forge-v91-warm-tools');if(rm&&tools&&rm.parentElement!==tools){rm.textContent='✕';rm.setAttribute('aria-label','Diesen Aufwärmsatz entfernen');tools.append(rm);}
+  const ad=$('forgeV91WarmAdd');if(ad&&ad.textContent!=='+ Satz'){ad.textContent='+ Satz';ad.setAttribute('aria-label','Weiteren Aufwärmsatz hinzufügen');}
+  const wk=$('forgeV91WarmKg');if(wk&&!wk.placeholder)wk.placeholder='0';
+  const cap=$('forgeV91WarmCaption'),m=/(\d+)\s*\/\s*(\d+)/.exec(cap?.textContent||''),ed=$('forgeV91WarmEdit');
+  if(cap){let own=cap.parentElement.querySelector('.forge-lb-warmcap');if(!own){own=el('span','forge-lb-warmcap');cap.after(own);}
+   const t='A · Aufwärmen'+(m&&m[2]>1?' '+m[1]+'/'+m[2]:'');if(own.textContent!==t)own.textContent=t;}
+  if(ed)ed.style.display=m&&Number(m[2])>1?'':'none';}
+ // #109: alle Sätze aller Übungen erledigt → Hauptaktion „Speichern und beenden“
+ const allDone=!warming&&allSetsDone(draft);
+ nodes.main.dataset.mode=allDone?'save':'set';
+ nodes.main.classList.toggle('forge-lb-main-save',allDone);
+ setText(nodes.mainText,allDone?'Speichern und beenden':(nice||'Satz fertig'));
+ nodes.main.disabled=allDone?!!saving:!!prim?.disabled;
  // last exercise -> finish
  const pos=order.indexOf(i),lastEx=pos===order.length-1;
  const mode=lastEx?'finish':'next';
  nodes.prev.disabled=pos<=0;
+ nodes.next.disabled=false;   // #109: auf der letzten Übung bleibt „Beenden“ als zweiter, eindeutiger Abschlussweg (mit Bestätigung)
+ renderCircuit(p,draft,i,cur,allDone);
  if(nodes.next.dataset.mode!==mode){
   nodes.next.dataset.mode=mode;
   nodes.next.innerHTML=(lastEx?SVG.flag:SVG.next)+'<span>'+(lastEx?'Beenden':'Nächste')+'</span>';

@@ -345,10 +345,33 @@ function phaseStart(r,idx,running){
  return r;
 }
 let listMsg='';
+/* #107: Zirkel als Block im laufenden Krafttraining – EIN Training, kein eigener Zirkel-Log. */
+function startEmbedded(id,ctx){
+ const c=list().find(x=>x&&String(x.id)===String(id)&&!x.archived);const s=S();
+ if(!c||!s||!s.activeWorkout||!ctx)return false;
+ const cur=run();if(cur&&!cur.embedded)return false;            // freier Zirkel läuft schon
+ close();const ph=phases(c);if(!ph.length)return false;
+ s.forgeRest=null;
+ const r={id:c.id,name:c.name,rounds:c.rounds,itemsCount:c.items.length,phases:ph,idx:0,running:true,endsAt:0,left:0,startedAt:Date.now(),pausedAt:0,pausedMs:0,done:false,
+  embedded:{planId:String(ctx.planId),exIndex:Number(ctx.exIndex),sessionStartedAt:s.activeWorkout.startedAt}};
+ phaseStart(r,0,true);setRun(r);openRun();return true;
+}
+function embeddedResult(r){
+ const works=r.phases.filter((p,i)=>p.type==='work'&&i<Math.min(r.idx,r.phases.length));
+ const completedRounds=r.done?r.rounds:Math.max(0,(r.phases[r.idx]||{round:0}).round);
+ return {circuitId:r.id,name:r.name,rounds:r.rounds,completedRounds,durationMs:Math.max(0,Date.now()-r.startedAt-(r.pausedMs||0)),
+  exercises:works.map(p=>({name:p.name,mode:p.mode,secs:p.secs,reps:p.reps,round:p.round}))};
+}
+function backToWorkout(withResult){
+ const r=run();if(!r||!r.embedded)return;
+ const res=withResult?embeddedResult(r):null,ctx=r.embedded;
+ const s=S();if(s){s.forgeCircuitRun=null;store();}closeRun();
+ try{if(res&&typeof window.ForgeLayoutBCircuitDone==='function')window.ForgeLayoutBCircuitDone(ctx,res);}catch(e){console.error('FORGE Zirkel im Training',e);}
+}
 function start(id){
  const c=list().find(x=>x&&String(x.id)===String(id));if(!c)return;
  const s=S();
- if(s&&s.activeWorkout){listMsg='Bitte beende oder verwirf zuerst das laufende Krafttraining.';openList('active');return;}
+ if(s&&s.activeWorkout){listMsg='Während eines Krafttrainings: in der Übung „Tauschen“ › Zirkel wählen. Sonst erst das Training beenden.';openList('active');return;}
  close();
  const ph=phases(c);if(!ph.length)return;
  const r={id:c.id,name:c.name,rounds:c.rounds,itemsCount:c.items.length,phases:ph,idx:0,running:true,endsAt:0,left:0,startedAt:Date.now(),pausedAt:0,pausedMs:0,done:false};
@@ -381,10 +404,13 @@ function confirmBox(title,text,yes,yesLabel,noLabel){
  d.append(keep,drop);box.append(d);pr.append(box);keep.focus({preventScroll:true});
 }
 function abort(){
+ const r=run();
+ if(r&&r.embedded){confirmBox('Zurück zum Krafttraining?','Der Zirkel wird nicht gewertet. Du kannst ihn später in der Übung erneut starten.',()=>backToWorkout(false),'Zurück zum Krafttraining','Zirkel fortsetzen');return;}
  confirmBox('Zirkel abbrechen?','Dieser Durchgang wird nicht gespeichert.',()=>{setRun(null);closeRun();},'Zirkel verwerfen','Weitermachen');
 }
 function finishSave(){
  const r=run();const s=S();if(!r||!s)return;
+ if(r.embedded){backToWorkout(true);return;}
  const net=Math.max(0,Date.now()-r.startedAt-(r.pausedMs||0));
  const works=r.phases.filter((p,i)=>p.type==='work'&&i<Math.min(r.idx,r.phases.length));
  const completedRounds=r.done?r.rounds:Math.max(0,(r.phases[r.idx]||{round:0}).round);
@@ -418,6 +444,7 @@ function drawRun(){
   const net=Math.max(0,Date.now()-r.startedAt-(r.pausedMs||0));
   inner.append(el('div','zr-sub',r.rounds+' '+(r.rounds===1?'Runde':'Runden')+' · '+r.itemsCount+' Übungen · '+clock(net/1000)+' Min.'));
   inner.append(el('div','zr-img'));
+  if(r.embedded){inner.append(btn('zr-done','Weiter im Krafttraining',finishSave));inner.append(btn('zr-sec','Nicht werten',()=>backToWorkout(false)));return;}
   inner.append(btn('zr-done','Speichern',finishSave));
   const drop=btn('zr-sec','Nicht speichern',()=>confirmBox('Nicht speichern?','Der Zirkel wird nicht protokolliert.',()=>{setRun(null);closeRun();},'Verwerfen','Zurück'));
   inner.append(drop);return;
@@ -497,8 +524,12 @@ function quickCard(){
  c.append(btn('zq-all',!all.length?'Zirkel erstellen':all.length>ZQ_MAX?'Alle '+all.length+' Zirkel anzeigen':'Zirkel verwalten',()=>{if(!all.length)openEdit(null);else openList('active');}));
  if(old)old.remove();if(slot)slot.append(c);else host.append(c);
 }
-window.ForgeCircuits=Object.freeze({open:openList,start,edit:id=>{const c=list().find(x=>x&&String(x.id)===String(id));if(c)openEdit(c);}});
-function tick(){if(!enabled())return;planEntry();quickCard();const r=run();if(r&&!pr)openRun();}
+window.ForgeCircuits=Object.freeze({open:openList,start,startEmbedded,
+ available:()=>ordered(active(list())).map(c=>({id:c.id,name:c.name,rounds:c.rounds,items:c.items.length,transition:c.transition,seconds:totalSeconds(c)})),
+ byName:n=>{const c=active(list()).find(x=>x&&x.name===n);return c?{id:c.id,name:c.name,rounds:c.rounds,items:c.items.length,transition:c.transition,seconds:totalSeconds(c)}:null;},edit:id=>{const c=list().find(x=>x&&String(x.id)===String(id));if(c)openEdit(c);}});
+function tick(){if(!enabled())return;planEntry();quickCard();const r=run();
+ if(r&&r.embedded){const s=S();if(!s||!s.activeWorkout||s.activeWorkout.startedAt!==r.embedded.sessionStartedAt){setRun(null);closeRun();return;}}
+ if(r&&!pr)openRun();}
 function install(){
  if(!document.body||!enabled())return false;
  tick();setInterval(()=>{if(document.visibilityState!=='hidden')tick();},900);

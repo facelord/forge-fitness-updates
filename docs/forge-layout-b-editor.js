@@ -766,6 +766,8 @@ function fill(){
   own.append(el('b','','„'+q.slice(0,80)+'“ als eigene Übung'),el('small','','Nicht im Katalog – ohne Bild und Anleitung'));
   grid.append(own);
  }
+ /* #107: gespeicherte Zirkel als Block in der Einheit (Übung ersetzen oder anhängen) */
+ if(cat.tab==='strength'&&cat.unit&&cat.mode!=='browse'&&(cat.chip==='Alle'||!cat.chip))circuitCards(grid,q);
  if(!items.length){if(grid.children.length)return;grid.append(el('div','cat-none',cat.query||cat.chip!=='Alle'?'Keine passende Übung gefunden.':'Keine Übungen in dieser Kategorie.'));return;}
  items.slice(0,cat.limit).forEach(it=>{
   const already=inUnit.has(it.name);
@@ -778,6 +780,25 @@ function fill(){
  if(items.length>cat.limit){
   grid.append(btn('cat-more','Weitere '+Math.min(40,items.length-cat.limit)+' von '+(items.length-cat.limit)+' anzeigen',()=>{const y=grid.scrollTop;cat.limit+=40;fill();grid.scrollTop=y;}));
  }
+}
+function circuitCards(grid,q){
+ let list=[];try{list=window.ForgeCircuits&&typeof window.ForgeCircuits.available==='function'?window.ForgeCircuits.available():[];}catch(e){}
+ const nq=normalize(q||'');list=list.filter(c=>!nq||normalize(c.name).includes(nq)||'zirkel'.includes(nq));if(!list.length)return;
+ const inUnit=new Set(cat.unit.ex.map(e=>e.name));
+ list.forEach(c=>{
+  const name='Zirkel: '+c.name,already=inUnit.has(name);
+  const card=btn('cat-card cat-zk','',()=>pickCircuit(c));
+  const tx=el('span','cat-txt');tx.append(el('b','',name),el('small','',c.items+' Übungen · '+c.rounds+' '+(c.rounds===1?'Runde':'Runden')+' · ca. '+Math.max(1,Math.round(c.seconds/60))+' Min.'));card.append(tx);
+  if(already){card.disabled=true;const tag=el('span','cat-in');tag.innerHTML=ICON.check+'<span>Im Plan</span>';card.append(tag);}
+  grid.append(card);
+ });
+}
+function pickCircuit(c){
+ const w=cat.unit;if(!w)return;const name='Zirkel: '+c.name;if(w.ex.some(e=>e.name===name))return;
+ const d={name,sets:c.rounds,reps:Math.max(5,Math.round(c.seconds/Math.max(1,c.rounds))),unit:'sec'};
+ if(cat.mode==='replace'){const ex=w.ex[cat.index];if(!ex)return;const old=ex.name;w.ex[cat.index]={...ex,...d};ed.open=cat.index;ed.status='„'+old+'“ ersetzt durch „'+name+'“';ed.tone='';}
+ else{if(w.ex.length>=MAX_EX)return;w.ex.push(d);ed.open=w.ex.length-1;ed.status='„'+name+'“ hinzugefügt';ed.tone='';}
+ cat=null;closeSheet();render();
 }
 function pickExercise(name,custom){
  if(cat.mode==='browse'){techSheet(name);return;}
