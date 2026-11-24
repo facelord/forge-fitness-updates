@@ -1,7 +1,7 @@
 {
-  "versionCode": 10706,
-  "versionName": "14.13.706",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.706/FORGE-Fitness-14.13.706.apk",
-  "sha256": "5e99bd5a369f8c5d695016796f7ffd8abfbaf42f240a17aec973d15ed71da08e",
-  "notes": "FORGE 14.13.706 – Änderungen in diesem Update\n• Neu: Mobilität, Dehnen und Kombi-Routinen automatisch zusammenstellen"
+  "versionCode": 10709,
+  "versionName": "14.13.709",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.709/FORGE-Fitness-14.13.709.apk",
+  "sha256": "6549183251f363945942d0affa914c732212d11cf3fc9a5c7cd1c4630b83c565",
+  "notes": "FORGE 14.13.709 – Änderungen in diesem Update\n• Behoben: Browser-Tests an Routinen-Einstieg angepasst, „Beenden“ bleibt als zweiter Abschlussweg\n• Behoben: Nach dem letzten Satz „Speichern und beenden“, Aufwärmsätze im gleichen Layout (#109, #110)\n• Neu: Gespeicherten Zirkel im Krafttraining statt einer Übung einsetzen (#107)\n• Neu: Mobilitätsplan in Routinen zusammengeführt, Hilfsmittel einzeln wählbar (#112)\n• Neu: Eigene Mahlzeiten zusammenstellen, speichern und mit einem Tipp eintragen (#111)\n• Behoben: Gewicht im Krafttraining mit ±2,5 kg pro Tippen (#108)"
 }
