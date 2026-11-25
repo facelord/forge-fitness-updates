@@ -23,7 +23,7 @@ function stepValue(v,delta,min,max){
  let n=Math.round(Number(v));if(!Number.isFinite(n))n=min;
  return Math.max(min,Math.min(max,n+delta));
 }
-function doseText(ex){const R=typeof window!=='undefined'&&window.ForgeLayoutBRest;const rest=R&&ex&&R.valid(ex.rest)?' · '+R.clock(ex.rest)+' Pause':'';return (Number(ex&&ex.sets)||0)+' × '+(Number(ex&&ex.reps)||0)+rest;}
+function doseText(ex){if(/^Zirkel:/.test(String(ex&&ex.name||''))){const r=Number(ex&&ex.sets)||1;return 'Zirkel · '+r+' '+(r===1?'Runde':'Runden');}const R=typeof window!=='undefined'&&window.ForgeLayoutBRest;const rest=R&&ex&&R.valid(ex.rest)?' · '+R.clock(ex.rest)+' Pause':'';return (Number(ex&&ex.sets)||0)+' × '+(Number(ex&&ex.reps)||0)+rest;}
 /* "Brust, vordere Schulter; Trizeps" → "Brust · vordere Schulter" */
 function muscleLabel(guideText,group,region){
  const parts=String(guideText||'').split(/[,;]/).map(x=>x.trim()).filter(Boolean);
@@ -151,7 +151,8 @@ function ownExercisesOk(x,catalog,existing){
  const cat=new Set(catalog||[]),old=new Set(existing||[]);
  const names=(x&&x.ex||[]).map(e=>e&&e.name);
  if(!names.length||new Set(names).size!==names.length)return false;
- return names.some(n=>!cat.has(n))&&names.every(n=>cat.has(n)||old.has(n));
+ const zk=n=>/^Zirkel:/.test(String(n||''))&&!!(typeof window!=='undefined'&&window.ForgeCircuits&&window.ForgeCircuits.byName&&window.ForgeCircuits.byName(String(n).replace(/^Zirkel:\s*/,'').trim()));
+ return names.some(n=>!cat.has(n)&&!zk(n))&&names.every(n=>cat.has(n)||old.has(n)||zk(n));
 }
 window.ForgeLayoutBEditor=Object.freeze({swipeDirection,ownExercisesOk,draftUnits,draftSlots,retainDraftExercises,draftCadence,draftIssue,draftPlan,unitLetter,stepValue,doseText,muscleLabel,normalize,splitCatalog,filterCatalog,matchesChip,primaryGroup,isBand,MUSCLE_CHIPS,moveItem,unitDirty});
 if(typeof document==='undefined')return;
@@ -250,6 +251,10 @@ ${E} .ed-move{display:flex;gap:6px}
 ${E} .ed-move button{width:36px;height:36px;border-radius:12px;border:1px solid #293346;background:#0f1620;color:#c3cddb;display:flex;align-items:center;justify-content:center;padding:0}
 ${E} .ed-move button:disabled{opacity:.3}
 ${E} .ed-steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+${E} .ed-zk{display:flex;flex-direction:column;gap:4px;border-radius:18px;border:1px solid #2f5a3a;background:#18231c;padding:14px 16px;margin:4px 0 2px}
+${E} .ed-zk b{font-size:15px;color:#f3f7fc}
+${E} .ed-zk small{font-size:13px;color:#9fb0c4;line-height:1.4}
+${E} .ed-zk.missing{border-color:#6b5426;background:#211d16}
 ${E} .ed-rest{grid-column:1/-1}
 ${E} .ed-rest output{display:block;text-align:center;font-size:16px;font-weight:800;color:#f3f7fc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 ${E} .ed-step{display:flex;flex-direction:column;gap:4px;min-width:0}
@@ -535,6 +540,7 @@ function changed(){
  const sv=root?.querySelector('.ed-save');if(sv){sv.className='ed-save'+(dirty.length?'':' quiet');sv.textContent=dirty.length?'Plan speichern':'Fertig';}
  root?.querySelectorAll('.ed-tabs button').forEach((b,i)=>{const p=plans()[i];b.classList.toggle('dirty',!!p&&unitDirty(ed.staged.get(String(p.id))));});
 }
+function circuitInfo(name){const m=/^Zirkel:\s*(.+)$/.exec(String(name||''));if(!m)return null;let c=null;try{c=window.ForgeCircuits&&window.ForgeCircuits.byName?window.ForgeCircuits.byName(m[1].trim()):null;}catch(e){}return {name:m[1].trim(),c};}
 function exerciseCard(w,ex,i){
  const c=el('div','ed-card');
  const h=el('div','ed-card-head');h.append(thumb(ex.name,'ed-th'),el('b','',ex.name));
@@ -542,12 +548,22 @@ function exerciseCard(w,ex,i){
  const up=btn('','',()=>{w.ex=moveItem(w.ex,i,i-1);ed.open=i-1;render();});up.innerHTML=ICON.up;up.disabled=i===0;up.setAttribute('aria-label','Nach oben');
  const dn=btn('','',()=>{w.ex=moveItem(w.ex,i,i+1);ed.open=i+1;render();});dn.innerHTML=ICON.down;dn.disabled=i===w.ex.length-1;dn.setAttribute('aria-label','Nach unten');
  mv.append(up,dn);h.append(mv);c.append(h);
+ const zk=circuitInfo(ex.name);
+ if(zk){
+  /* #107: Zeiten, Pausen und Runden kommen ausschließlich aus dem gespeicherten Zirkel */
+  if(zk.c){const r=Math.min(MAX_SETS,Math.max(1,zk.c.rounds)),per=Math.min(MAX_REPS,Math.max(5,Math.round(zk.c.seconds/Math.max(1,zk.c.rounds))));if(Number(ex.sets)!==r)ex.sets=r;if(Number(ex.reps)!==per)ex.reps=per;ex.unit='sec';}
+  const box=el('div','ed-zk'+(zk.c?'':' missing'));
+  if(zk.c){box.append(el('b','',zk.c.items+' Übungen · '+zk.c.rounds+' '+(zk.c.rounds===1?'Runde':'Runden')+' · ca. '+Math.max(1,Math.round(zk.c.seconds/60))+' Min.'),el('small','','Übungszeiten, Wechsel- und Rundenpausen kommen direkt aus dem Zirkel. Ändern kannst du sie unter Plan › Zirkel.'));}
+  else box.append(el('b','','Zirkel nicht gefunden'),el('small','','„'+zk.name+'“ wurde umbenannt, archiviert oder gelöscht. Bitte ersetzen oder entfernen.'));
+  c.append(box);
+ }else{
  const steps=el('div','ed-steps');
  steps.append(stepper('Sätze',ex,'sets',MAX_SETS),stepper('Wiederholungen / Sekunden',ex,'reps',MAX_REPS));
  const rs=restStepper(ex);if(rs)steps.append(rs);
  c.append(steps);
+ }
  const acts=el('div','ed-acts');
- acts.append(btn('ed-alt','Alternative Übung',()=>openCatalog({mode:'replace',unit:w,index:i})));
+ acts.append(btn('ed-alt',zk?'Ersetzen':'Alternative Übung',()=>openCatalog({mode:'replace',unit:w,index:i})));
  const del=btn('ed-del','Entfernen',()=>{
   if(w.ex.length<=1&&!ed.draft)return;
   w.ex.splice(i,1);ed.open=Math.max(0,Math.min(i,w.ex.length-1));ed.status=ed.draft?'„'+ex.name+'“ entfernt':'„'+ex.name+'“ entfernt – erst „Plan speichern“ übernimmt es.';ed.tone='';render();

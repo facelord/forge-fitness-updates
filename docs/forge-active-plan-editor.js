@@ -41,13 +41,15 @@ function cloneEdit(p){
   ex:structuredClone(p.ex),baseline:JSON.stringify({title:p.title,location:p.location,ex:p.ex})};
 }
 function changed(x){return !!x&&JSON.stringify({title:x.title,location:x.location,ex:x.ex})!==x.baseline;}
+/* #107: gespeicherte Zirkel („Zirkel: Name“) sind gültige Plan-Positionen, solange der Zirkel existiert. */
+function isCircuitName(n){const m=/^Zirkel:\s*(.+)$/.exec(String(n||''));if(!m)return false;try{return !!(window.ForgeCircuits&&window.ForgeCircuits.byName&&window.ForgeCircuits.byName(m[1].trim()));}catch(e){return false;}}
 function validateEdit(x,names){
  if(!x||!String(x.title||'').trim()||String(x.title).trim().length>90)return 'Bitte einen gültigen Namen eingeben.';
  if(!['gym','home'].includes(x.location))return 'Ungültiger Trainingsort.';
  if(!Array.isArray(x.ex)||x.ex.length<1||x.ex.length>15)return 'Der Plan benötigt 1 bis 15 Übungen.';
  const seen=new Set();
  for(const e of x.ex){
-  if(!e?.name||!names.includes(e.name)||seen.has(e.name))return 'Bitte gültige und unterschiedliche Übungen verwenden.';
+  if(!e?.name||!(names.includes(e.name)||isCircuitName(e.name))||seen.has(e.name))return 'Bitte gültige und unterschiedliche Übungen verwenden.';
   seen.add(e.name);
   if(!Number.isInteger(Number(e.sets))||Number(e.sets)<1||Number(e.sets)>15||
     !Number.isInteger(Number(e.reps))||Number(e.reps)<1||Number(e.reps)>999)
