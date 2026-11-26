@@ -15,7 +15,8 @@ const button=(label,click,cls)=>{
 const groups=[
  ['Plank','Side Plank','Seitstütz','Hollow Hold','Dead Bug','Bird Dog','Mountain Climbers','Superman Hold','Bauch Crunch','Crunches'],
  ['Latziehen','Klimmzüge','Klimmzüge (enger Griff)','Klimmzüge (breiter Griff)','Rudern am Kabel','Rudern Maschine','Einarmiges Kurzhantelrudern','Rudern mit Rucksack'],
- ['Bankdrücken','Schrägbank Kurzhantel','Brustpresse','Liegestütze','Dips','Butterfly'],
+ ['Bankdrücken','Schrägbank Kurzhantel','Brustpresse','Liegestütze','Dips','Butterfly','Kurzhantel-Flys'],
+ ['Plank','Bergsteiger','Plank Jacks','Bear Plank Knee Taps','Spiderman Planks','Cross-Body Mountain Climbers','Russian Twist','Plank Hip Twists','Dead Bug'],
  ['Schulterdrücken','Arnold Press','Pike Push-ups','Seitheben','Frontheben'],
  ['Kniebeuge','Kniebeugen','Ausfallschritte','Beinpresse','Bulgarian Split Squat','Step-ups'],
  ['Rumänisches Kreuzheben','Kreuzheben','Beinbeuger','Hip Thrust','Glute Bridge'],

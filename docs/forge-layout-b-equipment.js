@@ -17,9 +17,9 @@ const NO_EXERCISES=Object.freeze(['kettlebell','mat']);
 /* Erforderliche Geräte je Katalogübung ([] = ohne Geräte machbar). Unbekannte Namen: null. */
 const REQ=(()=>{const m=Object.create(null);const set=(req,names)=>names.forEach(n=>{m[n]=req;});
  set([],['Liegestütze','Enge Liegestütze','Pike Push-ups','Plank','Kniebeugen','Ausfallschritte','Glute Bridge','Wadenheben','Superman Hold','Reverse Snow Angels',
-  'Rudern mit Rucksack','Bizepscurls mit Rucksack','Burpees','Hampelmann','Bergsteiger','Bird Dog','Dead Bug','Einbeiniges rumänisches Kreuzheben','Bulgarian Split Squat']);
+  'Rudern mit Rucksack','Bizepscurls mit Rucksack','Burpees','Hampelmann','Bergsteiger','Bird Dog','Dead Bug','Einbeiniges rumänisches Kreuzheben','Bulgarian Split Squat','Plank Jacks','Bear Plank Knee Taps','Spiderman Planks','Cross-Body Mountain Climbers','Russian Twist','Plank Hip Twists']);
  set(['dumbbells'],['Bizepscurls','Hammer Curls','Seitheben','Arnold Press','Schulterdrücken','Überkopf-Trizepsstrecken','Einarmiges Kurzhantelrudern','Reverse Flys',"Farmer's Carry"]);
- set(['dumbbells','bench'],['Schrägbank Kurzhantel']);
+ set(['dumbbells','bench'],['Schrägbank Kurzhantel','Kurzhantel-Flys']);
  set(['barbell'],['Kniebeuge','Kreuzheben','Rumänisches Kreuzheben','Schulterdrücken mit der Langhantel']);
  set(['barbell','bench'],['Bankdrücken','Negatives Bankdrücken','Hip Thrust','Skull Crushers mit SZ-Stange']);
  set(['pullupbar'],['Klimmzüge','Klimmzüge (breiter Griff)','Klimmzüge (enger Griff)','Hängendes Knieheben']);

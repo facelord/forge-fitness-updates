@@ -56,13 +56,13 @@ const isBand=name=>/theraband|miniband|^band[- ]/i.test(String(name||''));
 /* Primary muscle group per catalog exercise: every exercise appears in exactly
  * one category (Bankdrücken only under Brust, not also under Arme/Schultern). */
 const PRIMARY=Object.freeze((()=>{const m={};const add=(cat,list)=>list.forEach(n=>{m[normalize(n)]=cat;});
- add('Brust',['Band-Brustpresse','Negatives Bankdrücken','Bankdrücken','Brustpresse','Butterfly / Pec Deck','Dips','Kabel-Flys','Liegestütze','Schrägbank Kurzhantel']);
+ add('Brust',['Kurzhantel-Flys','Band-Brustpresse','Negatives Bankdrücken','Bankdrücken','Brustpresse','Butterfly / Pec Deck','Dips','Kabel-Flys','Liegestütze','Schrägbank Kurzhantel']);
  add('Rücken',['Band-Rudern','Pull-Aparts mit Theraband','Back Extensions','Brustgestütztes Rudern','Einarmiges Kurzhantelrudern','Gerade-Arme-Pulldown','Klimmzüge','Klimmzüge (breiter Griff)','Klimmzüge (enger Griff)','Latziehen','Rudern am Kabel','Rudern mit Rucksack','Superman Hold','Reverse Snow Angels']);
  add('Ganzkörper',['Burpees','Hampelmann']);
  add('Beine',['Band-Kniebeuge mit Theraband','Monster Walks mit Miniband','Abduktorenmaschine','Adduktorenmaschine','Ausfallschritte','Beinbeuger','Beinpresse','Beinstrecker','Bulgarian Split Squat','Einbeiniges rumänisches Kreuzheben','Glute Bridge','Hip Thrust','Kniebeuge','Kniebeugen','Kreuzheben','Rumänisches Kreuzheben','Wadenheben']);
  add('Schultern',['Face Pulls mit Theraband','Band-Seitheben mit Theraband','Arnold Press','Face Pulls','Pike Push-ups','Reverse Flys','Schulter-Außenrotation','Schulterdrücken','Schulterdrücken mit der Langhantel','Seitheben']);
  add('Arme',['Bizeps-Curls mit Theraband','Band-Trizepsdrücken mit Theraband','Bizepscurls','Bizepscurls mit Rucksack','Dips (Trizepsfokus)','Enge Liegestütze','Hammer Curls','Skull Crushers mit SZ-Stange','Trizepsdrücken','Überkopf-Trizepsstrecken']);
- add('Rumpf',['Band-Pallof-Press','Bergsteiger','Bird Dog','Dead Bug',"Farmer's Carry",'Hängendes Knieheben','Kabel-Crunches','Pallof Press','Plank']);
+ add('Rumpf',['Band-Pallof-Press','Bear Plank Knee Taps','Bergsteiger','Cross-Body Mountain Climbers','Plank Hip Twists','Plank Jacks','Russian Twist','Spiderman Planks','Bird Dog','Dead Bug',"Farmer's Carry",'Hängendes Knieheben','Kabel-Crunches','Pallof Press','Plank']);
  return m;})());
 function primaryGroup(item){
  const name=item&&item.name;const known=PRIMARY[normalize(name)];if(known)return known;

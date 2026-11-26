@@ -222,7 +222,14 @@ const YOGA_POSES=Object.freeze([
  ['Fisch','Matsyasana · Fish Pose',4,2,'Brust','static',20,false,'b',['Rückenlage, Hände unter das Gesäß.','Auf die Unterarme stützen und die Brust heben.','Kopf nur leicht ablegen, Gewicht auf den Unterarmen.'],'Bei Nackenproblemen Kopf auf ein Kissen.',46],
  ['Glückliches Baby','Ananda Balasana · Happy Baby',4,1,'Hüfte & unterer Rücken','static',45,false,'he',['Rückenlage, Knie zur Brust ziehen.','Außenkanten der Füße greifen, Knie neben den Brustkorb.','Kreuzbein bleibt am Boden.'],'Kniekehlen statt Füße greifen.',24],
  ['Beine an der Wand','Viparita Karani · Legs up the Wall',4,1,'Entspannung','static',120,false,'e',['Seitlich an eine Wand setzen.','Beine an der Wand hochlegen, Rücken auf die Matte.','Arme locker neben den Körper.'],'Kissen unter das Becken; bei Kribbeln Beine absenken.',50],
- ['Endentspannung','Savasana · Totenstellung · Corpse Pose',5,1,'Entspannung','static',180,false,'e',['Auf den Rücken legen, Beine locker auseinander.','Arme neben dem Körper, Handflächen nach oben.','Augen schließen und den Atem einfach fließen lassen.'],'Kissen unter die Knie, Decke zum Zudecken.',null],
+ ['Endentspannung','Savasana · Totenstellung · Corpse Pose',5,1,'Entspannung','static',180,false,'e',['Auf den Rücken legen, Beine locker auseinander.','Arme neben dem Körper, Handflächen nach oben.','Augen schließen und den Atem einfach fließen lassen.'],'Kissen unter die Knie, Decke zum Zudecken.',57],
+ /* 26.11.2026: neue, geprüfte Tafeln (17 Zusatzübungen) – Nr. 51–56 */
+ ['Baumhaltung','Vrksasana · Tree Pose',2,1,'Balance & Beine','static',30,true,'gm',['Aufrecht stehen, Gewicht auf ein Bein verlagern.','Den anderen Fuß an Wade oder Oberschenkel-Innenseite setzen – nie aufs Knie.','Hände vor der Brust zusammen, Blick ruhig nach vorn.'],'Leichter: Fuß an der Wade; zum Ausbalancieren nah an einer Wand üben.',51],
+ ['Krieger III','Virabhadrasana III · Warrior III',2,2,'Balance & Rumpf','static',20,true,'g',['Standbein fest in den Boden drücken.','Oberkörper nach vorn neigen und das hintere Bein lang nach hinten heben.','Arme, Oberkörper und hinteres Bein in eine Linie bringen, Hüfte gerade.'],'Leichter: Hände an eine Wand oder einen Stuhl.',52],
+ ['Adlerhaltung','Garudasana · Eagle Pose',2,2,'Balance & Schultern','static',25,true,'gb',['Standbein leicht beugen, anderes Bein darüberkreuzen, Fuß ggf. hinter der Wade einhaken.','Arme vor dem Körper kreuzen, Ellbogen übereinander, Handflächen zusammen.','Oberkörper aufrecht, Schultern tief.'],'Einfacher: nur die Armposition, Beine stehen beide am Boden.',53],
+ ['Brett','Phalakasana · Plank Pose',1,1,'Rumpf & Schultern','static',30,false,'gm',['Aus dem Vierfüßlerstand die Beine nach hinten strecken.','Hände unter den Schultern, Körper von Kopf bis Fersen in einer Linie.','Bauch und Gesäß anspannen, Nacken lang.'],'Einfacher: Knie am Boden lassen.',54],
+ ['Welpenhaltung','Uttana Shishosana · Puppy Pose',1,1,'Schultern & Rücken','static',45,false,'rb',['Aus dem Vierfüßlerstand die Hände nach vorn wandern lassen.','Hüfte bleibt über den Knien, Brust sinkt Richtung Boden.','Stirn oder Kinn auf die Matte, Arme lang.'],'Einfacher: auf den Unterarmen; intensiver: Hände auf einem Block.',55],
+ ['Liegender Schmetterling','Supta Baddha Konasana · Reclining Bound Angle',4,1,'Hüfte & Innenschenkel','static',90,false,'he',['Fußsohlen zusammen, Knie nach außen sinken lassen.','Langsam auf den Rücken abrollen.','Arme locker neben dem Körper, tief in den Bauch atmen.'],'Blöcke unter die Knie oder ein Bolster unter den Rücken.',56],
  ['Kopfstand','Sirsasana · Headstand',2,3,'Schultern & Rumpf','static',20,false,'',['Unterarme ablegen, Hände verschränken.','Kopf nur leicht aufsetzen, Hüfte über die Schultern bringen.','Beine kontrolliert heben.'],'Nur mit Erfahrung und Anleitung; Nacken nie belasten.',41],
  ['Unterarmstand','Pincha Mayurasana · Forearm Stand',2,3,'Schultern & Rumpf','static',20,false,'',['Delfin-Position einnehmen.','Ein Bein kontrolliert nach oben strecken.','Zweites Bein nachführen, Kopf bleibt frei.'],'Nur mit Erfahrung, zunächst an der Wand.',43],
  ['Handstand','Adho Mukha Vrksasana',2,3,'Arme & Rumpf','static',15,false,'',['Hände schulterbreit, Finger gespreizt.','Aus dem Ausfallschritt kontrolliert hochschwingen.','Körper in einer Linie halten.'],'Zuerst an der Wand üben.',44],
@@ -276,7 +283,7 @@ const V13_BOARDS=Object.freeze({
  'Seitliche Rumpfneigung im Stand':'v13-e04-seitliche-rumpfneigung-stand','Low Lunge':'v13-e05-hueftoeffner-ausfallschritt','90/90 Hüftwechsel':'v13-e06-90-90-hueftmobilisation-seitenwechsel',
  'Brustwirbelsäulen-Extension im Stand':'v13-e07-bws-extension-stand','Figure-Four-Dehnung':'v13-e08-hueftoeffner-figure-four','Handgelenksmobilisation im Vierfüßlerstand':'v16-handgelenk-vierfuessler',
  /* V16 Bild-QA (22.11.): neue, geprüfte Tafeln für bestehende Übungen. Alte Fotos/Karten bleiben als Datei erhalten. */
- 'Kindhaltung':'v16-kindhaltung','Handgelenksmobilisation':'v16-handgelenksmobilisation','Herabschauender Hund':'v16-herabschauender-hund','Sitzende Vorbeuge':'v16-sitzende-vorbeuge','Hüftbeuger-Dehnung':'v16-hueftbeuger-halbkniestand','Waden-Dehnung':'v16-waden-dehnung-wand','Adduktoren-Rockback':'v16-adduktoren-rockback','Türrahmen-Brustdehnung':'v16-tuerrahmen-brustdehnung','Wall Slides':'v16-wall-slides','Krieger II':'yoga-10-krieger-ii'});
+ 'Kindhaltung':'v16-kindhaltung','Brustwirbelsäulen-Rotation':'v16-brustwirbelsaeulen-rotation','Kindhaltung mit Seitgriff':'v16-kindhaltung-seitgriff','Tiefe Hocke mit Halt':'v16-tiefe-hocke-halt','Handgelenksmobilisation':'v16-handgelenksmobilisation','Herabschauender Hund':'v16-herabschauender-hund','Sitzende Vorbeuge':'v16-sitzende-vorbeuge','Hüftbeuger-Dehnung':'v16-hueftbeuger-halbkniestand','Waden-Dehnung':'v16-waden-dehnung-wand','Adduktoren-Rockback':'v16-adduktoren-rockback','Türrahmen-Brustdehnung':'v16-tuerrahmen-brustdehnung','Wall Slides':'v16-wall-slides','Krieger II':'yoga-10-krieger-ii'});
 /* Diese Tafeln tragen „KI-generiert“ bereits im Bild – dort keine zweite Kennzeichnung. */
 /* Yoga 50 (V16 Bild-QA 22.11.): [Nr, Name, Sanskrit, Datei]. Stabile ID = 'yoga-NN'. Noch keine eigenen Katalogeinträge (Yoga 2.0, #72). */
 const YOGA_50=Object.freeze([
@@ -329,11 +336,19 @@ const YOGA_50=Object.freeze([
  [47,'Liegende Wirbelsäulendrehung','Supta Matsyendrasana','yoga-47-liegende-wirbelsaeulendrehung'],
  [48,'Nadelöhr in Rückenlage','Sucirandhrasana','yoga-48-nadeloehr-in-rueckenlage'],
  [49,'Knie zur Brust','Apanasana','yoga-49-knie-zur-brust'],
- [50,'Beine an der Wand','Viparita Karani','yoga-50-beine-an-der-wand']
+ [50,'Beine an der Wand','Viparita Karani','yoga-50-beine-an-der-wand'],
+ /* 26.11.2026: Ergänzungstafeln (17 Zusatzübungen) */
+ [51,'Baumhaltung','Vrksasana','yoga-51-baumhaltung'],
+ [52,'Krieger III','Virabhadrasana III','yoga-52-krieger-iii'],
+ [53,'Adlerhaltung','Garudasana','yoga-53-adlerhaltung'],
+ [54,'Brett','Phalakasana','yoga-54-brett'],
+ [55,'Welpenhaltung','Uttana Shishosana','yoga-55-welpenhaltung'],
+ [56,'Liegender Schmetterling','Supta Baddha Konasana','yoga-56-liegender-schmetterling'],
+ [57,'Endentspannung','Savasana','yoga-57-endentspannung']
 ].map(([nr,name,sanskrit,file])=>Object.freeze({id:'yoga-'+String(nr).padStart(2,'0'),nr,name,sanskrit,src:'./mobility-boards/'+file+'.webp'})));
 const BOARD_LABELED=Object.freeze(new Set(['v13-10-quadrizeps-dehnung-stand','v13-11-soleus-dehnung-gebeugtes-knie','v13-12-hamstring-dehnung-gurt','v13-13-beckenkippen-rueckenlage',
  'v13-14-beckenkreisen-stand','v13-15-knie-zur-brust-rueckenlage','v13-16-thread-the-needle','v13-17-bws-streckung-foam-roller','v13-18-schulterkreisen','v13-19-schulterheben-stab',
- 'v13-e08-hueftoeffner-figure-four','v13-e09-handgelenk-vierfuessler','v16-kindhaltung','v16-handgelenksmobilisation','v16-herabschauender-hund','v16-sitzende-vorbeuge','v16-hueftbeuger-halbkniestand','v16-waden-dehnung-wand','v16-adduktoren-rockback','v16-tuerrahmen-brustdehnung','v16-wall-slides','yoga-10-krieger-ii','v16-handgelenk-vierfuessler'].map(b=>'./mobility-boards/'+b+'.webp').concat(YOGA_50.map(y=>y.src))));
+ 'v13-e08-hueftoeffner-figure-four','v13-e09-handgelenk-vierfuessler','v16-kindhaltung','v16-handgelenksmobilisation','v16-brustwirbelsaeulen-rotation','v16-kindhaltung-seitgriff','v16-tiefe-hocke-halt','yoga-51-baumhaltung','yoga-52-krieger-iii','yoga-53-adlerhaltung','yoga-54-brett','yoga-55-welpenhaltung','yoga-56-liegender-schmetterling','yoga-57-endentspannung','v16-herabschauender-hund','v16-sitzende-vorbeuge','v16-hueftbeuger-halbkniestand','v16-waden-dehnung-wand','v16-adduktoren-rockback','v16-tuerrahmen-brustdehnung','v16-wall-slides','yoga-10-krieger-ii','v16-handgelenk-vierfuessler'].map(b=>'./mobility-boards/'+b+'.webp').concat(YOGA_50.map(y=>y.src))));
 const BAND_IMAGES=Object.freeze(Object.assign(Object.fromEntries(YOGA_50.filter(y=>!V13_BOARDS[y.name]).map(y=>[y.name,y.src])),Object.fromEntries(Object.entries(V13_BOARDS).map(([n,b])=>[n,'./mobility-boards/'+b+'.webp'])),
  Object.fromEntries(BAND_DEFS.map(d=>[d[0],'./mobility-boards/'+d[5]+'.webp']))));
 const MOB_BOARDS=BAND_IMAGES;
