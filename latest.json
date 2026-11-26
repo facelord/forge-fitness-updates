@@ -1,7 +1,7 @@
 {
-  "versionCode": 10711,
-  "versionName": "14.13.711",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.711/FORGE-Fitness-14.13.711.apk",
-  "sha256": "1fc231e5a1a8ee8742b370d6d315a8edd7764dd8e10e1cd59a42f8b2c55f4cf7",
-  "notes": "FORGE 14.13.711 – Änderungen in diesem Update\n• Behoben: Zirkel lässt sich im Plan speichern und übernimmt seine eigenen Zeiten"
+  "versionCode": 10714,
+  "versionName": "14.13.714",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.714/FORGE-Fitness-14.13.714.apk",
+  "sha256": "a5a430c5f50a1bf1a6739f14cf385a9d2f89cc7fcc1daf42ffce1140418858dd",
+  "notes": "FORGE 14.13.714 – Änderungen in diesem Update\n• Neu: Tafel für Plank Hip Twists ergänzt\n• Neu: 16 neue Übungstafeln – Bauchübungen, Kurzhantel-Flys, 7 Yoga-Haltungen und 3 Mobilitätsübungen"
 }
