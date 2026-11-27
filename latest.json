@@ -1,7 +1,7 @@
 {
-  "versionCode": 10714,
-  "versionName": "14.13.714",
-  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.714/FORGE-Fitness-14.13.714.apk",
-  "sha256": "a5a430c5f50a1bf1a6739f14cf385a9d2f89cc7fcc1daf42ffce1140418858dd",
-  "notes": "FORGE 14.13.714 – Änderungen in diesem Update\n• Neu: Tafel für Plank Hip Twists ergänzt\n• Neu: 16 neue Übungstafeln – Bauchübungen, Kurzhantel-Flys, 7 Yoga-Haltungen und 3 Mobilitätsübungen"
+  "versionCode": 10718,
+  "versionName": "14.13.718",
+  "apkUrl": "https://github.com/facelord/forge-fitness-updates/releases/download/v14.13.718/FORGE-Fitness-14.13.718.apk",
+  "sha256": "a6c9a4fbe46dd2eb6e89997771ace8e70e8f134514a47f076f731199ac0b0552",
+  "notes": "FORGE 14.13.718 – Änderungen in diesem Update\n• Neu: Supersatz, Übungsnotizen mit nachvollziehbarem Coach und einheitliches Bild-Pop-up"
 }
