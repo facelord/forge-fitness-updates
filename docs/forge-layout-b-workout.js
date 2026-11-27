@@ -166,7 +166,7 @@ const H=S+' #forgePremiumShell.forge-b-shell';
 const D=H+' :is(#forgeQuickWorkout .forge130-focus-card-grid,#forgeV91Warm .forge-v91-warm-fields)>label.forge-v8-dial';
 const CSS=`
 ${S}{overflow:clip!important}
-${H}{grid-template-rows:46px minmax(118px,1fr) 50px auto 0px minmax(178px,1.2fr) 74px!important;row-gap:10px!important;padding:10px 14px 8px!important;background:#0b1018!important;max-width:560px!important}
+${H}{grid-template-rows:46px minmax(118px,1fr) 50px auto auto 0px minmax(178px,1.2fr) 74px!important;row-gap:10px!important;padding:10px 14px 8px!important;background:#0b1018!important;max-width:560px!important}
 ${H}>.forge-b-header,${H}>.forge-b-status,${H}>.forge-b-hud,${H}>.forge-b-footer{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;opacity:0!important;pointer-events:none!important;grid-row:auto!important}
 ${H} .forge-lb-top{grid-row:1;display:flex;align-items:center;gap:10px;min-width:0}
 ${H} .forge-lb-round{width:44px;height:44px;flex:0 0 44px;border-radius:22px;border:1px solid #293346;background:#171e2a;color:#f3f7fc;display:flex;align-items:center;justify-content:center;padding:0}
@@ -206,12 +206,25 @@ ${H} .forge-b-counter,${H} .forge-b-media-arrows,${H} .forge-b-set-heading{displ
 ${H} .forge-b-media-shade{background:linear-gradient(180deg,rgba(11,16,24,0) 35%,rgba(11,16,24,.94))!important}
 ${H} .forge-b-media-bottom{left:16px!important;right:12px!important;bottom:12px!important;align-items:flex-end!important}
 ${H} #forgeBExerciseName{font-size:clamp(21px,6vw,26px)!important;font-weight:800!important;letter-spacing:-.02em!important;max-width:100%!important}
+/* Lange Übungsnamen bleiben vollständig lesbar: etwas kleinere Schrift statt Abschneiden */
+${H} #forgeBExerciseName.forge-lb-longname{font-size:clamp(17px,5.2vw,21px)!important;line-height:1.12!important;white-space:normal!important;overflow:visible!important;-webkit-line-clamp:unset!important;text-overflow:clip!important;overflow-wrap:anywhere}
+${H} .forge-b-title-stack{max-width:100%!important} /* Technik sitzt nicht mehr im Bild – Name nutzt die volle Breite */
 ${H} .forge-lb-target{font-size:13px;color:#c3cddb;margin-top:3px;font-weight:500}
 ${H} .forge-lb-tech{position:absolute;right:12px;bottom:12px;z-index:3;height:36px;border-radius:18px;border:0;background:rgba(243,247,252,.16);color:#f3f7fc;font-size:12px;font-weight:700;padding:0 12px;display:flex;align-items:center;gap:6px;backdrop-filter:blur(6px)}
 /* Übersicht (☰): nur Sätze – Aufwärmen steht im Satz-Streifen, Technik hinter dem Bild. */
 ${S} #workoutExercises .forge140-exercise-warmup,${S} #workoutExercises .forge-strength-guide{display:none!important}
 ${H} .forge-lb-swapchip{position:absolute;right:12px;top:12px;z-index:3;height:36px;border-radius:18px;border:0;background:rgba(11,16,24,.72);color:#f3f7fc;font-size:12px;font-weight:700;padding:0 12px;display:flex;align-items:center;gap:6px;backdrop-filter:blur(6px)}
 ${H} .forge-lb-swapchip svg{width:16px;height:16px}
+/* Supersatz · Tauschen · Technik: eine Leiste direkt unter den Satzkacheln, gleich breit und hoch, nicht mehr über dem Bild */
+${H} .forge-lb-acts{grid-row:4;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;min-width:0}
+${H} .forge-lb-acts>button{position:static!important;inset:auto!important;z-index:auto!important;height:40px!important;min-width:0!important;margin:0!important;border:1.5px solid #9EFF00!important;border-radius:14px!important;background:#121925!important;color:#f3f7fc!important;font:700 12px/1 Inter,system-ui,sans-serif!important;padding:0 8px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;backdrop-filter:none!important;box-shadow:none!important}
+${H} .forge-lb-acts>button[hidden]{display:none!important}
+/* Aufwärmsatz: Leiste kompakter, damit die Aufwärm-Regler frei bleiben */
+${H}.forge-v91-warming{grid-template-rows:46px minmax(96px,.8fr) 50px auto 0px 0px minmax(196px,1.35fr) 74px!important;row-gap:8px!important}
+${H}.forge-v91-warming .forge-lb-acts>button{height:34px!important}
+${H} .forge-lb-acts>button span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+${H} .forge-lb-acts>button svg{flex:0 0 auto;width:16px;height:16px}
+${H} .forge-lb-acts>button.on{background:rgba(158,255,0,.14)!important;color:#d9f59a!important}
 ${H} .forge-lb-side:disabled{opacity:.35}
 ${H} .forge-lb-strip{grid-row:3;display:flex;gap:6px;min-width:0;overflow-x:auto;scrollbar-width:none}
 ${H} .forge-lb-strip::-webkit-scrollbar{display:none}
@@ -224,14 +237,14 @@ ${H} .forge-lb-chip.current b{font-weight:800}
 ${H} .forge-lb-chip.current span{color:#c3cddb}
 ${H} .forge-lb-chip.open{border-style:dashed;border-color:#3a4556}
 ${H} .forge-lb-chip.warm-add{border-style:dashed;border-color:#3a4556;color:#95a3b7}
-${H} .forge-lb-info{grid-row:4;display:flex;align-items:center;gap:8px;font-size:13px;color:#c3cddb;background:#14202a;border-radius:12px;padding:9px 12px;min-height:18px}
+${H} .forge-lb-info{grid-row:5;display:flex;align-items:center;gap:8px;font-size:13px;color:#c3cddb;background:#14202a;border-radius:12px;padding:9px 12px;min-height:18px}
 ${H} .forge-lb-info:empty{display:none}
 ${H} .forge-lb-info-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 ${H} .forge-lb-raise{flex:0 0 auto;min-height:34px;border-radius:17px;border:1px solid #405d39;background:#1f2c1c;color:${ACC};font:inherit;font-size:13px;font-weight:800;padding:0 12px;margin:-4px -4px -4px 0}
 ${H} .forge-b-rest{display:none!important}
-${S}.forge-lb-rest-min #forgePremiumShell.forge-b-shell .forge-b-rest:has(#forgeRestTimer.forge-live-rest-running){display:flex!important;grid-row:5!important}
-${S}.forge-lb-rest-min #forgePremiumShell.forge-b-shell{grid-template-rows:46px minmax(100px,1fr) 50px auto auto minmax(170px,1.2fr) 74px!important}
-${H} .forge-b-set-panel{grid-row:6!important;padding:0!important;background:none!important;border:0!important;box-shadow:none!important;min-height:0!important;display:flex!important;flex-direction:column!important}
+${S}.forge-lb-rest-min #forgePremiumShell.forge-b-shell .forge-b-rest:has(#forgeRestTimer.forge-live-rest-running){display:flex!important;grid-row:6!important}
+${S}.forge-lb-rest-min #forgePremiumShell.forge-b-shell{grid-template-rows:46px minmax(100px,1fr) 50px auto auto auto minmax(170px,1.2fr) 74px!important}
+${H} .forge-b-set-panel{grid-row:7!important;padding:0!important;background:none!important;border:0!important;box-shadow:none!important;min-height:0!important;display:flex!important;flex-direction:column!important}
 ${H}:not(.forge-v91-warming) #forgeV91Warm{display:none!important}
 ${H}.forge-v91-warming #forgeQuickWorkout{display:none!important}
 ${H}.forge-v91-warming #forgeV91Warm{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;gap:6px!important;min-height:0!important}
@@ -263,14 +276,15 @@ ${D}>.forge-v8-plus:active,${D}>.forge-v8-minus:active{background:#26324a!import
 ${D}>.forge-v8-unit{order:1;position:static!important;display:block!important;font-size:11px!important;color:#95a3b7!important;text-transform:uppercase!important;letter-spacing:1.2px!important;text-align:center!important;margin:8px 0 0!important;transform:none!important}
 ${D} input{order:2;position:static!important;transform:none!important;width:100%!important;max-width:none!important;height:auto!important;min-height:48px!important;margin:0 0 6px!important;padding:0!important;border:0!important;background:transparent!important;color:#f3f7fc!important;-webkit-text-fill-color:#f3f7fc!important;text-align:center!important;font-size:clamp(34px,11vw,46px)!important;font-weight:800!important;line-height:1.05!important;box-shadow:none!important;font-variant-numeric:tabular-nums!important}
 ${D} input:focus{outline:2px solid ${ACC}!important;outline-offset:-4px!important;border-radius:10px!important}
-${H} .forge-lb-bottom{grid-row:7;display:grid;grid-template-columns:72px minmax(0,1fr) 72px;gap:10px;align-items:center}
+${H} .forge-lb-bottom{grid-row:8;display:grid;grid-template-columns:72px minmax(0,1fr) 72px;gap:10px;align-items:center}
 ${H} .forge-lb-side{height:72px;border-radius:24px;border:1px solid #3a4556;background:#202a38;color:#f3f7fc;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;font-weight:700;padding:0}
 ${H} .forge-lb-main{height:72px;border-radius:36px;border:0;background:${ACC};color:#142016;font-size:18px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 10px;box-shadow:0 10px 24px rgba(169,242,103,.14);min-width:0}
 ${H} .forge-lb-main span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 ${H} .forge-lb-main:disabled{opacity:.55}
 ${H} button:focus-visible{outline:2px solid ${ACC}!important;outline-offset:2px!important}
 body.forge-layout-b.forge-compact-typing #workout.forge-lb-live #forgePremiumShell.forge-b-shell .forge-b-media{display:none!important}
-body.forge-layout-b.forge-compact-typing #workout.forge-lb-live.forge-premium-layout #forgePremiumShell.forge-b-shell.forge-b-shell{grid-template-rows:46px 0 50px auto 0 minmax(178px,1fr) 74px!important}
+body.forge-layout-b.forge-compact-typing #workout.forge-lb-live.forge-premium-layout #forgePremiumShell.forge-b-shell.forge-b-shell{grid-template-rows:46px 0 50px 0 auto 0 minmax(178px,1fr) 74px!important}
+body.forge-layout-b.forge-compact-typing #workout.forge-lb-live .forge-lb-acts{display:none!important}
 /* Satzpause */
 ${H} .forge-lb-rest{position:absolute;inset:0;z-index:20;display:none;flex-direction:column;background:#0b1018;padding:16px 16px 10px;box-sizing:border-box}
 ${S}.forge-lb-resting:not(.forge-lb-rest-min) #forgePremiumShell.forge-b-shell .forge-lb-rest{display:flex;animation:forgeLbRestIn .22s ease-out both}
@@ -308,10 +322,29 @@ ${H} .forge-lb-cancel{height:34px;flex:0 0 auto;border-radius:17px;border:1px so
 ${H} .forge-lb-cancel svg{width:12px;height:12px}
 ${H} .forge-lb-rest-cancel{align-self:center;min-height:40px;border:0;background:transparent;color:#a99ba2;font-size:13px;font-weight:600;text-decoration:underline;text-underline-offset:3px}
 @media (max-height:720px){
- ${H}{grid-template-rows:42px minmax(96px,1fr) 46px auto 0px minmax(150px,1.2fr) 64px!important;row-gap:7px!important}
+ ${H}{grid-template-rows:42px minmax(96px,1fr) 46px auto auto 0px minmax(150px,1.2fr) 64px!important;row-gap:7px!important}
  ${H} .forge-lb-chip{height:44px}
  ${H} .forge-lb-side,${H} .forge-lb-main{height:62px}
  ${H} .forge-lb-info{padding:7px 10px}
+ ${H} .forge-lb-acts>button{height:34px!important;border-radius:12px!important}
+ ${H} #forgeBExerciseName{font-size:clamp(19px,5.6vw,23px)!important}
+ ${H} #forgeBExerciseName.forge-lb-longname{font-size:clamp(16px,4.8vw,19px)!important}
+}
+@media (max-width:350px){
+ ${H} .forge-lb-acts{gap:6px}
+ ${H} .forge-lb-acts>button{font-size:11px!important;padding:0 4px!important;gap:3px!important;letter-spacing:-.01em}
+ ${H} .forge-lb-acts>button svg{width:14px;height:14px}
+}
+@media (max-height:680px){
+ /* sehr kleine Displays: Leiste unter den Satzkacheln bekommt ihren Platz, ohne dass Bild und Satzkacheln überlappen */
+ ${H}{grid-template-rows:40px minmax(84px,1fr) 42px auto auto 0px minmax(150px,1.1fr) 56px!important;row-gap:6px!important}
+ ${H} .forge-b-media{min-height:0!important}
+ ${H} .forge-lb-chip{height:40px}
+ ${H} .forge-lb-acts>button{height:32px!important}
+ ${H} .forge-lb-side,${H} .forge-lb-main{height:54px}
+ ${H} .forge-lb-target{margin-top:1px}
+ ${H}.forge-v91-warming{grid-template-rows:40px minmax(60px,.5fr) 42px auto 0px 0px minmax(186px,1.5fr) 56px!important;row-gap:6px!important}
+ ${H}.forge-v91-warming .forge-lb-acts>button{height:30px!important}
 }
 
 /* Übersicht: Abschluss-Aktionen */
@@ -437,17 +470,17 @@ function build(shell){
  });
  bottom.append(prev,main,next);
 
+ const acts=el('div','forge-lb-acts');acts.setAttribute('role','group');acts.setAttribute('aria-label','Übungsaktionen');acts.append(ss,swap,tech);
  const rest=buildRest();
- shell.append(top,strip,info,bottom,rest.root);
- nodes={shell,top,segs,clock,clockText:clock.querySelector('span'),tech,target,strip,info,bottom,swap,ss,prev,main,mainText:main.querySelector('span'),next,nextText:next.querySelector('span'),rest};
+ shell.append(top,strip,acts,info,bottom,rest.root);
+ nodes={shell,top,segs,clock,clockText:clock.querySelector('span'),tech,target,strip,acts,info,bottom,swap,ss,prev,main,mainText:main.querySelector('span'),next,nextText:next.querySelector('span'),rest};
  placeHeroExtras();
  bindSwipe(shell);
 }
 function placeHeroExtras(){
  const media=nodes.shell.querySelector('.forge-b-media');
- if(media&&nodes.tech.parentNode!==media)media.append(nodes.tech);
- if(media&&nodes.swap.parentNode!==media)media.append(nodes.swap);
- if(media&&nodes.ss&&nodes.ss.parentNode!==media)media.append(nodes.ss);
+ // Aktionen liegen in der eigenen Leiste unter den Satzkacheln (nicht auf dem Übungsbild)
+ if(nodes.acts&&[nodes.ss,nodes.swap,nodes.tech].some(b=>b&&b.parentNode!==nodes.acts))nodes.acts.append(...[nodes.ss,nodes.swap,nodes.tech].filter(Boolean));
  const stack=nodes.shell.querySelector('.forge-b-title-stack');
  if(stack&&nodes.target.parentNode!==stack)stack.append(nodes.target);
 }
@@ -768,6 +801,7 @@ function renderLive(){
  const s=live(),p=plan(),f=focus();
  if(!s||!p||!nodes)return;
  placeHeroExtras();
+ {const nm=document.getElementById('forgeBExerciseName');if(nm){const long=(nm.textContent||'').trim().length>22;if(nm.classList.contains('forge-lb-longname')!==long)nm.classList.toggle('forge-lb-longname',long);}}
  const draft=s.workoutDraft&&String(s.workoutDraft.planId)===String(p.id)?s.workoutDraft:null;
  const ex=draft?.exercises||[];
  const i=f?f.i:0,j=f?f.j:-1,cur=ex[i]||{},sets=cur.sets||[];
