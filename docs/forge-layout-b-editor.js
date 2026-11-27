@@ -143,7 +143,7 @@ function draftPlan(units,name,idFn){
  // Units shared by several weekdays become one plan entry per weekday (same exercises).
  const rows=[];units.forEach(u=>{(Array.isArray(u.days)&&u.days.length?u.days:[u.weekday]).forEach(d=>rows.push({u,d,shared:Array.isArray(u.days)}));});
  return rows.sort((a,b)=>a.d-b.d).map(({u,d,shared})=>({id:idFn(),weekday:d,type:'full',title:label+' · '+(shared?u.title:(u.label||DAY_FULL[d])),location:u.location==='home'?'home':'gym',
-  ex:u.ex.map(e=>({name:String(e.name).trim(),sets:Number(e.sets),reps:Number(e.reps),unit:e.unit||'auto',...(Number.isInteger(Number(e.rest))&&Number(e.rest)>=15&&Number(e.rest)<=600?{rest:Number(e.rest)}:{})}))}));
+  ex:u.ex.map(e=>({name:String(e.name).trim(),sets:Number(e.sets),reps:Number(e.reps),unit:e.unit||'auto',...(Number.isInteger(Number(e.rest))&&Number(e.rest)>=15&&Number(e.rest)<=600?{rest:Number(e.rest)}:{}),...(e.superset?{superset:String(e.superset),supersetRole:e.supersetRole==='B'?'B':'A'}:{})}))}));
 }
 /* Own exercises (not in the catalog) that a plan already contains may stay when
    the plan is edited; the core validator only knows catalog names. */
@@ -243,6 +243,12 @@ ${E} .ed-th{width:44px;height:44px;flex:0 0 44px;border-radius:10px;overflow:hid
 ${E} .ed-th img,${E} .ed-th svg,${C} .cat-img img,${C} .cat-img svg{width:100%;height:100%;object-fit:cover;display:block}
 ${E} .ed-th svg,${C} .cat-img svg{object-fit:contain;background:#e9eef4}
 ${E} .ed-th.none::after,${C} .cat-img.none::after{content:'';width:40%;height:40%;border-radius:50%;border:2px solid #3a4556}
+${E} .ed-ss{display:flex;flex-direction:column;gap:6px;background:#1a2a22;border:1px solid #405d39;border-radius:14px;padding:10px 12px}
+${E} .ed-ss b{font-size:14px;color:#d9f59a}
+${E} .ed-ss small{font-size:12px;color:#c3cddb;line-height:1.35}
+${E} .ed-ss .ed-ss-diff{color:#ffd38a}
+${E} .ed-ss-acts{display:flex;flex-wrap:wrap;gap:6px}
+${E} .ed-ss-acts button,${E} .ed-ss-add{min-height:40px;border-radius:20px;border:1px solid #405d39;background:#171e2a;color:#f3f7fc;font:inherit;font-size:13px;font-weight:700;padding:0 12px}
 ${E} .ed-card{flex:0 0 auto;background:#171e2a;border:2px solid ${ACC};border-radius:20px;padding:12px;display:flex;flex-direction:column;gap:12px}
 ${E} .ed-card-head{display:flex;align-items:center;gap:12px}
 ${E} .ed-card-head .ed-th{width:52px;height:52px;flex-basis:52px;border-radius:12px}
@@ -501,7 +507,7 @@ function render(){
 function exerciseRow(ex,i){
  const r=btn('ed-row','',()=>{ed.open=i;ed.status='';ed.tone='';render();});
  r.setAttribute('aria-label',ex.name+', '+doseText(ex)+' – bearbeiten');
- r.append(thumb(ex.name,'ed-th'),el('b','',ex.name),el('em','',doseText(ex)));
+ r.append(thumb(ex.name,'ed-th'),el('b','',ex.name),el('em','',(ex.superset?'⛓ '+(ex.supersetRole==='B'?'B':'A')+' · ':'')+doseText(ex)));
  return r;
 }
 function stepper(label,ex,key,max){
@@ -561,6 +567,7 @@ function exerciseCard(w,ex,i){
  steps.append(stepper('Sätze',ex,'sets',MAX_SETS),stepper('Wiederholungen / Sekunden',ex,'reps',MAX_REPS));
  const rs=restStepper(ex);if(rs)steps.append(rs);
  c.append(steps);
+ const ss=supersetBox(w,ex,i);if(ss)c.append(ss);
  }
  const acts=el('div','ed-acts');
  acts.append(btn('ed-alt',zk?'Ersetzen':'Alternative Übung',()=>openCatalog({mode:'replace',unit:w,index:i})));
@@ -571,6 +578,32 @@ function exerciseCard(w,ex,i){
  if(w.ex.length<=1&&!ed.draft){del.disabled=true;del.title='Mindestens eine Übung muss bleiben';}
  acts.append(del);c.append(acts);
  return c;
+}
+/* #118: zwei Übungen als Supersatz koppeln (A → B, Pause erst nach B). Nur Felder superset/supersetRole. */
+function supersetBox(w,ex,i){
+ const S=window.ForgeSuperset;if(!S)return null;
+ const box=el('div','ed-ss');
+ const partner=ex.superset?w.ex.findIndex((e,k)=>k!==i&&e.superset===ex.superset):-1;
+ if(ex.superset&&partner<0){delete ex.superset;delete ex.supersetRole;}
+ if(partner>=0){
+  const role=ex.supersetRole==='B'?'B':'A';
+  box.append(el('b','','⛓ Supersatz '+role+' mit „'+w.ex[partner].name+'“'),el('small','',role==='A'?'Nach jedem Satz direkt zu B, Pause erst nach B.':'Kommt direkt nach A, danach die gemeinsame Pause.'));
+  const ai=role==='A'?i:partner,bi=role==='A'?partner:i;
+  const hint=S.countHint(w,ai,bi);if(hint)box.append(el('small','ed-ss-diff',hint));
+  const row=el('div','ed-ss-acts');
+  row.append(btn('','A/B tauschen',()=>{w.ex[i].supersetRole=role==='A'?'B':'A';w.ex[partner].supersetRole=role==='A'?'A':'B';render();}));
+  row.append(btn('','Supersatz trennen',()=>{delete w.ex[i].superset;delete w.ex[i].supersetRole;delete w.ex[partner].superset;delete w.ex[partner].supersetRole;ed.status='Supersatz getrennt – beide Übungen bleiben erhalten.';ed.tone='';render();}));
+  box.append(row);return box;
+ }
+ const cands=w.ex.map((e,k)=>({e,k})).filter(x=>x.k!==i&&!x.e.superset&&!/^Zirkel:/.test(String(x.e.name||'')));
+ if(!cands.length||/^Zirkel:/.test(String(ex.name||'')))return null;
+ if(ed.ssPick!==i){box.append(btn('ed-ss-add','⛓ Als Supersatz verbinden',()=>{ed.ssPick=i;render();}));return box;}
+ box.append(el('b','','Mit welcher Übung koppeln? (B)'));
+ const row=el('div','ed-ss-acts');
+ cands.forEach(({e,k})=>row.append(btn('',e.name,()=>{const id='ss-'+Date.now().toString(36);w.ex[i].superset=id;w.ex[i].supersetRole='A';w.ex[k].superset=id;w.ex[k].supersetRole='B';ed.ssPick=null;
+  const h=S.countHint(w,i,k);ed.status='Supersatz: '+ex.name+' → '+e.name+(h?' · '+h:'');ed.tone='';render();})));
+ row.append(btn('','Abbrechen',()=>{ed.ssPick=null;render();}));
+ box.append(row);return box;
 }
 function saveAll(){
  const ids=dirtyIds();if(!ids.length){closeEditor(true);return;}

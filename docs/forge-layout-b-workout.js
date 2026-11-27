@@ -425,6 +425,9 @@ function build(shell){
  prev.addEventListener('click',()=>{if(!prev.disabled)goBack();});
  const swap=el('button','forge-lb-swapchip');swap.type='button';swap.innerHTML=SVG.swap+'<span>Tauschen</span>';swap.setAttribute('aria-label','Übung tauschen');
  swap.addEventListener('click',()=>{const f=focus();if(f)window.ForgeExerciseSwap?.openForSession?.(f.i);});
+ // #118: Supersatz – spontan im Training koppeln (nur diese Einheit) oder bearbeiten
+ const ss=el('button','forge-ss-chip');ss.type='button';ss.innerHTML='<span>⛓ Supersatz</span>';ss.setAttribute('aria-label','Supersatz erstellen');
+ ss.addEventListener('click',()=>{const f=focus();const U=window.ForgeSupersetUI;if(!f||!U)return;const inf=U.liveInfo(f.i);if(inf)U.openManage(f.i);else U.openCreate(f.i);});
  const main=el('button','forge-lb-main');main.type='button';main.innerHTML=SVG.check+'<span>Satz fertig</span>';
  main.addEventListener('click',()=>{fxPop(main);if(main.dataset.mode==='save'){saveAndFinish();return;}if(main.dataset.mode==='zk'){startCircuit();return;}const warm=$('forgePremiumShell')?.classList.contains('forge-v91-warming');(warm?$('forgeV91WarmDone'):document.querySelector('#forgeQuickWorkout .forge-primary-action'))?.click();});
  const next=el('button','forge-lb-side');next.type='button';next.innerHTML=SVG.next+'<span>Nächste</span>';
@@ -436,7 +439,7 @@ function build(shell){
 
  const rest=buildRest();
  shell.append(top,strip,info,bottom,rest.root);
- nodes={shell,top,segs,clock,clockText:clock.querySelector('span'),tech,target,strip,info,bottom,swap,prev,main,mainText:main.querySelector('span'),next,nextText:next.querySelector('span'),rest};
+ nodes={shell,top,segs,clock,clockText:clock.querySelector('span'),tech,target,strip,info,bottom,swap,ss,prev,main,mainText:main.querySelector('span'),next,nextText:next.querySelector('span'),rest};
  placeHeroExtras();
  bindSwipe(shell);
 }
@@ -444,6 +447,7 @@ function placeHeroExtras(){
  const media=nodes.shell.querySelector('.forge-b-media');
  if(media&&nodes.tech.parentNode!==media)media.append(nodes.tech);
  if(media&&nodes.swap.parentNode!==media)media.append(nodes.swap);
+ if(media&&nodes.ss&&nodes.ss.parentNode!==media)media.append(nodes.ss);
  const stack=nodes.shell.querySelector('.forge-b-title-stack');
  if(stack&&nodes.target.parentNode!==stack)stack.append(nodes.target);
 }
@@ -834,13 +838,22 @@ function renderLive(){
    if(Number.isFinite(minReps)&&minReps>0)hint=raiseHint(forge130LoadSuggestion(cur.name,Number(pe.sets)||sets.length,minReps),sets);
   }
  }catch(e){hint=null;}
+ let ssInfo=null;try{ssInfo=window.ForgeSupersetUI?window.ForgeSupersetUI.liveInfo(i):null;}catch(e){ssInfo=null;}
+ if(nodes.ss){const on=!!ssInfo;nodes.ss.classList.toggle('on',on);const t=on?'⛓ mit '+ssInfo.partner:'⛓ Supersatz';const sp=nodes.ss.querySelector('span');if(sp&&sp.textContent!==t)sp.textContent=t;nodes.ss.setAttribute('aria-label',on?'Supersatz bearbeiten, gekoppelt mit '+ssInfo.partner:'Supersatz erstellen');nodes.ss.hidden=!!circuitName(cur.name);}
+ // #115: Erinnerung an die eigene Notiz bzw. Coach-Stand (1 von 2) + Zugang zu Coach & Notiz
+ let cn=null;const zkNow=!!circuitName(cur.name);try{cn=!zkNow&&!nodes.shell.classList.contains('forge-v91-warming')&&window.ForgeCoachUI?window.ForgeCoachUI.liveLine(i):null;}catch(e){cn=null;}
+ if(cn&&ssInfo&&cn.kind==='coach')cn=cn.note?{kind:'has',text:''}:null; // Supersatz-Hinweis hat Vorrang, Coach bleibt über „Notiz“ erreichbar
+ const cnOn=!zkNow&&!!window.ForgeCoachUI&&!nodes.shell.classList.contains('forge-v91-warming'); // Aufwärmsätze: keine Coach-/Notizzeile
+ if(cn&&cn.kind==='coach'){parts.push(cn.text);cn=cn.note?{kind:'has',text:''}:null;} // Coach-Stand (z. B. „1 von 2“) erscheint in der Infozeile
  const infoText=parts.join(' · ');
- const infoKey=infoText+'|'+(hint?hint.kg:'');
+ const infoKey=infoText+'|'+(hint?hint.kg:'')+'|'+(ssInfo?ssInfo.text:'')+'|'+i+'|'+(cn?cn.kind+cn.text:'')+'|'+cnOn;
  if(nodes.info.dataset.text!==infoKey){
   nodes.info.dataset.text=infoKey;
-  if(infoText||hint){
-   nodes.info.innerHTML=SVG.trend;
-   const t=el('span','forge-lb-info-t',infoText);nodes.info.append(t);
+  if(infoText||hint||ssInfo||cnOn){
+   nodes.info.innerHTML=ssInfo||(cn&&cn.text)?'':SVG.trend;
+   if(ssInfo){const tg=el('button','forge-ss-tag',ssInfo.text);tg.type='button';tg.setAttribute('aria-label',ssInfo.text+' – Supersatz bearbeiten');tg.addEventListener('click',()=>window.ForgeSupersetUI?.openManage(i));nodes.info.append(tg);}
+   if(cn&&cn.text){const ln=el('button','forge-cn-line'+(cn.kind==='coach'?' coach':''),cn.text);ln.type='button';ln.setAttribute('aria-label',cn.text+' – Coach und Notiz öffnen');ln.addEventListener('click',()=>window.ForgeCoachUI?.open(i));nodes.info.append(ln);}
+   else{const t=el('span','forge-lb-info-t',infoText);nodes.info.append(t);}
    if(hint){
     const b=el('button','forge-lb-raise');b.type='button';
     b.textContent='↑ Steigern: '+fmtKg(hint.kg)+' kg';
@@ -848,6 +861,7 @@ function renderLive(){
     b.addEventListener('click',()=>{try{forge130ApplySuggestion(i);}catch(e){console.error(e);}fxPop(b);});
     nodes.info.append(b);
    }
+   if(cnOn){const hasN=!!cn&&(cn.kind!=='coach'||cn.note);const nb=el('button','forge-cn-btn'+(hasN?' has':''),hasN?'📝 Notiz':'✎ Notiz');nb.type='button';nb.setAttribute('aria-label','Coach und Notiz für nächstes Mal');nb.addEventListener('click',()=>window.ForgeCoachUI?.open(i));nodes.info.append(nb);}
   }else nodes.info.replaceChildren();
  }
  // main action mirrors the native primary button
@@ -866,7 +880,7 @@ function renderLive(){
  const allDone=!warming&&allSetsDone(draft);
  nodes.main.dataset.mode=allDone?'save':'set';
  nodes.main.classList.toggle('forge-lb-main-save',allDone);
- setText(nodes.mainText,allDone?'Speichern und beenden':(nice||'Satz fertig'));
+ setText(nodes.mainText,allDone?'Speichern und beenden':(!warming&&ssInfo&&ssInfo.toB&&/^Satz fertig$/.test(nice||'Satz fertig')?'Fertig → B':(nice||'Satz fertig')));
  nodes.main.disabled=allDone?!!saving:!!prim?.disabled;
  // last exercise -> finish
  const pos=order.indexOf(i),lastEx=pos===order.length-1;

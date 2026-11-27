@@ -8,7 +8,10 @@
 // this module keeps the shared zoom viewer for boards and photos.
 const images={};
 const gridQuery='.forge165-photo-grid,.forge166-photo-grid,.forge167-photo-grid,.forge169-photo-grid';
-const zoomQuery='.forge165-photo-grid img,.forge166-photo-grid img,.forge167-photo-grid img,.forge169-photo-grid img,#forgeCatalog .forge-mob-card-scroll img,#forgeCatalog .forge-mob-photos img,.forge-media-v8-mobility-anatomy img,.forge-v101-chest-grid img,.forge-strength-board img,#forgePremiumHero .forge-b-main-photo.forge-strength-board-hero img';
+const zoomQuery='.forge165-photo-grid img,.forge166-photo-grid img,.forge167-photo-grid img,.forge169-photo-grid img,#forgeCatalog .forge-mob-card-scroll img,#forgeCatalog .forge-mob-photos img,.forge-media-v8-mobility-anatomy img,.forge-v101-chest-grid img,.forge-strength-board img,#forgePremiumHero .forge-b-main-photo.forge-strength-board-hero img'+
+ /* #116: jedes Übungs-Thumbnail in FORGE öffnet dasselbe zentrierte Pop-up */
+ ',#forgePremiumHero .forge-b-main-photo img,.forge-lb-ed .ed-th img,.forge-lb-cat .cat-img img,.tech-img img,.ms-th img,.mr-media img,.ch-img img,.forge-swap-thumb img,.forge-swap-anatomy img,.zk-ex>img,.zr-img img,.rt-ex>img';
+const thumbInButton=img=>!!img.closest?.('button,[role="button"],a,label');
 const originalExercise=window.forgeExerciseIllustrations;
 const originalCatalog=window.forgePublicExercisePictures;
 function assetFor(name){return Object.prototype.hasOwnProperty.call(images,name)?'./muscle-atlas-v2/'+images[name]:null;}
@@ -44,7 +47,7 @@ function styles(){
  .forge-anatomy-v2-legend{font-size:11px!important;color:#cedbd2!important;line-height:1.5!important;text-align:center;padding:6px 8px 9px!important;margin:0!important}
  .forge-anatomy-v2-image:focus-visible{outline:3px solid #a8f55d;outline-offset:2px}
  .forge-anatomy-v2-modal{position:fixed;inset:0;z-index:2147483640;background:rgba(3,10,15,.72);color:#f5fff7;display:flex;align-items:center;justify-content:center;padding:clamp(14px,4vw,32px);box-sizing:border-box;touch-action:manipulation}
- .forge-anatomy-v2-panel{width:min(640px,100%);height:min(78dvh,720px);max-height:calc(100dvh - 28px);min-height:0;display:flex;flex-direction:column;overflow:hidden;border:1px solid #3c5f50;border-radius:16px;background:#091a1c;box-shadow:0 18px 65px rgba(0,0,0,.65);touch-action:auto}
+ .forge-anatomy-v2-panel{width:min(640px,92vw);height:min(70dvh,640px);max-height:calc(100dvh - 28px);min-height:0;display:flex;flex-direction:column;overflow:hidden;border:1px solid #3c5f50;border-radius:16px;background:#091a1c;box-shadow:0 18px 65px rgba(0,0,0,.65);touch-action:auto}
  .forge-anatomy-v2-bar{display:flex;flex:none;align-items:center;gap:6px;background:#102630;padding:5px 8px}
  .forge-anatomy-v2-bar strong{flex:1;min-width:0;font-size:12px;line-height:1.2;max-height:3.6em;overflow:hidden}
  .forge-anatomy-v2-bar button{min-width:44px;min-height:44px;border-radius:9px;border:1px solid #4b746f;background:#1b3641;color:white;font-size:22px}
@@ -54,7 +57,7 @@ function styles(){
  .forge-ai-badge-zoom{position:absolute;right:10px;bottom:8px;z-index:3;font:600 11px/1.1 Inter,system-ui,sans-serif;color:#d8dfdb;background:rgba(5,9,10,.78);border:1px solid rgba(255,255,255,.18);border-radius:7px;padding:3px 7px;pointer-events:none}
  .forge-anatomy-v2-help{flex:none;text-align:center;padding:4px 8px 6px;font-size:11px;color:#b9d0ca}
  /* Board: fit its complete 4:3 landscape composition without blank vertical space. */
- .forge-anatomy-v2-board-panel{width:min(640px,100%);height:auto;max-height:calc(100dvh - 28px)}
+ .forge-anatomy-v2-board-panel{width:min(720px,92vw);height:auto;max-height:84dvh}
  .forge-anatomy-v2-board-panel .forge-anatomy-v2-stage{flex:0 0 auto;width:100%;height:auto;min-height:0;aspect-ratio:1448/1086;padding:0}
  .forge-anatomy-v2-board-panel .forge-anatomy-v2-stage img{width:100%;height:auto;max-width:100%;max-height:100%;object-fit:contain;object-position:center center}
  `;
@@ -67,7 +70,10 @@ function zoomOpen(source){
  const bar=document.createElement('div');bar.className='forge-anatomy-v2-bar';
  const boardImage=!!(source.classList?.contains?.('forge-strength-board-image')||
   source.closest?.('.forge-strength-board-hero')?.classList?.contains?.('forge-strength-board-hero'));
- const title=document.createElement('strong');title.textContent=boardImage?'FORGE-Übungstafel':source.alt||'Übungsbild';
+ const srcAttr=source.getAttribute?.('src')||'';
+ const isBoard=boardImage||/(strength|mobility)-boards\//.test(srcAttr);
+ const rowName=source.closest?.('button,li,.fs-row,[role="button"]')?.querySelector?.('b,strong')?.textContent||'';
+ const title=document.createElement('strong');title.textContent=source.alt||rowName||(isBoard?'FORGE-Übungstafel':'Übungsbild');
  const make=(text,label)=>{const b=document.createElement('button');b.type='button';b.textContent=text;b.setAttribute('aria-label',label);return b;};
  const minus=make('−','Verkleinern'),plus=make('+','Vergrößern'),reset=make('↺','Zoom zurücksetzen'),exit=make('✕','Schließen');
  bar.append(title,minus,plus,reset,exit);
@@ -78,7 +84,7 @@ function zoomOpen(source){
  // Transparenz: KI-generierte Übungstafeln (Kraft + Band-Mobilität) bleiben auch im Zoom gekennzeichnet.
  if((boardImage||/(strength|mobility)-boards\//.test(img.src||''))&&!window.ForgeMobilityCatalog?.boardLabeled?.(source.getAttribute('src'))&&!window.ForgeStrengthBoards?.labeled?.(source.getAttribute('src'))){const ai=document.createElement('span');ai.className='forge-ai-badge forge-ai-badge-zoom';ai.setAttribute('role','note');ai.textContent='KI-generiert';stage.append(ai);}
  const help=document.createElement('div');help.className='forge-anatomy-v2-help';help.textContent='Zwei Finger: Zoom · Tippe daneben zum Schließen';
- const panel=document.createElement('div');panel.className='forge-anatomy-v2-panel'+(boardImage?' forge-anatomy-v2-board-panel':'');panel.append(bar,stage,help);box.append(panel);
+ const panel=document.createElement('div');panel.className='forge-anatomy-v2-panel'+(isBoard?' forge-anatomy-v2-board-panel':'');panel.append(bar,stage,help);box.append(panel);
  let z=1,x=0,y=0,prior=0;const pointers=new Map(),oldOverflow=document.body.style.overflow,oldFocus=document.activeElement;
  function draw(){img.style.transform='translate('+x+'px,'+y+'px) scale('+z+')';}
  function setZoom(next){z=Math.min(6,Math.max(1,next));if(z===1){x=0;y=0;}draw();}
@@ -100,13 +106,24 @@ function zoomOpen(source){
  stage.addEventListener('pointerup',release);stage.addEventListener('pointercancel',release);
  document.body.append(box);document.body.style.overflow='hidden';document.addEventListener('keydown',key,true);exit.focus();
 }
+/* #116: Android-Zurück schließt zuerst das Bild-Pop-up, dann offene Sheets – ohne Seitenwechsel. */
+function handleBack(){
+ if(current){current();return true;}
+ const sheet=[...document.querySelectorAll('.forge-lb-sheet-wrap,.forge-swap-backdrop')].pop();
+ if(sheet){const x=sheet.querySelector('.forge-lb-x,[aria-label="Schließen"]');if(x)x.click();else sheet.remove();return true;}
+ return false;
+}
+const prevBack=window.forgeHandleBack;
+window.forgeHandleBack=function(){if(handleBack())return true;return typeof prevBack==='function'?!!prevBack():false;};
 function init(){
  styles();
  if(document.documentElement.dataset.forgeAnatomyV2ZoomInit)return;
  document.documentElement.dataset.forgeAnatomyV2ZoomInit='1';
  document.addEventListener('click',event=>{
   const img=event.target?.closest?.(zoomQuery);if(!img)return;
-  event.preventDefault();zoomOpen(img);
+  if(document.querySelector?.('.forge-anatomy-v2-modal')?.contains?.(img))return;
+  // Bild in einer Zeile/Taste: nur das Pop-up öffnen, die Zeile (Auswahl, Hinzufügen, Navigation) nicht auslösen
+  event.preventDefault();if(thumbInButton(img)){event.stopPropagation?.();event.stopImmediatePropagation?.();}zoomOpen(img);
  },true);
  document.addEventListener('keydown',event=>{
   const img=event.target?.matches?.(zoomQuery)?event.target:null;
